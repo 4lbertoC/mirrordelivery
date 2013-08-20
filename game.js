@@ -1,3 +1,29 @@
+var _NOTES_CDEFGABC = [
+        523.25,
+        587.33,
+        659.26,
+        698.46,
+        783.99,
+        880.00,
+        987.77,
+        1046.50,
+        1108.73
+    ];
+
+var suoni = {};
+for (var s = 0; s < _NOTES_CDEFGABC.length; s++) {
+	suoni[s] = jsfxlib['createWave'](["synth", 0.0000, 0.4000, 0.0000, 0.2080, 0.0000, 0.1200, 20.0000, _NOTES_CDEFGABC[s], 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.1000, 0.0000]);
+}
+var theme = '023123467'.split('');
+
+function playNextNote() {
+	suoni[theme.shift()]['play']();
+	if (theme.length > 0) {
+		setTimeout(playNextNote, 200);
+	}
+}
+setTimeout(playNextNote, 1000);
+
 // Initialization
 var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
 	window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
@@ -35,7 +61,7 @@ var Player = {
 }
 
 var Crow = {
-	position: [20, 20],
+	position: [CANVAS_WIDTH - 36, 20],
 	images: {
 		flying: null
 	}
@@ -115,7 +141,7 @@ function getCanvasRelativeCoords(evt) {
 // Add Mouse Event Listener
 canvas.addEventListener('click', function (evt) {
 	var currentMousePosition = getCanvasRelativeCoords(evt);
-	if (!Game.started && currentMousePosition[0] < 30 && currentMousePosition[1] < 30) {
+	if (!Game.started && currentMousePosition[0] > CANVAS_WIDTH - 36 && currentMousePosition[1] < 36) {
 		Game.started = true;
 
 		canvas['style']['cursor'] = 'none';
@@ -283,6 +309,10 @@ function drawMap() {
 function drawEnvironment() {
 	var truck = Environment.Truck;
 	ctx.drawImage(truck.image, truck.position[0], truck.position[1]);
+	if (!Game.started) {
+		ctx.setFillColor('red');
+		ctx.fillText("Click the crow to start!", CANVAS_WIDTH - 150, 25, 100);
+	}
 }
 
 function drawPlayer() {
