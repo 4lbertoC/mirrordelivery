@@ -20,14 +20,24 @@ var BLOCK_TYPE = {
 
 // The Player class
 var Player = {
-	position: [100, 100],
-	speed: 3,
+	position: [180, 350],
+	speed: 5,
+	ladderSpeed: 2,
+	jumpSpeed: -7,
 	isJumping: false,
 	isInAir: false,
 	isMoving: false,
 	verticalSpeed: 0,
 	images: {
 		standing: null
+	},
+	wasOverSolidBlock: false
+}
+
+var Crow = {
+	position: [20, 20],
+	images: {
+		flying: null
 	}
 }
 
@@ -36,12 +46,18 @@ var Map = [];
 var Environment = {
 	Truck: {
 		image: null,
-		position: [5, 340]
+		position: [5, 330]
 	},
 	DeliveryPoint: {
 		image: null,
 		position: [0, 0]
 	}
+}
+
+// Game Objects
+var Game = {
+	started: false,
+	canvasBoundingRect: canvas.getBoundingClientRect()
 }
 
 // Key Handling
@@ -84,14 +100,67 @@ a.width = 80;
 a.height = 48;
 a.src = 'truck.png';
 
-for (i = 960; i < 1000; i++) {
+// Build Crow
+a = Crow.images.flying = new Image();
+a.width = 16;
+a.height = 16;
+a.src = 'crow.png';
+
+// Helper functions
+
+function getCanvasRelativeCoords(evt) {
+	return [evt.clientX - Game.canvasBoundingRect.left, evt.clientY - Game.canvasBoundingRect.top];
+}
+
+// Add Mouse Event Listener
+canvas.addEventListener('click', function (evt) {
+	var currentMousePosition = getCanvasRelativeCoords(evt);
+	if (!Game.started && currentMousePosition[0] < 30 && currentMousePosition[1] < 30) {
+		Game.started = true;
+
+		canvas['style']['cursor'] = 'none';
+		canvas.addEventListener('mousemove', function (evt) {
+			// Update the crow's position
+			var newCrowPosition = getCanvasRelativeCoords(evt);
+			Crow.position[0] = newCrowPosition[0];
+			Crow.position[1] = newCrowPosition[1];
+		});
+	}
+});
+
+
+// Build Dummy Map
+for (i = 920; i < 960; i++) {
 	Map[i] = BLOCK_TYPE.SOLID;
 }
 
-Map[940] = BLOCK_TYPE.SOLID;
-Map[941] = BLOCK_TYPE.SOLID;
 Map[900] = BLOCK_TYPE.SOLID;
 Map[901] = BLOCK_TYPE.SOLID;
+Map[902] = BLOCK_TYPE.LADDER;
+Map[862] = BLOCK_TYPE.LADDER;
+Map[822] = BLOCK_TYPE.LADDER;
+Map[782] = BLOCK_TYPE.LADDER;
+Map[742] = BLOCK_TYPE.LADDER;
+Map[702] = BLOCK_TYPE.LADDER;
+Map[662] = BLOCK_TYPE.LADDER;
+Map[622] = BLOCK_TYPE.LADDER;
+Map[582] = BLOCK_TYPE.LADDER;
+Map[621] = BLOCK_TYPE.SOLID;
+Map[620] = BLOCK_TYPE.SOLID;
+Map[619] = BLOCK_TYPE.SOLID;
+Map[618] = BLOCK_TYPE.LADDER;
+Map[578] = BLOCK_TYPE.LADDER;
+Map[538] = BLOCK_TYPE.LADDER;
+Map[783] = BLOCK_TYPE.SOLID;
+Map[784] = BLOCK_TYPE.SOLID;
+Map[785] = BLOCK_TYPE.SOLID;
+Map[786] = BLOCK_TYPE.SOLID;
+Map[790] = BLOCK_TYPE.SOLID;
+Map[791] = BLOCK_TYPE.SOLID;
+Map[792] = BLOCK_TYPE.SOLID;
+Map[793] = BLOCK_TYPE.SOLID;
+// Map[823] = BLOCK_TYPE.SOLID;
+// Map[824] = BLOCK_TYPE.SOLID;
 // Map[1437] = BLOCK_TYPE.LADDER;
 // Map[1387] = BLOCK_TYPE.LADDER;
 // Map[1337] = BLOCK_TYPE.LADDER;
@@ -100,7 +169,9 @@ Map[901] = BLOCK_TYPE.SOLID;
 // Main Functions
 
 function processInput(t) {
+	if (!Game.started) return;
 	var speed = Player.speed,
+		ladderSpeed = Player.ladderSpeed,
 		x = Player.position[0],
 		y = Player.position[1],
 		k = KeyHandler.k;
@@ -108,12 +179,12 @@ function processInput(t) {
 		Player.position[0] = Math.max(BLOCK_SIZE, x - speed);
 		Player.isMoving = true;
 	}
-	if (k[38]) {
-		if (isPlayerOverBlock(BLOCK_TYPE.LADDER)) {
-			Player.position[1] = Math.min(CANVAS_HEIGHT, y - speed);
+	if (k[38]) { // UP
+		if (isPlayerOnBlock(BLOCK_TYPE.LADDER)) {
+			Player.position[1] = Math.min(CANVAS_HEIGHT - BLOCK_SIZE, y - ladderSpeed);
 			Player.isMoving = true;
-		} else if (!Player.isJumping && !Player.isInAir) { // UP
-			Player.verticalSpeed = 10;
+		} else if (!Player.isJumping && !Player.isInAir) {
+			Player.verticalSpeed = Player.jumpSpeed;
 			Player.isJumping = true;
 			Player.isInAir = true;
 		}
@@ -121,11 +192,11 @@ function processInput(t) {
 		Player.isJumping = false;
 	}
 	if (k[39]) { // RIGHT
-		Player.position[0] = Math.min(CANVAS_WIDTH - BLOCK_SIZE, x + speed);
+		Player.position[0] = Math.min(CANVAS_WIDTH - 2 * BLOCK_SIZE, x + speed);
 		Player.isMoving = true;
 	}
-	if (k[40] && isPlayerOverBlock(BLOCK_TYPE.LADDER)) { // DOWN
-		Player.position[1] = Math.min(CANVAS_HEIGHT, y + speed);
+	if (k[40] && isPlayerOnBlock(BLOCK_TYPE.LADDER) && !isPlayerOverBlock(BLOCK_TYPE.SOLID)) { // DOWN
+		Player.position[1] = Math.min(CANVAS_HEIGHT, y + ladderSpeed);
 		Player.isMoving = true;
 	}
 	if (!k[37] && !k[38] && !k[39] && !k[40]) {
@@ -134,6 +205,22 @@ function processInput(t) {
 }
 
 function isPlayerOverBlock(blockType) {
+	if ((Math.round(Player.position[1] / BLOCK_SIZE) !== Math.round((BLOCK_SIZE / 2 + Player.position[1]) / BLOCK_SIZE)) && (Map[I * Math.round(Player.position[1] / BLOCK_SIZE) + Math.round(Player.position[0] / BLOCK_SIZE)] === blockType ||
+		Map[I * Math.round(Player.position[1] / BLOCK_SIZE) + Math.round(Player.position[0] / BLOCK_SIZE + 1)] === blockType)) {
+		return true;
+	}
+	return false;
+}
+
+function isPlayerOnBlock(blockType) {
+	if ((Map[I * Math.round(Player.position[1] / BLOCK_SIZE - 1) + Math.round(Player.position[0] / BLOCK_SIZE)] === blockType ||
+		Map[I * Math.round(Player.position[1] / BLOCK_SIZE - 1) + Math.round(Player.position[0] / BLOCK_SIZE + 1)] === blockType)) {
+		return true;
+	}
+	return false;
+}
+
+function isPlayersBlockOverBlock(blockType) {
 	if (Map[I * Math.round(Player.position[1] / BLOCK_SIZE) + Math.round(Player.position[0] / BLOCK_SIZE)] === blockType ||
 		Map[I * Math.round(Player.position[1] / BLOCK_SIZE) + Math.round(Player.position[0] / BLOCK_SIZE + 1)] === blockType) {
 		return true;
@@ -141,16 +228,34 @@ function isPlayerOverBlock(blockType) {
 	return false;
 }
 
+function getPlayerIntersections() {
+
+}
+
 function update(t) {
+	// Updating Canvas position
+	Game.canvasBoundingRect = canvas.getBoundingClientRect();
+
 	// Player jumping
-	if (isPlayerOverBlock(BLOCK_TYPE.LADDER) || (!Player.isJumping && isPlayerOverBlock(BLOCK_TYPE.SOLID))) {
-		Player.verticalSpeed = 0;
-		Player.isInAir = false;
-		Player.position[1] = Player.position[1] + (Player.position[1] % BLOCK_SIZE);
-	} else if (Player.position[1] < CANVAS_HEIGHT - BLOCK_SIZE) {
-		Player.verticalSpeed -= 1;
+	// var nextY = Player.verticalSpeed;
+	// Player.position[1] = Player.position[1] + nextY;
+	if (isPlayerOnBlock(BLOCK_TYPE.LADDER) || isPlayerOverBlock(BLOCK_TYPE.SOLID)) {
+		if (Player.verticalSpeed > 0 || isPlayerOverBlock(BLOCK_TYPE.LADDER)) {
+			Player.verticalSpeed = 0;
+			Player.isInAir = false;
+		}
+		// if (!isPlayerOverBlock(BLOCK_TYPE.LADDER)) {
+		// 	Player.position[1] = Player.position[1] - (Player.position[1] % BLOCK_SIZE);
+		// }
+	} else {
+		if (Player.verticalSpeed > 0 && Player.wasOverSolidBlock) {
+			Player.verticalSpeed = BLOCK_SIZE / 3;
+		}
+		Player.verticalSpeed += 1;
+		Player.isInAir = true;
 	}
-	Player.position[1] = Math.min(CANVAS_HEIGHT - BLOCK_SIZE, Player.position[1] - Player.verticalSpeed);
+	Player.position[1] = Player.position[1] + Player.verticalSpeed;
+	Player.wasOverSolidBlock = isPlayersBlockOverBlock(BLOCK_TYPE.SOLID);
 }
 
 // Drawing functions
@@ -168,7 +273,7 @@ function drawMap() {
 			} else if (Map[I * j + i] === BLOCK_TYPE.SOLID) {
 				ctx.setFillColor('green');
 			} else if (Map[I * j + i] === BLOCK_TYPE.LADDER) {
-				ctx.setFillColor('green');
+				ctx.setFillColor('brown');
 			}
 			ctx.fillRect(i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
 		}
@@ -184,19 +289,25 @@ function drawPlayer() {
 	ctx.drawImage(Player.images.standing, Player.position[0] + 8, Player.position[1] - 24);
 }
 
+function drawCrow() {
+	ctx.drawImage(Crow.images.flying, Crow.position[0], Crow.position[1]);
+}
+
 function logging() {
 	ctx.setFillColor('red');
 	ctx.fillText("(" + Player.position[0] + ', ' + Player.position[1] + ')', 10, 20);
 	ctx.fillText("Vert speed: " + Player.verticalSpeed, 10, 10);
 	ctx.fillText(I * Math.round(Player.position[1] / BLOCK_SIZE) + Math.round(Player.position[0] / BLOCK_SIZE), 10, 30);
 	ctx.fillText(Map[I * Math.round(Player.position[1] / BLOCK_SIZE) + Math.round(Player.position[0] / BLOCK_SIZE)], 10, 40);
+	ctx.fillText("Crow Position: (" + Crow.position[0] + ', ' + Crow.position[1] + ")", 10, 50);
 }
 
 function render(t) {
 	clearColor();
 	drawMap();
-	drawEnvironment();
 	drawPlayer();
+	drawEnvironment();
+	drawCrow();
 	logging();
 }
 
