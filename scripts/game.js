@@ -24,7 +24,8 @@ var BLOCK_TYPE = {
 	ROOF: '3',
 	STATUS_BAR: '4',
 	GOAL: '5',
-	NEST: '6'
+	NEST: '6',
+	DISPENSER: '7'
 };
 
 var SOUND_TYPE = {
@@ -37,26 +38,46 @@ var SOUND_TYPE = {
 	SUCCESS: 6,
 	FAILURE: 7,
 	SPEED_BOOST: 8,
-	CROW_EAT: 9
+	CROW_EAT: 9,
+	DISPENSER: 10,
+	GRANNY_SHOT: 11
 };
 
 var MAX_CRATES = 3,
 	MIN_CRATE_SIZE = 1,
 	CRATE_SIZE_INCREMENT = 1,
 	CRATE_WIDTH = 12,
-	CRATE_POSITION_OFFSET = [8, -8],
+	CRATE_POSITION_OFFSET = [1, -6],
 	MIN_VERTICAL_SPEED_TO_CRASH = 12;
 
 var SPEED_BOOST = 3,
-	SPEED_BOOST_TIMEOUT = 5000;
+	SPEED_BOOST_TIMEOUT = 5000,
+	PLAYER_WARNING_RADIUS = 75,
+	PLAYER_DAMAGE_RADIUS = 25,
+	PLAYER_RADIUS_MULTIPLIER = 7,
+	DISPENSER_CANDIES = 3;
 
 var NEST_SHOTS = 3,
-	CRUMBS_SHOTS = 5;
+	CRUMBS_SHOTS = 5,
+	CROW_STUN_TIME = 5000;
+
+var LASER_SPEED = 1.5,
+	LASER_MOVEMENT_THRESHOLD = 3;
 
 var GAME_TIME = 300000,
-	STARTING_PLAYER_POSITION = [100, 370],
-	STARTING_CROW_POSITION = [CANVAS_WIDTH - 36, 20],
-	INTRO_THEME = '023123467'.split('');
+	STARTING_PLAYER_POSITION = [75, 370],
+	STARTING_CROW_POSITION = [CANVAS_WIDTH - 24, 24],
+	STARTING_LASER_POSITION = [95, 78];
+INTRO_THEME = '023123467'.split('');
+
+var KEYCODES = {
+	LEFT: 37,
+	UP: 38,
+	RIGHT: 39,
+	DOWN: 40,
+	EAT: 69,
+	INTERACT: 32
+}
 
 /*
  *
@@ -67,6 +88,7 @@ var GAME_TIME = 300000,
 var Player = {
 	position: null,
 	speed: 4,
+	currentSpeed: 0,
 	speedBoost: 0,
 	speedBoostTimeout: 0,
 	ladderSpeed: 2,
@@ -80,7 +102,8 @@ var Player = {
 		standing: null
 	},
 	wasOverSolidBlock: false,
-	crateCarried: undefined
+	crateCarried: undefined,
+	candies: 3
 };
 
 var Crow = {
@@ -88,7 +111,9 @@ var Crow = {
 	images: {
 		flying: null
 	},
-	shots: NEST_SHOTS
+	shots: NEST_SHOTS,
+	isInWarningZone: false,
+	stunnedTimeout: 0
 };
 
 var Map = [];
@@ -98,6 +123,15 @@ var Environment = {
 		image: null
 	},
 	Nest: {
+		image: null
+	},
+	Dispenser: {
+		image: null
+	},
+	Roof: {
+		image: null
+	},
+	Wall: {
 		image: null
 	}
 };
@@ -132,6 +166,15 @@ var Game = {
 };
 
 var InstructionCanvas = document.createElement('canvas');
+
+var Laser = {
+	position: null
+}
+
+var Granny = {
+	position: [80, 53],
+	image: null
+}
 
 /*
  *
@@ -172,7 +215,7 @@ var _NOTES_CDEFGABC = [
 
 var introTheme = {};
 for (var s = 0; s < _NOTES_CDEFGABC.length; s++) {
-	introTheme[s] = jsfxlib['createWave'](["synth", 0.0000, 0.4000, 0.0000, 0.2080, 0.0000, 0.1200, 20.0000, _NOTES_CDEFGABC[s], 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.1000, 0.0000]);
+	introTheme[s] = jsfxlib.createWave(["synth", 0.0000, 0.4000, 0.0000, 0.2080, 0.0000, 0.1200, 20.0000, _NOTES_CDEFGABC[s], 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.1000, 0.0000]);
 }
 var introThemeString = INTRO_THEME.slice();
 
@@ -184,16 +227,22 @@ function playNextNote() {
 }
 
 var Sounds = {};
-Sounds[SOUND_TYPE.JUMP] = jsfxlib['createWave'](["square", 0.0000, 0.4000, 0.0000, 0.1740, 0.0000, 0.2800, 20.0000, 497.0000, 2400.0000, 0.2200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0665, 0.0000, 0.0000, 0.0000, 0.0000, 0.7830, 0.0000, 0.0000, 0.0000, 0.0000]);
-Sounds[SOUND_TYPE.PLAYER_CRASH] = jsfxlib['createWave'](["noise", 0.0000, 0.4000, 0.0000, 0.1400, 0.4050, 0.1160, 20.0000, 479.0000, 2400.0000, -0.0700, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, -0.0860, -0.1220, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-Sounds[SOUND_TYPE.CRATE_DELIVERY] = jsfxlib['createWave'](["square", 0.0000, 0.4000, 0.0000, 0.0980, 0.5040, 0.2820, 20.0000, 1582.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-Sounds[SOUND_TYPE.SPEED_BOOST] = jsfxlib['createWave'](["saw", 0.0000, 0.4000, 0.0000, 0.3240, 0.0000, 0.2840, 20.0000, 631.0000, 2400.0000, 0.1720, 0.0000, 0.4980, 19.3500, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-Sounds[SOUND_TYPE.CROW_SHOT] = jsfxlib['createWave'](["saw", 0.0000, 0.4000, 0.0000, 0.2120, 0.0000, 0.0280, 20.0000, 1169.0000, 2400.0000, -0.5200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.5000, -0.5920, 0.0000, 0.0940, 0.0660, 1.0000, 0.0000, 0.0000, 0.2800, 0.0000]);
-Sounds[SOUND_TYPE.FAILURE] = jsfxlib['createWave'](["synth", 0.0000, 0.4000, 0.0000, 0.3200, 0.3480, 0.4400, 20.0000, 372.0000, 417.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.3740, 0.2640, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-Sounds[SOUND_TYPE.SUCCESS] = jsfxlib['createWave'](["square", 0.0000, 0.4000, 0.0000, 0.3200, 0.3480, 0.4400, 20.0000, 1521.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.3740, 0.2640, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-Sounds[SOUND_TYPE.CRATE_PICKUP] = jsfxlib['createWave'](["noise", 0.0000, 0.4000, 0.0000, 0.0020, 0.0240, 0.0900, 20.0000, 372.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3420, 0.8090, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-Sounds[SOUND_TYPE.CROW_CRASH] = jsfxlib['createWave'](["noise", 0.0000, 0.4000, 0.0000, 0.1520, 0.3930, 0.2740, 20.0000, 839.0000, 2400.0000, -0.3100, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3400, 0.7830, 0.0000, 0.0000, 0.6096, 0.5260, -0.0080, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-Sounds[SOUND_TYPE.CROW_EAT] = jsfxlib['createWave'](["noise", 0.0000, 0.4000, 0.0000, 0.0000, 0.0000, 0.2500, 20.0000, 853.0000, 2400.0000, -0.6700, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0115, 0.0160, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+
+function loadSound(name, data) {
+	Sounds[name] = jsfxlib.createWave(data);
+}
+loadSound(SOUND_TYPE.JUMP, ["square", 0.0000, 0.4000, 0.0000, 0.1740, 0.0000, 0.2800, 20.0000, 497.0000, 2400.0000, 0.2200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0665, 0.0000, 0.0000, 0.0000, 0.0000, 0.7830, 0.0000, 0.0000, 0.0000, 0.0000]);
+loadSound(SOUND_TYPE.PLAYER_CRASH, ["noise", 0.0000, 0.4000, 0.0000, 0.1400, 0.4050, 0.1160, 20.0000, 479.0000, 2400.0000, -0.0700, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, -0.0860, -0.1220, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+loadSound(SOUND_TYPE.CRATE_DELIVERY, ["square", 0.0000, 0.4000, 0.0000, 0.0980, 0.5040, 0.2820, 20.0000, 1582.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+loadSound(SOUND_TYPE.SPEED_BOOST, ["saw", 0.0000, 0.4000, 0.0000, 0.3240, 0.0000, 0.2840, 20.0000, 631.0000, 2400.0000, 0.1720, 0.0000, 0.4980, 19.3500, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+loadSound(SOUND_TYPE.CROW_SHOT, ["saw", 0.0000, 0.4000, 0.0000, 0.2120, 0.0000, 0.0280, 20.0000, 1169.0000, 2400.0000, -0.5200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.5000, -0.5920, 0.0000, 0.0940, 0.0660, 1.0000, 0.0000, 0.0000, 0.2800, 0.0000]);
+loadSound(SOUND_TYPE.FAILURE, ["synth", 0.0000, 0.4000, 0.0000, 0.3200, 0.3480, 0.4400, 20.0000, 372.0000, 417.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.3740, 0.2640, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+loadSound(SOUND_TYPE.SUCCESS, ["square", 0.0000, 0.4000, 0.0000, 0.3200, 0.3480, 0.4400, 20.0000, 1521.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.3740, 0.2640, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+loadSound(SOUND_TYPE.CRATE_PICKUP, ["noise", 0.0000, 0.4000, 0.0000, 0.0020, 0.0240, 0.0900, 20.0000, 372.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3420, 0.8090, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+loadSound(SOUND_TYPE.CROW_CRASH, ["noise", 0.0000, 0.4000, 0.0000, 0.1520, 0.3930, 0.2740, 20.0000, 839.0000, 2400.0000, -0.3100, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3400, 0.7830, 0.0000, 0.0000, 0.6096, 0.5260, -0.0080, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+loadSound(SOUND_TYPE.CROW_EAT, ["square", 0.0000, 0.4000, 0.0000, 0.0400, 0.0000, 0.0480, 20.0000, 578.0000, 2400.0000, 0.1040, 0.0000, 0.6830, 19.1580, 0.0003, 0.0000, 0.0000, 0.0000, 0.3850, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+loadSound(SOUND_TYPE.DISPENSER, ["square", 0.0000, 0.4000, 0.0000, 0.0460, 0.4770, 0.2400, 20.0000, 1197.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.4980, 0.2040, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+loadSound(SOUND_TYPE.GRANNY_SHOT, ["noise", 0.0000, 0.4000, 0.0000, 0.1080, 0.3360, 0.1240, 20.0000, 462.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 
 function playSound(soundName) {
 	if (Sounds[soundName]) {
@@ -214,12 +263,6 @@ var i = 0,
 	j = 0,
 	I = CANVAS_WIDTH / BLOCK_SIZE,
 	J = CANVAS_HEIGHT / BLOCK_SIZE;
-Map.length = I * J;
-for (i = 0; i < I; i++) {
-	for (j = 0; j < J; j++) {
-		Map[I * j + i] = BLOCK_TYPE.EMPTY;
-	}
-}
 
 function initImage(src, width, height) {
 	var img = new Image();
@@ -230,22 +273,27 @@ function initImage(src, width, height) {
 }
 
 // Build Player
-Player.images.standing = initImage('man.png', 16, 32);
+Player.images.standing = initImage('img/man.png', 16, 32);
 
 // Build Crow
-Crow.images.flying = initImage('crow.png');
+Crow.images.flying = initImage('img/crow.png');
 
-// Build Ladder
-Environment.Ladder.image = initImage('ladder.png');
+// Build Environment
+Environment.Ladder.image = initImage('img/ladder.png');
+Environment.Nest.image = initImage('img/nest.png');
+Environment.Dispenser.image = initImage('img/dispenser.png');
+Environment.Roof.image = initImage('img/roof.png');
+Environment.Wall.image = initImage('img/wall.png');
 
 // Build Crumbs
-Crumbs.image = initImage('crumbs.png');
+Crumbs.image = initImage('img/crumbs.png');
 
 // Build Shot
-Shot.image = initImage('shot.png');
+Shot.image = initImage('img/shot.png');
 
-// Build Nest
-Environment.Nest.image = initImage('nest.png');
+// Build Granny
+Granny.image = initImage('img/granny.png');
+
 
 function printText(context, textArray, x, y, yIncrement) {
 	var textArrayCopy = textArray.slice(),
@@ -260,6 +308,7 @@ function reset() {
 	Game.started = false;
 	Player.position = STARTING_PLAYER_POSITION.slice();
 	Crow.position = STARTING_CROW_POSITION.slice();
+	Laser.position = STARTING_LASER_POSITION.slice();
 
 	// Build Crates
 	var currentCrateSize = MIN_CRATE_SIZE,
@@ -284,8 +333,8 @@ function reset() {
 		crateCtx.fillText(currentCrateSize, 5, 10);
 		newCrate.image = crateCanvas;
 
-		x = 60 + currentCrateSize * 10;
-		y = 360;
+		x = 85 + currentCrateSize * 15;
+		y = 365 - currentCrateSize;
 		newCrate.position = [x, y];
 		newCrate.startPosition = [x, y];
 
@@ -313,7 +362,8 @@ function reset() {
 	'Crow must hinder Delivery Boy from delivering all the boxes.',
 	'Move with mouse, left click to shoot and right click to collect food.',
 	'Food recharges shots and is found in the nest and crumbs left by Delivery Boy.',
-	'Don\'t touch roofs and don\'t get too close to Delivery Boy.'
+	'Don\'t touch roofs and don\'t get too close to Delivery Boy or you\'ll get stunned.',
+	'Oh, and don\'t get shot!'
 ];
 	printText(icCtx, boyInstructions, 140, 330, 13);
 	icCtx['textAlign'] = 'right';
@@ -353,11 +403,11 @@ canvas.addEventListener('click', function (evt) {
 
 			canvas['style']['cursor'] = 'none';
 		}
-	} else if (Crow.shots > 0) {
+	} else if (Crow.shots > 0 && Crow.stunnedTimeout < Date.now()) {
 		Crow.shots--;
 		playSound(SOUND_TYPE.CROW_SHOT);
 		var newShot = Object.create(Shot);
-		newShot.position = currentMousePosition.slice();
+		newShot.position = Crow.position.slice();
 		ShotsArray.push(newShot);
 	}
 });
@@ -371,11 +421,11 @@ canvas.addEventListener('mousemove', function (evt) {
 
 canvas.addEventListener('contextmenu', function (evt) {
 	evt.preventDefault();
-	if (Game.started) {
+	if (Game.started && Crow.stunnedTimeout < Date.now()) {
 		var currentMousePosition = getCanvasRelativeCoords(evt);
-		if (isCrowOverBlock(BLOCK_TYPE.NEST)) {
+		if (isCrowOverBlock(BLOCK_TYPE.NEST) && Crow.shots < NEST_SHOTS) {
 			playSound(SOUND_TYPE.CROW_EAT);
-			Crow.shots = Math.max(Crow.shots, NEST_SHOTS);
+			Crow.shots++;
 		} else {
 			var c;
 			for (c = 0; c < CrumbsArray.length; c++) {
@@ -394,25 +444,25 @@ canvas.addEventListener('contextmenu', function (evt) {
 // Build Dummy Map
 Map = '4444444444444444444444444444444444444444' +
 	'3333330000000000000000000000000000000060' +
-	'0000030000000000000000000000000000000011' +
-	'0000000000000000000000000033330000000000' +
-	'0555000000000000000200000000000000000000' +
+	'5555530000000000000000000000000000000011' +
+	'5555500000000000000000000033330000000000' +
+	'5555500000000000000200000000000000000000' +
 	'1111110010011001111201110011110000000000' +
 	'0000000000000000000200000000001000000000' +
-	'0000000000000000000200000000000100000000' +
+	'0000000000000000070200000000000100000000' +
 	'0001110000000000111111000000000010020000' +
 	'0020000000000000333333300003333301021000' +
 	'0020003333330000000000000000000000020000' +
 	'0020000000000000000000000000000000020000' +
 	'0020000000000000100100100110000202020000' +
-	'0020111111111111100000003331100000021110' +
+	'0020111111111111100000003331100111121110' +
 	'0020033333333330000000000003300000033333' +
 	'0020000000000000000000000000000000000000' +
 	'0020000000000000000020000000000002000000' +
 	'0020111100111110011120111001111112011111' +
 	'0020000000000000000020000000000002000000' +
-	'0020000000000000000020000000000002000000' +
-	'0000333300000000000011110000200002000000' +
+	'0020000000000000000020700000000002000000' +
+	'0000333330000000000011110000200002000000' +
 	'0000000000000000000000000000211112000000' +
 	'0000000000000000000000000000200000000000' +
 	'1111111111111111111111111111111111111111' +
@@ -424,6 +474,14 @@ Map = '4444444444444444444444444444444444444444' +
  * Main Functions
  *
  */
+
+function getMapAt(x, y) {
+	return Map[I * y + x];
+}
+
+function setMapAt(value, x, y) {
+	Map[I * y + j] = value;
+}
 
 function arePositionsInSameBlock(pos1, pos2) {
 	return (Math.round(pos1[0] / BLOCK_SIZE) === Math.round(pos2[0] / BLOCK_SIZE)) && (Math.round(pos1[1] / BLOCK_SIZE) === Math.round(pos2[1] / BLOCK_SIZE));
@@ -442,6 +500,11 @@ function interact() {
 				return;
 			}
 		}
+		// If no crate is picked up, use dispenser
+		if (isPlayerOnBlock(BLOCK_TYPE.DISPENSER)) {
+			Player.candies = DISPENSER_CANDIES;
+			playSound(SOUND_TYPE.DISPENSER);
+		}
 	} else {
 		Player.crateCarried = undefined;
 		playSound(SOUND_TYPE.CRATE_PICKUP);
@@ -458,6 +521,17 @@ function interact() {
 	}
 }
 
+function calculateLeftRightSpeed(t) {
+	var currentSpeed = Player.currentSpeed,
+		speed = getPlayerSpeed();
+	if (!Player.isMoving) {
+		currentSpeed = 0;
+	}
+	currentSpeed = Math.min(speed, currentSpeed + speed / 5);
+	Player.currentSpeed = currentSpeed;
+	return (isPlayerOnBlock(BLOCK_TYPE.LADDER) ? speed / 3 : currentSpeed);
+}
+
 function processInput(t) {
 	if (!Game.started) return;
 	var speed = getPlayerSpeed(),
@@ -466,70 +540,72 @@ function processInput(t) {
 		y = Player.position[1],
 		k = KeyHandler.k;
 
-	if (k[32] && !Player.isJumping && !Player.isInAir && !Player.isInteracting) { // SPACEBAR
+	if (k[KEYCODES.INTERACT] && !Player.isJumping && !Player.isInAir && !Player.isInteracting) { // SPACEBAR
 		Player.isInteracting = true;
 		interact();
-	} else if (k[69] && !Player.isInteracting) { // E
+	} else if (k[KEYCODES.EAT] && !Player.isInteracting) { // E
 		Player.isInteracting = true;
-		Player.speedBoost = SPEED_BOOST;
-		Player.speedBoostTimeout = Date.now() + SPEED_BOOST_TIMEOUT;
-		var newCrumbs = Object.create(Crumbs);
-		newCrumbs.position = [Player.position[0] + 4, Player.position[1] - 7];
-		CrumbsArray.push(newCrumbs);
+		if (Player.candies > 0) {
+			Player.candies--;
+			Player.speedBoost = SPEED_BOOST;
+			Player.speedBoostTimeout = Date.now() + SPEED_BOOST_TIMEOUT;
+			var newCrumbs = Object.create(Crumbs);
+			newCrumbs.position = [Player.position[0] + 4, Player.position[1] - 7];
+			CrumbsArray.push(newCrumbs);
 
-		playSound(SOUND_TYPE.SPEED_BOOST);
-	} else if (!k[32] && !k[69] && Player.isInteracting) {
+			playSound(SOUND_TYPE.SPEED_BOOST);
+		}
+	} else if (!k[KEYCODES.INTERACT] && !k[KEYCODES.EAT] && Player.isInteracting) {
 		Player.isInteracting = false;
 	}
-	if (k[37]) { // LEFT
-		Player.position[0] = Math.max(BLOCK_SIZE, x - speed);
-		Player.isMoving = true;
-	}
-	if (k[38]) { // UP
+	if (k[KEYCODES.UP]) { // UP
 		if (isPlayerOnBlock(BLOCK_TYPE.LADDER)) {
 			Player.position[1] = Math.min(CANVAS_HEIGHT - BLOCK_SIZE, y - ladderSpeed);
 			Player.isMoving = true;
 		} else if (!Player.isJumping && !Player.isInAir) {
 			Player.verticalSpeed = Player.jumpSpeed;
+			Player.currentSpeed = speed;
 			Player.isJumping = true;
 			Player.isInAir = true;
 			playSound(SOUND_TYPE.JUMP);
 		}
-	} else if (!k[38] && Player.isJumping) {
+	} else if (!k[KEYCODES.UP] && Player.isJumping) {
 		Player.isJumping = false;
 	}
-	if (k[39]) { // RIGHT
-		Player.position[0] = Math.min(CANVAS_WIDTH - 2 * BLOCK_SIZE, x + speed);
+	if (k[KEYCODES.LEFT]) { // LEFT
+		Player.position[0] = Math.max(BLOCK_SIZE, x - calculateLeftRightSpeed(t));
 		Player.isMoving = true;
 	}
-	if (k[40] && isPlayerOnBlock(BLOCK_TYPE.LADDER) && !isPlayerOverBlock(BLOCK_TYPE.SOLID)) { // DOWN
+	if (k[KEYCODES.RIGHT]) { // RIGHT
+		Player.position[0] = Math.min(CANVAS_WIDTH - 2 * BLOCK_SIZE, x + calculateLeftRightSpeed(t));
+		Player.isMoving = true;
+	}
+	if (k[KEYCODES.DOWN] && (isPlayerOnBlock(BLOCK_TYPE.LADDER) || isPlayerOverBlock(BLOCK_TYPE.LADDER)) && !isPlayerOverBlock(BLOCK_TYPE.SOLID)) { // DOWN
 		Player.position[1] = Math.min(CANVAS_HEIGHT, y + ladderSpeed);
 		Player.isMoving = true;
 	}
-	if (!k[37] && !k[38] && !k[39] && !k[40]) {
+	if (!k[KEYCODES.LEFT] && !k[KEYCODES.UP] && !k[KEYCODES.RIGHT] && !k[KEYCODES.DOWN]) {
 		Player.isMoving = false;
 	}
 }
 
 function isPlayerOverBlock(blockType) {
-	if (!arePositionsInSameBlock(Player.position, [Player.position[0], Player.position[1] + BLOCK_SIZE / 2]) && (Map[I * Math.round(Player.position[1] / BLOCK_SIZE) + Math.round(Player.position[0] / BLOCK_SIZE)] === blockType ||
-		Map[I * Math.round(Player.position[1] / BLOCK_SIZE) + Math.round(Player.position[0] / BLOCK_SIZE + 1)] === blockType)) {
+	if (!arePositionsInSameBlock(Player.position, [Player.position[0], Player.position[1] + BLOCK_SIZE / 2]) && (getMapAt(Math.round(Player.position[0] / BLOCK_SIZE - 1), Math.round(Player.position[1] / BLOCK_SIZE)) === blockType ||
+		getMapAt(Math.round(Player.position[0] / BLOCK_SIZE), Math.round(Player.position[1] / BLOCK_SIZE)) === blockType)) {
 		return true;
 	}
 	return false;
 }
 
 function isCrowOverBlock(blockType) {
-	if ((Map[I * Math.round(Crow.position[1] / BLOCK_SIZE) + Math.round(Crow.position[0] / BLOCK_SIZE - 0.5)] === blockType ||
-		Map[I * Math.round(Crow.position[1] / BLOCK_SIZE) + Math.round(Crow.position[0] / BLOCK_SIZE + 0.5)] === blockType)) {
+	if ((getMapAt(Math.round(Crow.position[0] / BLOCK_SIZE - 0.5), Math.round(Crow.position[1] / BLOCK_SIZE - 0.5)) === blockType)) {
 		return true;
 	}
 	return false;
 }
 
 function isPositionOnBlock(position, blockType) {
-	if ((Map[I * Math.round(position[1] / BLOCK_SIZE - 1) + Math.round(position[0] / BLOCK_SIZE - 0.5)] === blockType ||
-		Map[I * Math.round(position[1] / BLOCK_SIZE - 1) + Math.round(position[0] / BLOCK_SIZE + 0.5)] === blockType)) {
+	if ((getMapAt(Math.round(position[0] / BLOCK_SIZE - 0.5), Math.round(position[1] / BLOCK_SIZE - 1)) === blockType)) {
 		return true;
 	}
 	return false;
@@ -540,15 +616,39 @@ function isPlayerOnBlock(blockType) {
 }
 
 function isPlayersBlockOverBlock(blockType) {
-	if (Map[I * Math.round(Player.position[1] / BLOCK_SIZE) + Math.round(Player.position[0] / BLOCK_SIZE)] === blockType ||
-		Map[I * Math.round(Player.position[1] / BLOCK_SIZE) + Math.round(Player.position[0] / BLOCK_SIZE + 1)] === blockType) {
+	if (getMapAt(Math.round(Player.position[0] / BLOCK_SIZE), Math.round(Player.position[1] / BLOCK_SIZE)) === blockType ||
+		getMapAt(1), Math.round(Player.position[1] / BLOCK_SIZE) + Math.round(Player.position[0] / BLOCK_SIZE) === blockType) {
 		return true;
 	}
 	return false;
 }
 
+function squareDistance(pos1, pos2) {
+	return Math.pow(pos1[0] - pos2[0], 2) + Math.pow(pos1[1] - pos2[1], 2);
+}
+
+function getWarningRadius() {
+	return getPlayerSpeed() * PLAYER_RADIUS_MULTIPLIER + PLAYER_WARNING_RADIUS;
+}
+
+function getDamageRadius() {
+	return getPlayerSpeed() * PLAYER_RADIUS_MULTIPLIER + PLAYER_DAMAGE_RADIUS;
+}
+
+function isCrowInPlayerWarningZone() {
+	return Math.pow(getWarningRadius(), 2) >= squareDistance(Crow.position, Player.position);
+}
+
+function isCrowInPlayerDamageZone() {
+	return Math.pow(getDamageRadius(), 2) >= squareDistance(Crow.position, Player.position);
+}
+
 function getCurrentCrate() {
 	return Player.crateCarried !== undefined ? CratesArray[Player.crateCarried] : undefined;
+}
+
+function getDirectionAngle(origin, destination) {
+	return Math.atan((destination[1] - origin[1]) / (destination[0] - origin[0]));
 }
 
 function breakCurrentCrate() {
@@ -570,32 +670,62 @@ function checkIfCurrentCrateBreaks() {
 	}
 }
 
+function stunCrow(t) {
+	Crow.stunnedTimeout = t + CROW_STUN_TIME;
+	playSound(SOUND_TYPE.GRANNY_SHOT);
+	Crow.shots = 0;
+}
+
+function getPlayerNearestSolidBlockY() {
+	var playerX = Player.position[0],
+		currentBlockY = Player.position[1];
+	while (currentBlockY < CANVAS_HEIGHT - BLOCK_SIZE) {
+		if (isPositionOnBlock([playerX, currentBlockY], BLOCK_TYPE.SOLID)) {
+			break;
+		}
+		currentBlockY += BLOCK_SIZE;
+	}
+	currentBlockY = currentBlockY - (currentBlockY % BLOCK_SIZE);
+	return currentBlockY;
+}
+
 function update(t) {
+	if (!Game.started) {
+		return;
+	}
 	// Updating Canvas position
 	Game.canvasBoundingRect = canvas.getBoundingClientRect();
 
 	// Player jumping
 	// var nextY = Player.verticalSpeed;
 	// Player.position[1] = Player.position[1] + nextY;
-	if (isPlayerOnBlock(BLOCK_TYPE.LADDER) || isPlayerOverBlock(BLOCK_TYPE.SOLID) || Player.position[1] > CANVAS_HEIGHT - BLOCK_SIZE) {
-		if (Player.verticalSpeed > 0 || isPlayerOverBlock(BLOCK_TYPE.LADDER)) {
+	if (Player.verticalSpeed > BLOCK_SIZE / 2 && (Player.verticalSpeed + Player.position[1]) > Player.nearestSolidBlockY && Player.verticalSpeed) {
+		Player.verticalSpeed = BLOCK_SIZE / 2;
+		checkIfCurrentCrateBreaks();
+	}
+	if (isPlayerOnBlock(BLOCK_TYPE.LADDER) || isPlayerOverBlock(BLOCK_TYPE.LADDER) || isPlayerOverBlock(BLOCK_TYPE.SOLID) || Player.position[1] > CANVAS_HEIGHT - BLOCK_SIZE) {
+		if (isPlayerOverBlock(BLOCK_TYPE.LADDER) || Player.verticalSpeed > 0) {
 			checkIfCurrentCrateBreaks();
 			Player.verticalSpeed = 0;
+			Player.currentSpeed = 0;
 			Player.isInAir = false;
 		}
-		// if (!isPlayerOverBlock(BLOCK_TYPE.LADDER)) {
-		// 	Player.position[1] = Player.position[1] - (Player.position[1] % BLOCK_SIZE);
-		// }
-	} else {
-		if (Player.verticalSpeed > 0 && Player.wasOverSolidBlock) {
-			checkIfCurrentCrateBreaks();
-			Player.verticalSpeed = BLOCK_SIZE / 3;
+		if ((!isPlayerOnBlock(BLOCK_TYPE.LADDER) && !isPlayerOverBlock(BLOCK_TYPE.LADDER)) && Player.verticalSpeed === 0) {
+			Player.position[1] = Player.position[1] - (Player.position[1] % BLOCK_SIZE) + 1;
 		}
+	} else {
+		// if (Player.verticalSpeed > 0 && Player.wasOverSolidBlock) {
+		// 	checkIfCurrentCrateBreaks();
+		// 	Player.verticalSpeed = BLOCK_SIZE / 3;
+		// }
+		checkIfCurrentCrateBreaks();
 		Player.verticalSpeed += 1;
 		Player.isInAir = true;
 	}
 	Player.position[1] = Player.position[1] + Player.verticalSpeed;
-	Player.wasOverSolidBlock = isPlayersBlockOverBlock(BLOCK_TYPE.SOLID);
+	// TODO remove wasOverSolidBlock
+	// Player.wasOverSolidBlock = isPlayersBlockOverBlock(BLOCK_TYPE.SOLID);
+	Player.nearestSolidBlockY = getPlayerNearestSolidBlockY();
 
 	// Crate carried
 	if (Player.crateCarried !== undefined) {
@@ -625,12 +755,27 @@ function update(t) {
 	}
 
 	// Check Game Time
-	if (Game.started && Game.time < t) {
-		// TODO Play failure sound
+	if (Game.time < t) {
 		Game.crowPoints += 1;
 		canvas['style']['cursor'] = 'auto';
 		playSound(SOUND_TYPE.FAILURE);
 		reset();
+	}
+
+	// Check if Crow is inside player's radius
+	Crow.isInWarningZone = isCrowInPlayerWarningZone();
+
+	// Update Laser's position
+	var laserTargetPosition = isPositionOnBlock(Crow.position, BLOCK_TYPE.NEST) ? STARTING_LASER_POSITION : Crow.position,
+		laserToCrowAngle = getDirectionAngle(Laser.position, laserTargetPosition),
+		tangentSide = Laser.position[0] > laserTargetPosition[0] ? -1 : 1;
+	if (Math.abs(laserTargetPosition[0] - Laser.position[0]) > LASER_MOVEMENT_THRESHOLD || Math.abs(laserTargetPosition[1] - Laser.position[1]) > LASER_MOVEMENT_THRESHOLD) {
+		Laser.position[0] += Math.cos(laserToCrowAngle) * tangentSide * LASER_SPEED;
+		Laser.position[1] += Math.sin(laserToCrowAngle) * tangentSide * LASER_SPEED;
+	}
+
+	if ((isCrowInPlayerDamageZone() || isPositionOnBlock(Crow.position, BLOCK_TYPE.ROOF) || Math.sqrt(squareDistance(Laser.position, Crow.position)) < LASER_MOVEMENT_THRESHOLD) && Crow.stunnedTimeout < t) {
+		stunCrow(t);
 	}
 }
 
@@ -648,24 +793,26 @@ function drawMap() {
 		for (j = 0; j < J; j++) {
 			image = null;
 			color = '00deff';
-			if (Map[I * j + i] === BLOCK_TYPE.EMPTY) {} else if (Map[I * j + i] === BLOCK_TYPE.SOLID) {
-				color = '555';
-			} else if (Map[I * j + i] === BLOCK_TYPE.LADDER) {
-				image = Environment.Ladder.image;
-			} else if (Map[I * j + i] === BLOCK_TYPE.ROOF) {
-				color = 'brown';
-			} else if (Map[I * j + i] === BLOCK_TYPE.STATUS_BAR) {
+			if (getMapAt(i, j) === BLOCK_TYPE.EMPTY) {} else if (getMapAt(i, j) === BLOCK_TYPE.SOLID) {
+				image = Environment.Wall.image;
+			} else if (getMapAt(i, j) === BLOCK_TYPE.ROOF) {
+				image = Environment.Roof.image;
+			} else if (getMapAt(i, j) === BLOCK_TYPE.STATUS_BAR) {
 				color = '000';
-			} else if (Map[I * j + i] === BLOCK_TYPE.GOAL) {
+			} else if (getMapAt(i, j) === BLOCK_TYPE.GOAL) {
 				color = '0f0';
-			} else if (Map[I * j + i] === BLOCK_TYPE.NEST) {
+			} else if (getMapAt(i, j) === BLOCK_TYPE.NEST) {
 				image = Environment.Nest.image;
+			} else if (getMapAt(i, j) === BLOCK_TYPE.LADDER) {
+				image = Environment.Ladder.image;
+			} else if (getMapAt(i, j) === BLOCK_TYPE.DISPENSER) {
+				image = Environment.Dispenser.image;
 			} else {
 				color = 'fff';
 			}
 			ctx.setFillColor(color);
 			ctx.fillRect(i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-			if (image) {
+			if (image !== null) {
 				ctx.drawImage(image, i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
 			}
 		}
@@ -676,24 +823,47 @@ function drawEnvironment() {
 	var cur, cr;
 	for (cr = 0; cr < CratesArray.length; cr++) {
 		cur = CratesArray[cr];
-		ctx.drawImage(cur.image, cur.position[0], cur.position[1]);
+		ctx.drawImage(cur.image, cur.position[0] - 8, cur.position[1] - 8);
 	}
 	for (cr = 0; cr < CrumbsArray.length; cr++) {
 		cur = CrumbsArray[cr];
-		ctx.drawImage(cur.image, cur.position[0], cur.position[1]);
+		ctx.drawImage(cur.image, cur.position[0] - 8, cur.position[1] - 8);
 	}
 	for (cr = 0; cr < ShotsArray.length; cr++) {
 		cur = ShotsArray[cr];
-		ctx.drawImage(cur.image, cur.position[0], cur.position[1]);
+		ctx.drawImage(cur.image, cur.position[0] - 8, cur.position[1] - 8);
 	}
+
+	ctx.drawImage(Granny.image, Granny.position[0], Granny.position[1]);
 }
 
 function drawPlayer() {
-	ctx.drawImage(Player.images.standing, Player.position[0] + 8, Player.position[1] - 24);
+	ctx.drawImage(Player.images.standing, Player.position[0] - 8, Player.position[1] - 24);
+
+	if (Crow.isInWarningZone) {
+		ctx['beginPath']();
+		ctx['arc'](Player.position[0], Player.position[1], getDamageRadius(), 0, 360);
+		ctx['lineWidth'] = 2;
+		ctx['strokeStyle'] = 'f09';
+		ctx['stroke']();
+	}
 }
 
-function drawCrow() {
-	ctx.drawImage(Crow.images.flying, Crow.position[0], Crow.position[1]);
+function drawCrow(t) {
+	if (!(Crow.stunnedTimeout > t && Math.floor(t / 100) % 2 === 0)) {
+		ctx.drawImage(Crow.images.flying, Crow.position[0] - 8, Crow.position[1] - 8);
+	}
+	ctx.setFillColor('red');
+}
+
+function drawLaser() {
+	ctx.setFillColor('red');
+	ctx.fillRect(Laser.position[0] - 1, Laser.position[1] - 1, 2, 2);
+	ctx['beginPath']();
+	ctx['arc'](Laser.position[0], Laser.position[1], 5, 0, 360);
+	ctx['lineWidth'] = 2;
+	ctx['strokeStyle'] = 'red';
+	ctx['stroke']();
 }
 
 function drawStatus(t) {
@@ -707,16 +877,20 @@ function drawStatus(t) {
 	ctx.fillText("SPEED: " + getPlayerSpeed(), 40, 396);
 	ctx.fillText("BOOST TIMEOUT: " + Math.max(0, Math.ceil((Player.speedBoostTimeout - t) / 1000)), 100, 396);
 	ctx.fillText("TIME LEFT: " + Math.max(0, Math.ceil((Game.time - t) / 1000)), 210, 396);
+	ctx.fillText("CANDIES: " + Player.candies, 300, 396);
 
 	// Crow's status
 	ctx.fillText("SHOTS: " + Crow.shots, 540, 12);
+	ctx.fillText("STUN: " + Math.max(0, Math.ceil((Crow.stunnedTimeout - t) / 1000)), 480, 12);
 
 	// Logs to be removed
 	// ctx.setFillColor('red');
+	// ctx.fillText(Player.nearestSolidBlockY, 10, 10);
+	// ctx.fillText("Dist: " + squareDistance(Crow.position, Player.position) + ', Warn: ' + getWarningRadius(), 10, 10);
 	// ctx.fillText("(" + Player.position[0] + ', ' + Player.position[1] + ')', 10, 20);
 	// ctx.fillText("Vert speed: " + Player.verticalSpeed, 10, 10);
 	// ctx.fillText(I * Math.round(Player.position[1] / BLOCK_SIZE) + Math.round(Player.position[0] / BLOCK_SIZE), 10, 30);
-	// ctx.fillText(Map[I * Math.round(Player.position[1] / BLOCK_SIZE) + Math.round(Player.position[0] / BLOCK_SIZE)], 10, 40);
+	// ctx.fillText(getMapAt(Math.round(Player.position[0, Math.round(Player.position[1] / BLOCK_SIZE)) / BLOCK_SIZE)], 10, 40);
 	// ctx.fillText("Crow Position: (" + Crow.position[0] + ', ' + Crow.position[1] + ")", 10, 50);
 }
 
@@ -725,7 +899,8 @@ function render(t) {
 	drawMap();
 	drawPlayer();
 	drawEnvironment();
-	drawCrow();
+	drawCrow(t);
+	drawLaser();
 	drawStatus(t);
 	if (!Game.started) {
 		ctx.drawImage(InstructionCanvas, 0, 0);
