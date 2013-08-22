@@ -59,9 +59,10 @@ var SPEED_BOOST = 3,
 
 var NEST_SHOTS = 3,
 	CRUMBS_SHOTS = 5,
-	CROW_STUN_TIME = 5000;
+	CROW_STUN_TIME = 5000,
+	MAX_CROW_HEALTH = 10;
 
-var LASER_SPEED = 1.5,
+var LASER_SPEED = 1,
 	LASER_MOVEMENT_THRESHOLD = 3;
 
 var GAME_TIME = 300000,
@@ -113,7 +114,8 @@ var Crow = {
 	},
 	shots: NEST_SHOTS,
 	isInWarningZone: false,
-	stunnedTimeout: 0
+	stunnedTimeout: 0,
+	health: MAX_CROW_HEALTH
 };
 
 var Map = [];
@@ -310,6 +312,9 @@ function reset() {
 	Crow.position = STARTING_CROW_POSITION.slice();
 	Laser.position = STARTING_LASER_POSITION.slice();
 
+	Crow.health = MAX_CROW_HEALTH;
+	Crow.stunnedTimeout = 0;
+
 	// Build Crates
 	var currentCrateSize = MIN_CRATE_SIZE,
 		newCrate,
@@ -381,6 +386,20 @@ function reset() {
 }
 
 reset();
+
+function winBoy() {
+	Game.boyPoints += 1;
+	canvas['style']['cursor'] = 'auto';
+	playSound(SOUND_TYPE.SUCCESS);
+	reset();
+}
+
+function winCrow() {
+	Game.crowPoints += 1;
+	canvas['style']['cursor'] = 'auto';
+	playSound(SOUND_TYPE.FAILURE);
+	reset();
+}
 
 // Helper functions
 
@@ -512,10 +531,7 @@ function interact() {
 			playSound(SOUND_TYPE.CRATE_DELIVERY);
 			CratesArray.splice(currentCrateIdx, 1);
 			if (CratesArray.length <= 0) {
-				Game.boyPoints += 1;
-				canvas['style']['cursor'] = 'auto';
-				playSound(SOUND_TYPE.SUCCESS);
-				reset();
+				winBoy();
 			}
 		}
 	}
@@ -674,6 +690,10 @@ function stunCrow(t) {
 	Crow.stunnedTimeout = t + CROW_STUN_TIME;
 	playSound(SOUND_TYPE.GRANNY_SHOT);
 	Crow.shots = 0;
+	Crow.health--;
+	if (Crow.health <= 0) {
+		winBoy();
+	}
 }
 
 function getPlayerNearestSolidBlockY() {
@@ -756,10 +776,7 @@ function update(t) {
 
 	// Check Game Time
 	if (Game.time < t) {
-		Game.crowPoints += 1;
-		canvas['style']['cursor'] = 'auto';
-		playSound(SOUND_TYPE.FAILURE);
-		reset();
+		winCrow();
 	}
 
 	// Check if Crow is inside player's radius
@@ -881,7 +898,8 @@ function drawStatus(t) {
 
 	// Crow's status
 	ctx.fillText("SHOTS: " + Crow.shots, 540, 12);
-	ctx.fillText("STUN: " + Math.max(0, Math.ceil((Crow.stunnedTimeout - t) / 1000)), 480, 12);
+	ctx.fillText("STUN TIMEOUT: " + Math.max(0, Math.ceil((Crow.stunnedTimeout - t) / 1000)), 430, 12);
+	ctx.fillText("HEALTH: " + Crow.health, 340, 12);
 
 	// Logs to be removed
 	// ctx.setFillColor('red');
