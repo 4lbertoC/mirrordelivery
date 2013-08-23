@@ -745,35 +745,30 @@
 				selectedLevel = (selectedLevel + Levels.length - 1) % Levels.length;
 				reset(selectedLevel);
 				Player.isMoving = true;
-			}
-			if (k[KEYCODES.RIGHT] && !Player.isMoving) {
+			} else if (k[KEYCODES.RIGHT] && !Player.isMoving) {
 				selectedLevel = (selectedLevel + 1) % Levels.length;
 				reset(selectedLevel);
 				Player.isMoving = true;
-			}
-			if (k[KEYCODES.EAT]) {
+			} else if (k[KEYCODES.EAT] && !Player.isMoving) {
 				if (!Levels[selectedLevel].isCustom) {
 					createCustomLevel();
 				}
 				Game.editMode = true;
-			}
-			if (k[KEYCODES.DELETE] && !Player.isMoving) {
+			} else if (k[KEYCODES.DELETE] && !Player.isMoving) {
 				Player.isMoving = true;
 				if (Levels[selectedLevel].isCustom) {
 					Levels.splice(selectedLevel, 1);
 					selectedLevel--;
 					reset(selectedLevel);
 				}
-			}
-			if (k[KEYCODES.JSONIZE_LEVEL] && Levels[selectedLevel].isCustom && !Player.isMoving) {
+			} else if (k[KEYCODES.JSONIZE_LEVEL] && Levels[selectedLevel].isCustom && !Player.isMoving) {
 				Player.isMoving = true;
 				var jsonLevel = prompt('LEVEL JSON', JSON.stringify(Levels[selectedLevel]));
 				if (jsonLevel && validateJsonLevel(jsonLevel)) {
 					Levels[selectedLevel] = JSON.parse(jsonLevel);
 					reset(selectedLevel);
 				}
-			}
-			if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL]) {
+			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL]) {
 				Player.isMoving = false;
 			}
 			return;
