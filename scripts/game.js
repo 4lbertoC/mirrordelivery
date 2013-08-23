@@ -1163,6 +1163,9 @@
 		// Crow's status
 		ctx.fillText("SHOTS: " + Crow.shots + "   STUN TIMEOUT: " + Math.max(0, Math.ceil((Crow.stunnedTimeout - t) / 1000)) + "   HEALTH: " + Crow.health, 370, 12);
 
+		if (Game.editMode) {
+			ctx.fillText("< > CHANGE BLOCK", 12, 12);
+		}
 		// Logs to be removed
 		// ctx.fillStyle = 'red';
 		// ctx.fillText(Player.nearestSolidBlockY, 10, 10);
