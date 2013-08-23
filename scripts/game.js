@@ -13,12 +13,19 @@
 	var canvas = document.getElementById('c'),
 		ctx = canvas.getContext('2d'),
 		currentT = 0,
-		selectedLevel = 0;
+		selectedLevel = 0,
+		currentMousePosition = [0, 0],
+		leftButtonDown = false;
+
+	// EDIT MODE VARIABLES
+	var selectedBlock = 0;
 
 	// CONSTANTS
 	var CANVAS_WIDTH = 640,
 		CANVAS_HEIGHT = 400,
-		BLOCK_SIZE = 16;
+		BLOCK_SIZE = 16,
+		I = CANVAS_WIDTH / BLOCK_SIZE,
+		J = CANVAS_HEIGHT / BLOCK_SIZE;
 
 	var BLOCK_TYPE = {
 		EMPTY: '0',
@@ -30,6 +37,7 @@
 		NEST: '6',
 		DISPENSER: '7'
 	};
+	var NUM_BLOCKS = 8; // Keep this info for the level editor
 
 	var SOUND_TYPE = {
 		JUMP: 0,
@@ -77,7 +85,9 @@
 		DOWN: 40,
 		EAT: 69,
 		INTERACT: 32,
-		MENU: 27
+		MENU: 27,
+		DELETE: 68,
+		JSONIZE_LEVEL: 74
 	}
 
 	/*
@@ -85,6 +95,14 @@
 	 * The game objects
 	 *
 	 */
+
+		function initImage(src, width, height) {
+			var img = new Image();
+			img.width = width || 16;
+			img.height = height || 16;
+			img.src = src;
+			return img;
+		}
 
 	var Player = {
 		position: null,
@@ -100,7 +118,7 @@
 		isInteracting: false,
 		verticalSpeed: 0,
 		images: {
-			standing: null
+			standing: initImage('img/man.png', 16, 32)
 		},
 		wasOverSolidBlock: false,
 		crateCarried: undefined,
@@ -111,7 +129,7 @@
 	var Crow = {
 		position: null,
 		images: {
-			flying: null
+			flying: initImage('img/crow.png')
 		},
 		shots: NEST_SHOTS,
 		isInWarningZone: false,
@@ -123,19 +141,19 @@
 
 	var Environment = {
 		Ladder: {
-			image: null
+			image: initImage('img/ladder.png')
 		},
 		Nest: {
-			image: null
+			image: initImage('img/nest.png')
 		},
 		Dispenser: {
-			image: null
+			image: initImage('img/dispenser.png')
 		},
 		Roof: {
-			image: null
+			image: initImage('img/roof.png')
 		},
 		Wall: {
-			image: null
+			image: initImage('img/wall.png')
 		}
 	};
 
@@ -148,13 +166,13 @@
 	var CratesArray = [];
 
 	var Crumbs = {
-		image: null,
+		image: initImage('img/crumbs.png'),
 		position: null
 	};
 	var CrumbsArray = [];
 
 	var Shot = {
-		image: null,
+		image: initImage('img/shot.png'),
 		position: null,
 		speed: 6
 	};
@@ -166,7 +184,8 @@
 		time: 0,
 		boyPoints: 0,
 		crowPoints: 0,
-		currentLevel: null
+		currentLevel: null,
+		editMode: false
 	};
 
 	var InstructionCanvas = document.createElement('canvas');
@@ -177,7 +196,7 @@
 
 	var Granny = {
 		position: [80, 53],
-		image: null,
+		image: initImage('img/granny.png'),
 		startingLaserPosition: [95, 78]
 	}
 
@@ -186,8 +205,7 @@
 	 * Levels definition
 	 *
 	 */
-	var tutorial1Map = '4444444444444444444444444444444444444444' +
-		'0000000000000000000000000000000000000060' +
+	var tutorial1Map = '0000000000000000000000000000000000000060' +
 		'0000000000000000000000000000000000000011' +
 		'0000000000000000000000000000000000000000' +
 		'0000000000000000000000000000000000000000' +
@@ -209,12 +227,9 @@
 		'0000000000000000000000000000000000005555' +
 		'0000000000000000000000000000000000005555' +
 		'0000000000000000000000000000000000005555' +
-		'1111111111111111111111111111111111111111' +
-		'4444444444444444444444444444444444444444' +
-		''.split(''),
+		'1111111111111111111111111111111111111111',
 
-		tutorial2Map = '4444444444444444444444444444444444444444' +
-			'0000000000000000000000000000000000000060' +
+		tutorial2Map = '0000000000000000000000000000000000000060' +
 			'0000000000000000000000000000000000000011' +
 			'0000000000000000000000000000000000000000' +
 			'0000000000000000000000000000000000000000' +
@@ -236,12 +251,9 @@
 			'0000000000000000000000000000000000005555' +
 			'0000000000000000000000000000000000005555' +
 			'0000000000700000000000000000000000005555' +
-			'1111111111111111111111111111111111111111' +
-			'4444444444444444444444444444444444444444' +
-			''.split(''),
+			'1111111111111111111111111111111111111111',
 
-		tutorial3Map = '4444444444444444444444444444444444444444' +
-			'0000000000000000000000000000000000000060' +
+		tutorial3Map = '0000000000000000000000000000000000000060' +
 			'0000000000000000000000000000000000000011' +
 			'0000000000000000000000000000000000000000' +
 			'0000000000000000000000000000000000000000' +
@@ -263,12 +275,9 @@
 			'0000000000000000000000000000000000002000' +
 			'0000000000000000000000000000000000002000' +
 			'0000000000000000000000000000000000002000' +
-			'1111111111111111111111111111111111111111' +
-			'4444444444444444444444444444444444444444' +
-			''.split(''),
+			'1111111111111111111111111111111111111111',
 
-		lvl1Map = '4444444444444444444444444444444444444444' +
-			'3333330000000000000000000000000000000060' +
+		lvl1Map = '3333330000000000000000000000000000000060' +
 			'5555530000000000000000000000000000000011' +
 			'5555500000000000000000000033330000000000' +
 			'5555500000000000000200000000000000000000' +
@@ -290,9 +299,7 @@
 			'0000333330000000000011110000200002000000' +
 			'0000000000000000000000000000211112000000' +
 			'0000000000000000000000000000200000000000' +
-			'1111111111111111111111111111111111111111' +
-			'4444444444444444444444444444444444444444' +
-			''.split(''),
+			'1111111111111111111111111111111111111111',
 		Tutorial1 = {
 			name: 'Tutorial 1',
 			startingPlayerPosition: [33, 370],
@@ -315,8 +322,8 @@
 			crates: [3],
 			gameTime: 30000,
 			instructions: {
-				Boy: ['SPACEBAR: buy candies when not holding a crate.', 'E: use candy', 'Candies will give a speed boost.'],
-				Crow: ['Roofs block your shots.', 'Don\'t touch the roofs or the delivery boy.', 'RClick: eat candy crumbs to get 5 shots.']
+				Boy: ['SPACEBAR: buy candies when not holding a crate.', 'E: use candy', 'Candies give a speed boost.'],
+				Crow: ['Roofs block shots.', 'Don\'t touch the roofs or the boy.', 'RClick: eat candy crumbs to get 5 shots.']
 			}
 		},
 		Tutorial3 = {
@@ -329,7 +336,7 @@
 			crates: [2, 3],
 			gameTime: 60000,
 			instructions: {
-				Boy: ['ARROWS: climb ladders', 'Heavy crates will break if you fall from too high.'],
+				Boy: ['ARROWS: climb ladder', 'Crates will break if you fall from too high.'],
 				Crow: ['Don\'t get shot!', 'Hide in the nest.']
 			}
 		},
@@ -344,6 +351,23 @@
 			gameTime: 300000
 		},
 		Levels = [Tutorial1, Tutorial2, Tutorial3, Level5];
+
+	function createCustomLevel() {
+		var currentLevel = Levels[selectedLevel];
+		var CustomLevel = {
+			name: 'CustomLevel1',
+			startingPlayerPosition: currentLevel.startingPlayerPosition.slice(),
+			startingCrowPosition: currentLevel.startingCrowPosition.slice(),
+			crateStartingPosition: currentLevel.crateStartingPosition.slice(),
+			grannyPosition: currentLevel.grannyPosition && currentLevel.grannyPosition.slice(),
+			map: currentLevel.map,
+			crates: currentLevel.crates.slice(),
+			gameTime: currentLevel.gameTime,
+			isCustom: true
+		}
+		Levels.push(CustomLevel);
+		selectedLevel = Levels.length - 1;
+	}
 
 	/*
 	 *
@@ -423,46 +447,9 @@
 
 	/*
 	 *
-	 * Game Objects Initialization
+	 * Initialization
 	 *
 	 */
-
-	// Build Map
-	var i = 0,
-		j = 0,
-		I = CANVAS_WIDTH / BLOCK_SIZE,
-		J = CANVAS_HEIGHT / BLOCK_SIZE;
-
-	function initImage(src, width, height) {
-		var img = new Image();
-		img.width = width || 16;
-		img.height = height || 16;
-		img.src = src;
-		return img;
-	}
-
-	// Build Player
-	Player.images.standing = initImage('img/man.png', 16, 32);
-
-	// Build Crow
-	Crow.images.flying = initImage('img/crow.png');
-
-	// Build Environment
-	Environment.Ladder.image = initImage('img/ladder.png');
-	Environment.Nest.image = initImage('img/nest.png');
-	Environment.Dispenser.image = initImage('img/dispenser.png');
-	Environment.Roof.image = initImage('img/roof.png');
-	Environment.Wall.image = initImage('img/wall.png');
-
-	// Build Crumbs
-	Crumbs.image = initImage('img/crumbs.png');
-
-	// Build Shot
-	Shot.image = initImage('img/shot.png');
-
-	// Build Granny
-	Granny.image = initImage('img/granny.png');
-
 
 	function printText(context, textArray, x, y, yIncrement, color, align) {
 		var previousFillColor = context.fillColor;
@@ -494,13 +481,18 @@
 
 		Player.candies = 0;
 		Player.speedBoostTimeout = 0;
-		Player.crateCarried = undefined,
+		Player.crateCarried = undefined;
 		Player.crates = MAX_CRATES;
+		Player.isInteracting = false;
+		Player.isJumping = false;
+		Player.isMoving = false;
+		Player.isInAir = false;
 
 		Crow.health = MAX_CROW_HEALTH;
 		Crow.stunnedTimeout = 0;
 
 		Game.time = 0;
+		Game.editMode = false;
 
 		if (lvl.grannyPosition) {
 			Granny.position = lvl.grannyPosition.slice();
@@ -511,7 +503,8 @@
 			Granny.startingLaserPosition = null;
 		}
 
-		Map = lvl.map;
+		Map = '4444444444444444444444444444444444444444' + lvl.map + '4444444444444444444444444444444444444444';
+		Map = Map.split('');
 
 		// Build Crates
 		var currentCrateSize,
@@ -552,18 +545,22 @@
 		InstructionCanvas.width = CANVAS_WIDTH;
 		InstructionCanvas.height = CANVAS_HEIGHT;
 		var icCtx = InstructionCanvas.getContext('2d');
-		icCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 		icCtx.fillStyle = 'rgba(0,0,0,0.7)';
 		icCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 		icCtx.fillStyle = '#fff';
-		icCtx.font = '20px sans-serif';
+		icCtx.font = '20px courier';
 		icCtx['textAlign'] = 'center';
-		icCtx.fillText('Stage: ' + Game.currentLevel.name, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
+		icCtx.fillText(Game.currentLevel.name, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
 
 		icCtx.fillText('Delivery Boy ' + Game.boyPoints + ' - ' + Game.crowPoints + ' Crow', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
-		icCtx.font = '15px sans-serif';
-		icCtx.fillText("Select stage with arrows", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
+		icCtx.font = '15px courier';
+		icCtx.fillText("Select level with arrows", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
 		icCtx.fillText("Click the crow to start!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
+		icCtx.fillText("E to edit", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 120);
+		if (lvl.isCustom) {
+			icCtx.fillText("D to delete", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 140);
+			icCtx.fillText("J to insert/copy JSON", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 160);
+		}
 
 		icCtx['beginPath']();
 		icCtx['arc'](Crow.position[0], Crow.position[1], 16, 0, 360);
@@ -574,20 +571,20 @@
 		introThemeString = INTRO_THEME.slice();
 	}
 
-	reset();
+	reset(selectedLevel);
 
 	function winBoy() {
 		Game.boyPoints += 1;
 		canvas['style']['cursor'] = 'auto';
 		playSound(SOUND_TYPE.SUCCESS);
-		reset();
+		reset(selectedLevel);
 	}
 
 	function winCrow() {
 		Game.crowPoints += 1;
 		canvas['style']['cursor'] = 'auto';
 		playSound(SOUND_TYPE.FAILURE);
-		reset();
+		reset(selectedLevel);
 	}
 
 	// Helper functions
@@ -602,7 +599,6 @@
 
 	// Add Mouse Event Listener
 	canvas.addEventListener('click', function (evt) {
-		var currentMousePosition = getCanvasRelativeCoords(evt);
 		if (!Game.started) {
 			if (currentMousePosition[0] > Crow.position[0] - 16 && currentMousePosition[0] < Crow.position[0] + 16 && currentMousePosition[1] > Crow.position[1] - 16 && currentMousePosition[1] < Crow.position[1] + 16) {
 				Game.started = true;
@@ -620,10 +616,25 @@
 		}
 	});
 
+	canvas.addEventListener('mousedown', function (evt) {
+		if (evt.which === 1) leftButtonDown = true;
+		if (Game.editMode && leftButtonDown) {
+			setMapAt('' + selectedBlock, Math.floor(currentMousePosition[0] / BLOCK_SIZE), Math.floor(currentMousePosition[1] / BLOCK_SIZE));
+		}
+	});
+
+	canvas.addEventListener('mouseup', function (evt) {
+		if (evt.which === 1) leftButtonDown = false;
+	});
+
 	canvas.addEventListener('mousemove', function (evt) {
+		var tempCurMousePos = getCanvasRelativeCoords(evt);
+		currentMousePosition = [tempCurMousePos[0], tempCurMousePos[1]];
 		if (Game.started) { // Update the crow's position
 			var newCrowPosition = getCanvasRelativeCoords(evt);
 			Crow.position = newCrowPosition.slice();
+		} else if (Game.editMode && leftButtonDown) {
+			setMapAt('' + selectedBlock, Math.floor(currentMousePosition[0] / BLOCK_SIZE), Math.floor(currentMousePosition[1] / BLOCK_SIZE));
 		}
 	});
 
@@ -659,7 +670,9 @@
 	}
 
 	function setMapAt(value, x, y) {
-		Map[I * y + j] = value;
+		if (y > 0 && y < J - 1) {
+			Map[I * y + x] = value;
+		}
 	}
 
 	function arePositionsInSameBlock(pos1, pos2) {
@@ -709,6 +722,17 @@
 		return (isPlayerOnBlock(BLOCK_TYPE.LADDER) ? speed / 3 : currentSpeed);
 	}
 
+	function validateJsonLevel(jsonLevel) {
+		try {
+			var level = JSON.parse(jsonLevel);
+			//if(level.startingPlayerPosition)
+			return true;
+		} catch (e) {
+			alert('Level not valid: ' + e.message);
+		}
+		return false;
+	}
+
 	function processInput(t) {
 		var speed = getPlayerSpeed(),
 			ladderSpeed = Player.ladderSpeed,
@@ -716,7 +740,7 @@
 			y = Player.position[1],
 			k = KeyHandler.k;
 
-		if (!Game.started) {
+		if (!Game.started && !Game.editMode) { // MENU
 			if (k[KEYCODES.LEFT] && !Player.isMoving) {
 				selectedLevel = (selectedLevel + Levels.length - 1) % Levels.length;
 				reset(selectedLevel);
@@ -727,61 +751,97 @@
 				reset(selectedLevel);
 				Player.isMoving = true;
 			}
-			if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT]) {
+			if (k[KEYCODES.EAT]) {
+				if (!Levels[selectedLevel].isCustom) {
+					createCustomLevel();
+				}
+				Game.editMode = true;
+			}
+			if (k[KEYCODES.DELETE] && !Player.isMoving) {
+				Player.isMoving = true;
+				if (Levels[selectedLevel].isCustom) {
+					Levels.splice(selectedLevel, 1);
+					selectedLevel--;
+					reset(selectedLevel);
+				}
+			}
+			if (k[KEYCODES.JSONIZE_LEVEL] && Levels[selectedLevel].isCustom && !Player.isMoving) {
+				Player.isMoving = true;
+				var jsonLevel = prompt('LEVEL JSON', JSON.stringify(Levels[selectedLevel]));
+				if (jsonLevel && validateJsonLevel(jsonLevel)) {
+					Levels[selectedLevel] = JSON.parse(jsonLevel);
+					reset(selectedLevel);
+				}
+			}
+			if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL]) {
 				Player.isMoving = false;
 			}
 			return;
+		} else if (Game.editMode) {
+			if (k[KEYCODES.LEFT] && !Player.isMoving) {
+				selectedBlock = (selectedBlock + NUM_BLOCKS - 1) % NUM_BLOCKS;
+				Player.isMoving = true;
+			}
+			if (k[KEYCODES.RIGHT] && !Player.isMoving) {
+				selectedBlock = (selectedBlock + 1) % NUM_BLOCKS;
+				Player.isMoving = true;
+			}
+			if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT]) {
+				Player.isMoving = false;
+			}
+		} else if (Game.started) {
+			if (k[KEYCODES.INTERACT] && !Player.isJumping && !Player.isInAir && !Player.isInteracting) { // SPACEBAR
+				Player.isInteracting = true;
+				interact();
+			} else if (k[KEYCODES.EAT] && !Player.isInteracting) { // E
+				Player.isInteracting = true;
+				if (Player.candies > 0) {
+					Player.candies--;
+					Player.speedBoost = SPEED_BOOST;
+					Player.speedBoostTimeout = t + SPEED_BOOST_TIMEOUT;
+					var newCrumbs = Object.create(Crumbs);
+					newCrumbs.position = [Player.position[0] + 4, Player.position[1] - 7];
+					CrumbsArray.push(newCrumbs);
+
+					playSound(SOUND_TYPE.SPEED_BOOST);
+				}
+			} else if (!k[KEYCODES.INTERACT] && !k[KEYCODES.EAT] && Player.isInteracting) {
+				Player.isInteracting = false;
+			}
+			if (k[KEYCODES.UP]) { // UP
+				if (isPlayerOnBlock(BLOCK_TYPE.LADDER)) {
+					Player.position[1] = Math.min(CANVAS_HEIGHT - BLOCK_SIZE, y - ladderSpeed);
+					Player.isMoving = true;
+				} else if (!Player.isJumping && !Player.isInAir) {
+					Player.verticalSpeed = Player.jumpSpeed;
+					Player.currentSpeed = speed;
+					Player.isJumping = true;
+					Player.isInAir = true;
+					playSound(SOUND_TYPE.JUMP);
+				}
+			} else if (!k[KEYCODES.UP] && Player.isJumping) {
+				Player.isJumping = false;
+			}
+			if (k[KEYCODES.LEFT]) { // LEFT
+				Player.position[0] = Math.max(BLOCK_SIZE, x - calculateLeftRightSpeed(t));
+				Player.isMoving = true;
+			}
+			if (k[KEYCODES.RIGHT]) { // RIGHT
+				Player.position[0] = Math.min(CANVAS_WIDTH - 2 * BLOCK_SIZE, x + calculateLeftRightSpeed(t));
+				Player.isMoving = true;
+			}
+			if (k[KEYCODES.DOWN] && (isPlayerOnBlock(BLOCK_TYPE.LADDER) || isPlayerOverBlock(BLOCK_TYPE.LADDER)) && !isPlayerOverBlock(BLOCK_TYPE.SOLID)) { // DOWN
+				Player.position[1] = Math.min(CANVAS_HEIGHT, y + ladderSpeed);
+				Player.isMoving = true;
+			}
+			if (!k[KEYCODES.LEFT] && !k[KEYCODES.UP] && !k[KEYCODES.RIGHT] && !k[KEYCODES.DOWN]) {
+				Player.isMoving = false;
+			}
 		}
 		if (k[KEYCODES.MENU]) {
 			canvas['style']['cursor'] = 'auto';
+			Levels[selectedLevel].map = Map.join('').substring(I, I * J - I);
 			reset(selectedLevel);
-		}
-		if (k[KEYCODES.INTERACT] && !Player.isJumping && !Player.isInAir && !Player.isInteracting) { // SPACEBAR
-			Player.isInteracting = true;
-			interact();
-		} else if (k[KEYCODES.EAT] && !Player.isInteracting) { // E
-			Player.isInteracting = true;
-			if (Player.candies > 0) {
-				Player.candies--;
-				Player.speedBoost = SPEED_BOOST;
-				Player.speedBoostTimeout = t + SPEED_BOOST_TIMEOUT;
-				var newCrumbs = Object.create(Crumbs);
-				newCrumbs.position = [Player.position[0] + 4, Player.position[1] - 7];
-				CrumbsArray.push(newCrumbs);
-
-				playSound(SOUND_TYPE.SPEED_BOOST);
-			}
-		} else if (!k[KEYCODES.INTERACT] && !k[KEYCODES.EAT] && Player.isInteracting) {
-			Player.isInteracting = false;
-		}
-		if (k[KEYCODES.UP]) { // UP
-			if (isPlayerOnBlock(BLOCK_TYPE.LADDER)) {
-				Player.position[1] = Math.min(CANVAS_HEIGHT - BLOCK_SIZE, y - ladderSpeed);
-				Player.isMoving = true;
-			} else if (!Player.isJumping && !Player.isInAir) {
-				Player.verticalSpeed = Player.jumpSpeed;
-				Player.currentSpeed = speed;
-				Player.isJumping = true;
-				Player.isInAir = true;
-				playSound(SOUND_TYPE.JUMP);
-			}
-		} else if (!k[KEYCODES.UP] && Player.isJumping) {
-			Player.isJumping = false;
-		}
-		if (k[KEYCODES.LEFT]) { // LEFT
-			Player.position[0] = Math.max(BLOCK_SIZE, x - calculateLeftRightSpeed(t));
-			Player.isMoving = true;
-		}
-		if (k[KEYCODES.RIGHT]) { // RIGHT
-			Player.position[0] = Math.min(CANVAS_WIDTH - 2 * BLOCK_SIZE, x + calculateLeftRightSpeed(t));
-			Player.isMoving = true;
-		}
-		if (k[KEYCODES.DOWN] && (isPlayerOnBlock(BLOCK_TYPE.LADDER) || isPlayerOverBlock(BLOCK_TYPE.LADDER)) && !isPlayerOverBlock(BLOCK_TYPE.SOLID)) { // DOWN
-			Player.position[1] = Math.min(CANVAS_HEIGHT, y + ladderSpeed);
-			Player.isMoving = true;
-		}
-		if (!k[KEYCODES.LEFT] && !k[KEYCODES.UP] && !k[KEYCODES.RIGHT] && !k[KEYCODES.DOWN]) {
-			Player.isMoving = false;
 		}
 	}
 
@@ -993,34 +1053,37 @@
 		ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 	}
 
+	function drawBlockTypeAt(blockType, x, y) {
+		var image = null,
+			color = '#00deff'; // As default, use sky color, also as background for images that have transparency
+		if (blockType === BLOCK_TYPE.SOLID) {
+			image = Environment.Wall.image;
+		} else if (blockType === BLOCK_TYPE.ROOF) {
+			image = Environment.Roof.image;
+		} else if (blockType === BLOCK_TYPE.STATUS_BAR) {
+			color = '#000';
+		} else if (blockType === BLOCK_TYPE.GOAL) {
+			color = '#0f0';
+		} else if (blockType === BLOCK_TYPE.NEST) {
+			image = Environment.Nest.image;
+		} else if (blockType === BLOCK_TYPE.LADDER) {
+			image = Environment.Ladder.image;
+		} else if (blockType === BLOCK_TYPE.DISPENSER) {
+			image = Environment.Dispenser.image;
+		}
+		ctx.fillStyle = color;
+		ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+		if (image !== null) {
+			ctx.drawImage(image, x, y, BLOCK_SIZE, BLOCK_SIZE);
+		}
+	}
+
 	function drawMap() {
-		var color,
-			image;
+		var i, j;
 		for (i = 0; i < I; i++) {
 			for (j = 0; j < J; j++) {
-				image = null;
-				color = '#00deff'; // As default, use sky color, also as background for images that have transparency
 				/* if (getMapAt(i, j) === BLOCK_TYPE.EMPTY) {} else*/ // Do nothing if it's empty
-				if (getMapAt(i, j) === BLOCK_TYPE.SOLID) {
-					image = Environment.Wall.image;
-				} else if (getMapAt(i, j) === BLOCK_TYPE.ROOF) {
-					image = Environment.Roof.image;
-				} else if (getMapAt(i, j) === BLOCK_TYPE.STATUS_BAR) {
-					color = '#000';
-				} else if (getMapAt(i, j) === BLOCK_TYPE.GOAL) {
-					color = '#0f0';
-				} else if (getMapAt(i, j) === BLOCK_TYPE.NEST) {
-					image = Environment.Nest.image;
-				} else if (getMapAt(i, j) === BLOCK_TYPE.LADDER) {
-					image = Environment.Ladder.image;
-				} else if (getMapAt(i, j) === BLOCK_TYPE.DISPENSER) {
-					image = Environment.Dispenser.image;
-				}
-				ctx.fillStyle = color;
-				ctx.fillRect(i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-				if (image !== null) {
-					ctx.drawImage(image, i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-				}
+				drawBlockTypeAt(getMapAt(i, j), i * BLOCK_SIZE, j * BLOCK_SIZE);
 			}
 		}
 	}
@@ -1095,16 +1158,10 @@
 		ctx.fillStyle = 'white';
 
 		// Boy's status
-		ctx.fillText("SPEED: " + getPlayerSpeed(), 40, 396);
-		ctx.fillText("BOOST TIMEOUT: " + Math.max(0, Math.ceil((Player.speedBoostTimeout - t) / 1000)), 100, 396);
-		ctx.fillText("TIME LEFT: " + Math.max(0, Math.ceil((Game.time - t) / 1000)), 210, 396);
-		ctx.fillText("CANDIES: " + Player.candies, 300, 396);
-		ctx.fillText("CRATES: " + Player.crates, 380, 396);
+		ctx.fillText("SPEED: " + getPlayerSpeed() + "   BOOST: " + Math.max(0, Math.ceil((Player.speedBoostTimeout - t) / 1000)) + "   TIME: " + Math.max(0, Math.ceil((Game.time - t) / 1000)) + "   CANDIES: " + Player.candies + "   CRATES: " + Player.crates, 50, 396);
 
 		// Crow's status
-		ctx.fillText("SHOTS: " + Crow.shots, 540, 12);
-		ctx.fillText("STUN TIMEOUT: " + Math.max(0, Math.ceil((Crow.stunnedTimeout - t) / 1000)), 430, 12);
-		ctx.fillText("HEALTH: " + Crow.health, 340, 12);
+		ctx.fillText("SHOTS: " + Crow.shots + "   STUN TIMEOUT: " + Math.max(0, Math.ceil((Crow.stunnedTimeout - t) / 1000)) + "   HEALTH: " + Crow.health, 370, 12);
 
 		// Logs to be removed
 		// ctx.fillStyle = 'red';
@@ -1125,8 +1182,11 @@
 		drawCrow(t);
 		drawLaser();
 		drawStatus(t);
-		if (!Game.started) {
+		if (!Game.started && !Game.editMode) {
 			ctx.drawImage(InstructionCanvas, 0, 0);
+		}
+		if (Game.editMode) {
+			drawBlockTypeAt('' + selectedBlock, currentMousePosition[0] - (currentMousePosition[0] % BLOCK_SIZE), currentMousePosition[1] - (currentMousePosition[1] % BLOCK_SIZE))
 		}
 	}
 
