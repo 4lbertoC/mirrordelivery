@@ -6,8 +6,9 @@ MAXSIZE=13312
 rm -rf build
 mkdir build
 mkdir tmp
-java -jar compiler.jar --js scripts/jsfx/audio.js --js scripts/jsfx/jsfx.js --js scripts/jsfx/jsfxlib.js --compilation_level SIMPLE_OPTIMIZATIONS > tmp/jsfx.min.js
-java -jar compiler.jar --js scripts/game.js --compilation_level ADVANCED_OPTIMIZATIONS > tmp/game.min.js
+#java -jar compiler.jar --js scripts/jsfx/audio.js --js scripts/jsfx/jsfx.js --js scripts/jsfx/jsfxlib.js --compilation_level SIMPLE_OPTIMIZATIONS > tmp/jsfx.min.js
+touch tmp/jsfx.min.js
+java -jar compiler.jar --js scripts/jsfx/audio.js --js scripts/jsfx/jsfx.js --js scripts/jsfx/jsfxlib.js --js scripts/game.js --compilation_level ADVANCED_OPTIMIZATIONS --warning_level VERBOSE --externs scripts/jsfx/externs.js > tmp/game.min.js
 cat tmp/jsfx.min.js tmp/game.min.js > build/game.min.js
 rm -rf tmp
 cp index.html build

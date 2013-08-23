@@ -11,7 +11,9 @@
 
 
 	var canvas = document.getElementById('c'),
-		ctx = canvas.getContext('2d');
+		ctx = canvas.getContext('2d'),
+		currentT = 0,
+		selectedLevel = 0;
 
 	// CONSTANTS
 	var CANVAS_WIDTH = 640,
@@ -44,7 +46,7 @@
 		GRANNY_SHOT: 11
 	};
 
-	var MAX_CRATES = 3,
+	var MAX_CRATES = 10,
 		MIN_CRATE_SIZE = 1,
 		CRATE_SIZE_INCREMENT = 1,
 		CRATE_WIDTH = 12,
@@ -66,11 +68,7 @@
 	var LASER_SPEED = 1,
 		LASER_MOVEMENT_THRESHOLD = 3;
 
-	var GAME_TIME = 300000,
-		STARTING_PLAYER_POSITION = [75, 370],
-		STARTING_CROW_POSITION = [CANVAS_WIDTH - 24, 24],
-		STARTING_LASER_POSITION = [95, 78];
-	INTRO_THEME = '023123467'.split('');
+	var INTRO_THEME = '023123467'.split('');
 
 	var KEYCODES = {
 		LEFT: 37,
@@ -78,7 +76,8 @@
 		RIGHT: 39,
 		DOWN: 40,
 		EAT: 69,
-		INTERACT: 32
+		INTERACT: 32,
+		MENU: 27
 	}
 
 	/*
@@ -105,7 +104,8 @@
 		},
 		wasOverSolidBlock: false,
 		crateCarried: undefined,
-		candies: 3
+		candies: 0,
+		crates: MAX_CRATES
 	};
 
 	var Crow = {
@@ -165,7 +165,8 @@
 		canvasBoundingRect: canvas.getBoundingClientRect(),
 		time: 0,
 		boyPoints: 0,
-		crowPoints: 0
+		crowPoints: 0,
+		currentLevel: null
 	};
 
 	var InstructionCanvas = document.createElement('canvas');
@@ -176,8 +177,173 @@
 
 	var Granny = {
 		position: [80, 53],
-		image: null
+		image: null,
+		startingLaserPosition: [95, 78]
 	}
+
+	/*
+	 *
+	 * Levels definition
+	 *
+	 */
+	var tutorial1Map = '4444444444444444444444444444444444444444' +
+		'0000000000000000000000000000000000000060' +
+		'0000000000000000000000000000000000000011' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000005555' +
+		'0000000000000000000000000000000000005555' +
+		'0000000000000000000000000000000000005555' +
+		'1111111111111111111111111111111111111111' +
+		'4444444444444444444444444444444444444444' +
+		''.split(''),
+
+		tutorial2Map = '4444444444444444444444444444444444444444' +
+			'0000000000000000000000000000000000000060' +
+			'0000000000000000000000000000000000000011' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'3333330000000000000000000000000000033333' +
+			'0000000000000000000000000000000000005555' +
+			'0000000000000000000000000000000000005555' +
+			'0000000000700000000000000000000000005555' +
+			'1111111111111111111111111111111111111111' +
+			'4444444444444444444444444444444444444444' +
+			''.split(''),
+
+		tutorial3Map = '4444444444444444444444444444444444444444' +
+			'0000000000000000000000000000000000000060' +
+			'0000000000000000000000000000000000000011' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'3333333000000000000000000000000000000000' +
+			'5555550000000000000000000000000000000000' +
+			'5555550000000000000000000000000000000000' +
+			'5555550000000002000000000000000333300000' +
+			'1111111111111112000000000000000000000000' +
+			'0000000000000002000000000000000000000000' +
+			'0000000000000002000000000000000007002000' +
+			'3333330000000002111111110001111111112000' +
+			'0000000000000000000000000000000000002000' +
+			'0000000000000000000000000000000000002000' +
+			'0000000000000000000000000000000000002000' +
+			'1111111111111111111111111111111111111111' +
+			'4444444444444444444444444444444444444444' +
+			''.split(''),
+
+		lvl1Map = '4444444444444444444444444444444444444444' +
+			'3333330000000000000000000000000000000060' +
+			'5555530000000000000000000000000000000011' +
+			'5555500000000000000000000033330000000000' +
+			'5555500000000000000200000000000000000000' +
+			'1111110010011001111201110011110000000000' +
+			'0000000000000000000200000000001000000000' +
+			'0000000000000000070200000000000100000000' +
+			'0001110000000000111111000000000010020000' +
+			'0020000000000000333333300003333301021000' +
+			'0020003333330000000000000000000000020000' +
+			'0020000000000000000000000000000000020000' +
+			'0020000000000000100100100110000202020000' +
+			'0020111111111111100000003331100111121110' +
+			'0020033333333330000000000003300000033333' +
+			'0020000000000000000000000000000000000000' +
+			'0020000000000000000020000000000002000000' +
+			'0020111100111110011120111001111112011111' +
+			'0020000000000000000020000000000002000000' +
+			'0020000000000000000020700000000002000000' +
+			'0000333330000000000011110000200002000000' +
+			'0000000000000000000000000000211112000000' +
+			'0000000000000000000000000000200000000000' +
+			'1111111111111111111111111111111111111111' +
+			'4444444444444444444444444444444444444444' +
+			''.split(''),
+		Tutorial1 = {
+			name: 'Tutorial 1',
+			startingPlayerPosition: [33, 370],
+			startingCrowPosition: [CANVAS_WIDTH - 24, 24],
+			crateStartingPosition: [53, 365],
+			map: tutorial1Map,
+			crates: [1],
+			gameTime: 30000,
+			instructions: {
+				Boy: ['PLAYER 1', 'ARROWS: move/jump', 'SPACEBAR: grab/release crate', 'Leave crate into the green zone.'],
+				Crow: ['PLAYER 2', 'MOUSE: move', 'LClick: shoot', 'RClick: recharge from nest', 'Shoot boy to make his crate fall.']
+			}
+		},
+		Tutorial2 = {
+			name: 'Tutorial 2',
+			startingPlayerPosition: [33, 370],
+			startingCrowPosition: [CANVAS_WIDTH - 24, 24],
+			crateStartingPosition: [53, 365],
+			map: tutorial2Map,
+			crates: [3],
+			gameTime: 30000,
+			instructions: {
+				Boy: ['SPACEBAR: buy candies when not holding a crate.', 'E: use candy', 'Candies will give a speed boost.'],
+				Crow: ['Roofs block your shots.', 'Don\'t touch the roofs or the delivery boy.', 'RClick: eat candy crumbs to get 5 shots.']
+			}
+		},
+		Tutorial3 = {
+			name: 'Tutorial 3',
+			startingPlayerPosition: [33, 370],
+			startingCrowPosition: [CANVAS_WIDTH - 24, 24],
+			crateStartingPosition: [53, 365],
+			grannyPosition: [100, 227],
+			map: tutorial3Map,
+			crates: [2, 3],
+			gameTime: 60000,
+			instructions: {
+				Boy: ['ARROWS: climb ladders', 'Heavy crates will break if you fall from too high.'],
+				Crow: ['Don\'t get shot!', 'Hide in the nest.']
+			}
+		},
+		Level5 = {
+			name: 'Level 5',
+			startingPlayerPosition: [75, 370],
+			startingCrowPosition: [CANVAS_WIDTH - 24, 24],
+			crateStartingPosition: [83, 365],
+			grannyPosition: [80, 53],
+			map: lvl1Map,
+			crates: [1, 2, 3],
+			gameTime: 300000
+		},
+		Levels = [Tutorial1, Tutorial2, Tutorial3, Level5];
 
 	/*
 	 *
@@ -193,7 +359,7 @@
 		},
 
 		onKeyDown: function (event) {
-			KeyHandler.k[event['keyCode']] = Date.now();
+			KeyHandler.k[event['keyCode']] = currentT;
 		}
 	};
 	window.addEventListener('keyup', KeyHandler.onKeyUp, false);
@@ -218,13 +384,13 @@
 
 	var introTheme = {};
 	for (var s = 0; s < _NOTES_CDEFGABC.length; s++) {
-		introTheme[s] = jsfxlib['createWave'](["synth", 0.0000, 0.4000, 0.0000, 0.2080, 0.0000, 0.1200, 20.0000, _NOTES_CDEFGABC[s], 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.1000, 0.0000]);
+		introTheme[s] = jsfxlib.createWave(["synth", 0.0000, 0.4000, 0.0000, 0.2080, 0.0000, 0.1200, 20.0000, _NOTES_CDEFGABC[s], 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.1000, 0.0000]);
 	}
 	var introThemeString = INTRO_THEME.slice();
 
 	function playNextNote() {
-		introTheme[introThemeString.shift()]['play']();
 		if (introThemeString.length > 0) {
+			introTheme[introThemeString.shift()]['play']();
 			setTimeout(playNextNote, 200);
 		}
 	}
@@ -232,7 +398,7 @@
 	var Sounds = {};
 
 	function loadSound(name, data) {
-		Sounds[name] = jsfxlib['createWave'](data);
+		Sounds[name] = jsfxlib.createWave(data);
 	}
 	loadSound(SOUND_TYPE.JUMP, ["square", 0.0000, 0.4000, 0.0000, 0.1740, 0.0000, 0.2800, 20.0000, 497.0000, 2400.0000, 0.2200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0665, 0.0000, 0.0000, 0.0000, 0.0000, 0.7830, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.PLAYER_CRASH, ["noise", 0.0000, 0.4000, 0.0000, 0.1400, 0.4050, 0.1160, 20.0000, 479.0000, 2400.0000, -0.0700, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, -0.0860, -0.1220, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
@@ -240,7 +406,7 @@
 	loadSound(SOUND_TYPE.SPEED_BOOST, ["saw", 0.0000, 0.4000, 0.0000, 0.3240, 0.0000, 0.2840, 20.0000, 631.0000, 2400.0000, 0.1720, 0.0000, 0.4980, 19.3500, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.CROW_SHOT, ["saw", 0.0000, 0.4000, 0.0000, 0.2120, 0.0000, 0.0280, 20.0000, 1169.0000, 2400.0000, -0.5200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.5000, -0.5920, 0.0000, 0.0940, 0.0660, 1.0000, 0.0000, 0.0000, 0.2800, 0.0000]);
 	loadSound(SOUND_TYPE.FAILURE, ["synth", 0.0000, 0.4000, 0.0000, 0.3200, 0.3480, 0.4400, 20.0000, 372.0000, 417.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.3740, 0.2640, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.SUCCESS, ["square", 0.0000, 0.4000, 0.0000, 0.3200, 0.3480, 0.4400, 20.0000, 1521.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.3740, 0.2640, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.SUCCESS, ["synth", 0.0000, 0.4000, 0.0000, 0.1300, 0.3450, 0.4100, 253.0000, 1168.0000, 1407.0000, -0.0060, -0.0820, 0.0000, 0.0100, 0.0003, 0.0000, 0.2060, 0.1660, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.CRATE_PICKUP, ["noise", 0.0000, 0.4000, 0.0000, 0.0020, 0.0240, 0.0900, 20.0000, 372.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3420, 0.8090, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.CROW_CRASH, ["noise", 0.0000, 0.4000, 0.0000, 0.1520, 0.3930, 0.2740, 20.0000, 839.0000, 2400.0000, -0.3100, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3400, 0.7830, 0.0000, 0.0000, 0.6096, 0.5260, -0.0080, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.CROW_EAT, ["square", 0.0000, 0.4000, 0.0000, 0.0400, 0.0000, 0.0480, 20.0000, 578.0000, 2400.0000, 0.1040, 0.0000, 0.6830, 19.1580, 0.0003, 0.0000, 0.0000, 0.0000, 0.3850, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
@@ -298,26 +464,57 @@
 	Granny.image = initImage('img/granny.png');
 
 
-	function printText(context, textArray, x, y, yIncrement) {
+	function printText(context, textArray, x, y, yIncrement, color, align) {
+		var previousFillColor = context.fillColor;
+		var previousTextAlign = context.textAlign;
+		if (color) {
+			context.fillStyle = color;
+		}
+		if (align) {
+			context.textAlign = align;
+		}
 		var textArrayCopy = textArray.slice(),
 			tempY = y;
 		while (textArrayCopy.length > 0) {
 			context.fillText(textArrayCopy.shift(), x, tempY);
 			tempY += yIncrement;
 		}
+		context.fillStyle = previousFillColor;
+		context.textAlign = previousTextAlign;
 	}
 
-	function reset() {
+	function reset(levelId) {
+		var lvl = Game.currentLevel = Levels[levelId] || Levels[selectedLevel];
+
+		var crateStartingPosition = lvl.crateStartingPosition;
+
 		Game.started = false;
-		Player.position = STARTING_PLAYER_POSITION.slice();
-		Crow.position = STARTING_CROW_POSITION.slice();
-		Laser.position = STARTING_LASER_POSITION.slice();
+		Player.position = lvl.startingPlayerPosition.slice();
+		Crow.position = lvl.startingCrowPosition.slice();
+
+		Player.candies = 0;
+		Player.speedBoostTimeout = 0;
+		Player.crateCarried = undefined,
+		Player.crates = MAX_CRATES;
 
 		Crow.health = MAX_CROW_HEALTH;
 		Crow.stunnedTimeout = 0;
 
+		Game.time = 0;
+
+		if (lvl.grannyPosition) {
+			Granny.position = lvl.grannyPosition.slice();
+			Granny.startingLaserPosition = [lvl.grannyPosition[0] + 15, lvl.grannyPosition[1] + 23];
+			Laser.position = Granny.startingLaserPosition.slice();
+		} else {
+			Granny.position = null;
+			Granny.startingLaserPosition = null;
+		}
+
+		Map = lvl.map;
+
 		// Build Crates
-		var currentCrateSize = MIN_CRATE_SIZE,
+		var currentCrateSize,
 			newCrate,
 			crateCanvas,
 			crateCtx,
@@ -325,7 +522,8 @@
 			y;
 
 		CratesArray.length = 0;
-		for (var cr = 0; cr < MAX_CRATES; cr++) {
+		for (var cr = 0; cr < lvl.crates.length; cr++) {
+			currentCrateSize = lvl.crates[cr];
 			var newCrate = Object.create(Crate);
 			newCrate.size = currentCrateSize;
 
@@ -333,14 +531,14 @@
 			crateCanvas.width = CRATE_WIDTH + currentCrateSize;
 			crateCanvas.height = CRATE_WIDTH + currentCrateSize;
 			crateCtx = crateCanvas.getContext('2d');
-			crateCtx.setFillColor('yellow');
+			crateCtx.fillStyle = 'yellow';
 			crateCtx.fillRect(0, 0, CRATE_WIDTH + currentCrateSize, CRATE_WIDTH + currentCrateSize);
-			crateCtx.setFillColor('black');
+			crateCtx.fillStyle = 'black';
 			crateCtx.fillText(currentCrateSize, 5, 10);
 			newCrate.image = crateCanvas;
 
-			x = 85 + currentCrateSize * 15;
-			y = 365 - currentCrateSize;
+			x = crateStartingPosition[0] + cr * 16;
+			y = crateStartingPosition[1] - currentCrateSize;
 			newCrate.position = [x, y];
 			newCrate.startPosition = [x, y];
 
@@ -348,39 +546,29 @@
 			currentCrateSize += CRATE_SIZE_INCREMENT;
 		}
 
+		CrumbsArray.length = 0;
+		ShotsArray.length = 0;
+
 		InstructionCanvas.width = CANVAS_WIDTH;
 		InstructionCanvas.height = CANVAS_HEIGHT;
 		var icCtx = InstructionCanvas.getContext('2d');
 		icCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-		icCtx.font = '12px sans-serif';
-		icCtx.setFillColor('rgba(0,0,0,0.7)');
+		icCtx.fillStyle = 'rgba(0,0,0,0.7)';
 		icCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-		icCtx.setFillColor('fff');
-		icCtx.fillText("Click the crow to start!", CANVAS_WIDTH - 170, 25);
-
-		var boyInstructions = [
-	'Delivery Boy must deliver all the boxes to the green goal.',
-	'If you fall from too high, the box will break, and it is returned to start position.',
-	'Use arrows to move and jump, SPACEBAR to take/leave boxes, E to eat speed candies.',
-	'Speed candies leave crumbs on the ground.'
-];
-		var crowInstructions = [
-	'Crow must hinder Delivery Boy from delivering all the boxes.',
-	'Move with mouse, left click to shoot and right click to collect food.',
-	'Food recharges shots and is found in the nest and crumbs left by Delivery Boy.',
-	'Don\'t touch roofs and don\'t get too close to Delivery Boy or you\'ll get stunned.',
-	'Oh, and don\'t get shot!'
-];
-		printText(icCtx, boyInstructions, 140, 330, 13);
-		icCtx['textAlign'] = 'right';
-		printText(icCtx, crowInstructions, 440, 30, 13);
+		icCtx.fillStyle = '#fff';
 		icCtx.font = '20px sans-serif';
 		icCtx['textAlign'] = 'center';
+		icCtx.fillText('Stage: ' + Game.currentLevel.name, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
+
 		icCtx.fillText('Delivery Boy ' + Game.boyPoints + ' - ' + Game.crowPoints + ' Crow', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+		icCtx.font = '15px sans-serif';
+		icCtx.fillText("Select stage with arrows", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
+		icCtx.fillText("Click the crow to start!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
+
 		icCtx['beginPath']();
-		icCtx['arc'](CANVAS_WIDTH - 25, 25, 16, 0, 360);
+		icCtx['arc'](Crow.position[0], Crow.position[1], 16, 0, 360);
 		icCtx['lineWidth'] = 1;
-		icCtx['strokeStyle'] = 'fff';
+		icCtx['strokeStyle'] = '#fff';
 		icCtx['stroke']();
 
 		introThemeString = INTRO_THEME.slice();
@@ -416,14 +604,14 @@
 	canvas.addEventListener('click', function (evt) {
 		var currentMousePosition = getCanvasRelativeCoords(evt);
 		if (!Game.started) {
-			if (currentMousePosition[0] > CANVAS_WIDTH - 36 && currentMousePosition[1] < 36) {
+			if (currentMousePosition[0] > Crow.position[0] - 16 && currentMousePosition[0] < Crow.position[0] + 16 && currentMousePosition[1] > Crow.position[1] - 16 && currentMousePosition[1] < Crow.position[1] + 16) {
 				Game.started = true;
-				Game.time = Date.now() + GAME_TIME;
+				Game.time = currentT + Game.currentLevel.gameTime;
 				playNextNote();
 
 				canvas['style']['cursor'] = 'none';
 			}
-		} else if (Crow.shots > 0 && Crow.stunnedTimeout < Date.now()) {
+		} else if (Crow.shots > 0 && Crow.stunnedTimeout < currentT) {
 			Crow.shots--;
 			playSound(SOUND_TYPE.CROW_SHOT);
 			var newShot = Object.create(Shot);
@@ -441,7 +629,7 @@
 
 	canvas.addEventListener('contextmenu', function (evt) {
 		evt.preventDefault();
-		if (Game.started && Crow.stunnedTimeout < Date.now()) {
+		if (Game.started && Crow.stunnedTimeout < currentT) {
 			var currentMousePosition = getCanvasRelativeCoords(evt);
 			if (isCrowOverBlock(BLOCK_TYPE.NEST) && Crow.shots < NEST_SHOTS) {
 				playSound(SOUND_TYPE.CROW_EAT);
@@ -459,35 +647,6 @@
 			}
 		}
 	});
-
-
-	// Build Dummy Map
-	Map = '4444444444444444444444444444444444444444' +
-		'3333330000000000000000000000000000000060' +
-		'5555530000000000000000000000000000000011' +
-		'5555500000000000000000000033330000000000' +
-		'5555500000000000000200000000000000000000' +
-		'1111110010011001111201110011110000000000' +
-		'0000000000000000000200000000001000000000' +
-		'0000000000000000070200000000000100000000' +
-		'0001110000000000111111000000000010020000' +
-		'0020000000000000333333300003333301021000' +
-		'0020003333330000000000000000000000020000' +
-		'0020000000000000000000000000000000020000' +
-		'0020000000000000100100100110000202020000' +
-		'0020111111111111100000003331100111121110' +
-		'0020033333333330000000000003300000033333' +
-		'0020000000000000000000000000000000000000' +
-		'0020000000000000000020000000000002000000' +
-		'0020111100111110011120111001111112011111' +
-		'0020000000000000000020000000000002000000' +
-		'0020000000000000000020700000000002000000' +
-		'0000333330000000000011110000200002000000' +
-		'0000000000000000000000000000211112000000' +
-		'0000000000000000000000000000200000000000' +
-		'1111111111111111111111111111111111111111' +
-		'4444444444444444444444444444444444444444' +
-		''.split('');
 
 	/*
 	 *
@@ -529,10 +688,11 @@
 			Player.crateCarried = undefined;
 			playSound(SOUND_TYPE.CRATE_PICKUP);
 			if (isPlayerOnBlock(BLOCK_TYPE.GOAL) && currentCrate !== undefined) {
-				playSound(SOUND_TYPE.CRATE_DELIVERY);
 				CratesArray.splice(currentCrateIdx, 1);
 				if (CratesArray.length <= 0) {
 					winBoy();
+				} else {
+					playSound(SOUND_TYPE.CRATE_DELIVERY);
 				}
 			}
 		}
@@ -550,13 +710,32 @@
 	}
 
 	function processInput(t) {
-		if (!Game.started) return;
 		var speed = getPlayerSpeed(),
 			ladderSpeed = Player.ladderSpeed,
 			x = Player.position[0],
 			y = Player.position[1],
 			k = KeyHandler.k;
 
+		if (!Game.started) {
+			if (k[KEYCODES.LEFT] && !Player.isMoving) {
+				selectedLevel = (selectedLevel + Levels.length - 1) % Levels.length;
+				reset(selectedLevel);
+				Player.isMoving = true;
+			}
+			if (k[KEYCODES.RIGHT] && !Player.isMoving) {
+				selectedLevel = (selectedLevel + 1) % Levels.length;
+				reset(selectedLevel);
+				Player.isMoving = true;
+			}
+			if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT]) {
+				Player.isMoving = false;
+			}
+			return;
+		}
+		if (k[KEYCODES.MENU]) {
+			canvas['style']['cursor'] = 'auto';
+			reset(selectedLevel);
+		}
 		if (k[KEYCODES.INTERACT] && !Player.isJumping && !Player.isInAir && !Player.isInteracting) { // SPACEBAR
 			Player.isInteracting = true;
 			interact();
@@ -565,7 +744,7 @@
 			if (Player.candies > 0) {
 				Player.candies--;
 				Player.speedBoost = SPEED_BOOST;
-				Player.speedBoostTimeout = Date.now() + SPEED_BOOST_TIMEOUT;
+				Player.speedBoostTimeout = t + SPEED_BOOST_TIMEOUT;
 				var newCrumbs = Object.create(Crumbs);
 				newCrumbs.position = [Player.position[0] + 4, Player.position[1] - 7];
 				CrumbsArray.push(newCrumbs);
@@ -674,6 +853,10 @@
 			playSound(SOUND_TYPE.PLAYER_CRASH);
 			Player.crateCarried = undefined;
 			currentCrate.position = currentCrate.startPosition.slice();
+			Player.crates--;
+			if (Player.crates <= 0) {
+				winCrow();
+			}
 		}
 	}
 
@@ -711,9 +894,13 @@
 	}
 
 	function update(t) {
+
+		currentT = t;
+
 		if (!Game.started) {
 			return;
 		}
+
 		// Updating Canvas position
 		Game.canvasBoundingRect = canvas.getBoundingClientRect();
 
@@ -784,15 +971,17 @@
 		Crow.isInWarningZone = isCrowInPlayerWarningZone();
 
 		// Update Laser's position
-		var laserTargetPosition = isPositionOnBlock(Crow.position, BLOCK_TYPE.NEST) ? STARTING_LASER_POSITION : Crow.position,
-			laserToCrowAngle = getDirectionAngle(Laser.position, laserTargetPosition),
-			tangentSide = Laser.position[0] > laserTargetPosition[0] ? -1 : 1;
-		if (Math.abs(laserTargetPosition[0] - Laser.position[0]) > LASER_MOVEMENT_THRESHOLD || Math.abs(laserTargetPosition[1] - Laser.position[1]) > LASER_MOVEMENT_THRESHOLD) {
-			Laser.position[0] += Math.cos(laserToCrowAngle) * tangentSide * LASER_SPEED;
-			Laser.position[1] += Math.sin(laserToCrowAngle) * tangentSide * LASER_SPEED;
+		if (Granny.position) {
+			var laserTargetPosition = isPositionOnBlock(Crow.position, BLOCK_TYPE.NEST) ? Granny.startingLaserPosition : Crow.position,
+				laserToCrowAngle = getDirectionAngle(Laser.position, laserTargetPosition),
+				tangentSide = Laser.position[0] > laserTargetPosition[0] ? -1 : 1;
+			if (Math.abs(laserTargetPosition[0] - Laser.position[0]) > LASER_MOVEMENT_THRESHOLD || Math.abs(laserTargetPosition[1] - Laser.position[1]) > LASER_MOVEMENT_THRESHOLD) {
+				Laser.position[0] += Math.cos(laserToCrowAngle) * tangentSide * LASER_SPEED;
+				Laser.position[1] += Math.sin(laserToCrowAngle) * tangentSide * LASER_SPEED;
+			}
 		}
 
-		if ((isCrowInPlayerDamageZone() || isPositionOnBlock(Crow.position, BLOCK_TYPE.ROOF) || Math.sqrt(squareDistance(Laser.position, Crow.position)) < LASER_MOVEMENT_THRESHOLD) && Crow.stunnedTimeout < t) {
+		if ((isCrowInPlayerDamageZone() || isPositionOnBlock(Crow.position, BLOCK_TYPE.ROOF) || (Granny.position && (Math.sqrt(squareDistance(Laser.position, Crow.position)) < LASER_MOVEMENT_THRESHOLD))) && Crow.stunnedTimeout < t) {
 			stunCrow(t);
 		}
 	}
@@ -800,7 +989,7 @@
 	// Drawing functions
 
 	function clearColor(color) {
-		ctx.setFillColor(color || 'black');
+		ctx.fillStyle = color || 'black';
 		ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 	}
 
@@ -810,25 +999,24 @@
 		for (i = 0; i < I; i++) {
 			for (j = 0; j < J; j++) {
 				image = null;
-				color = '00deff';
-				if (getMapAt(i, j) === BLOCK_TYPE.EMPTY) {} else if (getMapAt(i, j) === BLOCK_TYPE.SOLID) {
+				color = '#00deff'; // As default, use sky color, also as background for images that have transparency
+				/* if (getMapAt(i, j) === BLOCK_TYPE.EMPTY) {} else*/ // Do nothing if it's empty
+				if (getMapAt(i, j) === BLOCK_TYPE.SOLID) {
 					image = Environment.Wall.image;
 				} else if (getMapAt(i, j) === BLOCK_TYPE.ROOF) {
 					image = Environment.Roof.image;
 				} else if (getMapAt(i, j) === BLOCK_TYPE.STATUS_BAR) {
-					color = '000';
+					color = '#000';
 				} else if (getMapAt(i, j) === BLOCK_TYPE.GOAL) {
-					color = '0f0';
+					color = '#0f0';
 				} else if (getMapAt(i, j) === BLOCK_TYPE.NEST) {
 					image = Environment.Nest.image;
 				} else if (getMapAt(i, j) === BLOCK_TYPE.LADDER) {
 					image = Environment.Ladder.image;
 				} else if (getMapAt(i, j) === BLOCK_TYPE.DISPENSER) {
 					image = Environment.Dispenser.image;
-				} else {
-					color = 'fff';
 				}
-				ctx.setFillColor(color);
+				ctx.fillStyle = color;
 				ctx.fillRect(i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
 				if (image !== null) {
 					ctx.drawImage(image, i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
@@ -840,8 +1028,10 @@
 	function drawEnvironment() {
 		var cur, cr;
 		for (cr = 0; cr < CratesArray.length; cr++) {
-			cur = CratesArray[cr];
-			ctx.drawImage(cur.image, cur.position[0] - 8, cur.position[1] - 8);
+			if (cr !== Player.crateCarried) {
+				cur = CratesArray[cr];
+				ctx.drawImage(cur.image, cur.position[0] - 8, cur.position[1] - 8);
+			}
 		}
 		for (cr = 0; cr < CrumbsArray.length; cr++) {
 			cur = CrumbsArray[cr];
@@ -852,17 +1042,28 @@
 			ctx.drawImage(cur.image, cur.position[0] - 8, cur.position[1] - 8);
 		}
 
-		ctx.drawImage(Granny.image, Granny.position[0], Granny.position[1]);
+		if (Granny.position) {
+			ctx.drawImage(Granny.image, Granny.position[0], Granny.position[1]);
+		}
+
+		if (Game.currentLevel.instructions) {
+			printText(ctx, Game.currentLevel.instructions.Boy, 120, 330, 10, 'black');
+			printText(ctx, Game.currentLevel.instructions.Crow, 620, 70, 10, 'black', 'right');
+		}
 	}
 
 	function drawPlayer() {
 		ctx.drawImage(Player.images.standing, Player.position[0] - 8, Player.position[1] - 24);
+		if (Player.crateCarried !== undefined) {
+			var cur = CratesArray[Player.crateCarried];
+			ctx.drawImage(cur.image, cur.position[0] - 8, cur.position[1] - 8);
+		}
 
 		if (Crow.isInWarningZone) {
 			ctx['beginPath']();
 			ctx['arc'](Player.position[0], Player.position[1], getDamageRadius(), 0, 360);
 			ctx['lineWidth'] = 2;
-			ctx['strokeStyle'] = 'f09';
+			ctx['strokeStyle'] = '#f09';
 			ctx['stroke']();
 		}
 	}
@@ -871,31 +1072,34 @@
 		if (!(Crow.stunnedTimeout > t && Math.floor(t / 100) % 2 === 0)) {
 			ctx.drawImage(Crow.images.flying, Crow.position[0] - 8, Crow.position[1] - 8);
 		}
-		ctx.setFillColor('red');
+		ctx.fillStyle = 'red';
 	}
 
 	function drawLaser() {
-		ctx.setFillColor('red');
-		ctx.fillRect(Laser.position[0] - 1, Laser.position[1] - 1, 2, 2);
-		ctx['beginPath']();
-		ctx['arc'](Laser.position[0], Laser.position[1], 5, 0, 360);
-		ctx['lineWidth'] = 2;
-		ctx['strokeStyle'] = 'red';
-		ctx['stroke']();
+		if (Granny.position) {
+			ctx.fillStyle = 'red';
+			ctx.fillRect(Laser.position[0] - 1, Laser.position[1] - 1, 2, 2);
+			ctx['beginPath']();
+			ctx['arc'](Laser.position[0], Laser.position[1], 5, 0, 360);
+			ctx['lineWidth'] = 2;
+			ctx['strokeStyle'] = 'red';
+			ctx['stroke']();
+		}
 	}
 
 	function drawStatus(t) {
-		ctx.setFillColor('00deff');
+		ctx.fillStyle = '#00deff';
 		ctx.fillText("BOY", 10, 396);
-		ctx.setFillColor('red');
+		ctx.fillStyle = 'red';
 		ctx.fillText("CROW", 600, 12);
-		ctx.setFillColor('white');
+		ctx.fillStyle = 'white';
 
 		// Boy's status
 		ctx.fillText("SPEED: " + getPlayerSpeed(), 40, 396);
 		ctx.fillText("BOOST TIMEOUT: " + Math.max(0, Math.ceil((Player.speedBoostTimeout - t) / 1000)), 100, 396);
 		ctx.fillText("TIME LEFT: " + Math.max(0, Math.ceil((Game.time - t) / 1000)), 210, 396);
 		ctx.fillText("CANDIES: " + Player.candies, 300, 396);
+		ctx.fillText("CRATES: " + Player.crates, 380, 396);
 
 		// Crow's status
 		ctx.fillText("SHOTS: " + Crow.shots, 540, 12);
@@ -903,7 +1107,7 @@
 		ctx.fillText("HEALTH: " + Crow.health, 340, 12);
 
 		// Logs to be removed
-		// ctx.setFillColor('red');
+		// ctx.fillStyle = 'red';
 		// ctx.fillText(Player.nearestSolidBlockY, 10, 10);
 		// ctx.fillText("Dist: " + squareDistance(Crow.position, Player.position) + ', Warn: ' + getWarningRadius(), 10, 10);
 		// ctx.fillText("(" + Player.position[0] + ', ' + Player.position[1] + ')', 10, 20);
@@ -916,8 +1120,8 @@
 	function render(t) {
 		clearColor();
 		drawMap();
-		drawPlayer();
 		drawEnvironment();
+		drawPlayer();
 		drawCrow(t);
 		drawLaser();
 		drawStatus(t);

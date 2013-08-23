@@ -22,7 +22,7 @@ var jsfxlib = {};
    */
     this.createWave = function(lib) {
         var params = this.arrayToParams(lib),
-            data = jsfx.generate(params),
+        data = jsfx.generate(params),
             wave = audio.make(data);
 
         return wave;
