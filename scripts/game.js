@@ -863,8 +863,11 @@
 			} else if (k[KEYCODES.SHARE] && !Player.isMoving) {
 				Player.isMoving = true;
 
+				// TODO Check if Online
+
 				function reqListener() {
-					console.log(this.responseText);
+					prompt('Your level share url', this.responseText);
+					k[KEYCODES.SHARE] = undefined;
 				};
 
 				var oReq = new XMLHttpRequest();
