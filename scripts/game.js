@@ -15,7 +15,8 @@
 		currentT = 0,
 		selectedLevel = 0,
 		currentMousePosition = [0, 0],
-		leftButtonDown = false;
+		leftButtonDown = false,
+		customLevelCounter = 1;
 
 	// EDIT MODE VARIABLES
 	var selectedBlock = 0;
@@ -96,12 +97,28 @@
 	 *
 	 */
 
-		function initImage(src, width, height) {
+		function initImage(src, width, height, onLoadCallback) {
 			var img = new Image();
 			img.width = width || 16;
 			img.height = height || 16;
+			img.onload = onLoadCallback;
 			img.src = src;
 			return img;
+		}
+
+		function initCanvas(src, width, height, isFlipped) {
+			var c = document.createElement('canvas'),
+				img = initImage(src, width, height, function () {
+					var imCtx = c.getContext('2d');
+					if (isFlipped) {
+						imCtx.translate(width, 0);
+						imCtx.scale(-1, 1);
+					}
+					imCtx.drawImage(img, 0, 0);
+				});
+			c.width = width;
+			c.height = height;
+			return c;
 		}
 
 	var Player = {
@@ -118,18 +135,20 @@
 		isInteracting: false,
 		verticalSpeed: 0,
 		images: {
-			standing: initImage('img/man.png', 16, 32)
+			moving: initCanvas('img/man2.png', 32, 32),
+			movingFlipped: initCanvas('img/man2.png', 32, 32, true)
 		},
 		wasOverSolidBlock: false,
 		crateCarried: undefined,
 		candies: 0,
-		crates: MAX_CRATES
+		crates: MAX_CRATES,
+		facingRight: true
 	};
 
 	var Crow = {
 		position: null,
 		images: {
-			flying: initImage('img/crow.png')
+			flying: initImage('img/crow2.png')
 		},
 		shots: NEST_SHOTS,
 		isInWarningZone: false,
@@ -150,10 +169,10 @@
 			image: initImage('img/dispenser.png')
 		},
 		Roof: {
-			image: initImage('img/roof.png')
+			image: initImage('img/roof.gif')
 		},
 		Wall: {
-			image: initImage('img/wall.png')
+			image: initImage('img/wall.gif')
 		}
 	};
 
@@ -277,7 +296,7 @@
 			'0000000000000000000000000000000000002000' +
 			'1111111111111111111111111111111111111111',
 
-		lvl1Map = '3333330000000000000000000000000000000060' +
+		lvl5Map = '3333330000000000000000000000000000000060' +
 			'5555530000000000000000000000000000000011' +
 			'5555500000000000000000000033330000000000' +
 			'5555500000000000000200000000000000000000' +
@@ -346,7 +365,7 @@
 			startingCrowPosition: [CANVAS_WIDTH - 24, 24],
 			crateStartingPosition: [83, 365],
 			grannyPosition: [80, 53],
-			map: lvl1Map,
+			map: lvl5Map,
 			crates: [1, 2, 3],
 			gameTime: 300000
 		},
@@ -355,7 +374,7 @@
 	function createCustomLevel() {
 		var currentLevel = Levels[selectedLevel];
 		var CustomLevel = {
-			name: 'CustomLevel1',
+			name: 'CustomLevel' + customLevelCounter++,
 			startingPlayerPosition: currentLevel.startingPlayerPosition.slice(),
 			startingCrowPosition: currentLevel.startingCrowPosition.slice(),
 			crateStartingPosition: currentLevel.crateStartingPosition.slice(),
@@ -487,6 +506,7 @@
 		Player.isJumping = false;
 		Player.isMoving = false;
 		Player.isInAir = false;
+		Player.facingRight = true;
 
 		Crow.health = MAX_CROW_HEALTH;
 		Crow.stunnedTimeout = 0;
@@ -556,11 +576,8 @@
 		icCtx.font = '15px courier';
 		icCtx.fillText("Select level with arrows", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
 		icCtx.fillText("Click the crow to start!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
-		icCtx.fillText("E to edit", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 120);
-		if (lvl.isCustom) {
-			icCtx.fillText("D to delete", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 140);
-			icCtx.fillText("J to insert/copy JSON", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 160);
-		}
+		var str = lvl.isCustom ? "N: new   E: edit   D: delete   J: insert/copy JSON" : "E: edit";
+		icCtx.fillText(str, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 120);
 
 		icCtx['beginPath']();
 		icCtx['arc'](Crow.position[0], Crow.position[1], 16, 0, 360);
@@ -745,30 +762,37 @@
 				selectedLevel = (selectedLevel + Levels.length - 1) % Levels.length;
 				reset(selectedLevel);
 				Player.isMoving = true;
-			} else if (k[KEYCODES.RIGHT] && !Player.isMoving) {
+			}
+			if (k[KEYCODES.RIGHT] && !Player.isMoving) {
 				selectedLevel = (selectedLevel + 1) % Levels.length;
 				reset(selectedLevel);
 				Player.isMoving = true;
-			} else if (k[KEYCODES.EAT] && !Player.isMoving) {
+			}
+			if (k[KEYCODES.EAT] && !Player.isMoving) {
 				if (!Levels[selectedLevel].isCustom) {
 					createCustomLevel();
+					reset(selectedLevel);
 				}
 				Game.editMode = true;
-			} else if (k[KEYCODES.DELETE] && !Player.isMoving) {
+			}
+			if (k[KEYCODES.DELETE] && !Player.isMoving) {
 				Player.isMoving = true;
 				if (Levels[selectedLevel].isCustom) {
 					Levels.splice(selectedLevel, 1);
 					selectedLevel--;
 					reset(selectedLevel);
 				}
-			} else if (k[KEYCODES.JSONIZE_LEVEL] && Levels[selectedLevel].isCustom && !Player.isMoving) {
-				Player.isMoving = true;
+			}
+			if (k[KEYCODES.JSONIZE_LEVEL] && Levels[selectedLevel].isCustom && !Player.isMoving) {
 				var jsonLevel = prompt('LEVEL JSON', JSON.stringify(Levels[selectedLevel]));
 				if (jsonLevel && validateJsonLevel(jsonLevel)) {
 					Levels[selectedLevel] = JSON.parse(jsonLevel);
 					reset(selectedLevel);
 				}
-			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL]) {
+				// Need to do this because the prompt hangs the keycode pressed
+				k[KEYCODES.JSONIZE_LEVEL] = undefined;
+			}
+			if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL]) {
 				Player.isMoving = false;
 			}
 			return;
@@ -820,10 +844,12 @@
 			if (k[KEYCODES.LEFT]) { // LEFT
 				Player.position[0] = Math.max(BLOCK_SIZE, x - calculateLeftRightSpeed(t));
 				Player.isMoving = true;
+				Player.facingRight = false;
 			}
 			if (k[KEYCODES.RIGHT]) { // RIGHT
 				Player.position[0] = Math.min(CANVAS_WIDTH - 2 * BLOCK_SIZE, x + calculateLeftRightSpeed(t));
 				Player.isMoving = true;
+				Player.facingRight = true;
 			}
 			if (k[KEYCODES.DOWN] && (isPlayerOnBlock(BLOCK_TYPE.LADDER) || isPlayerOverBlock(BLOCK_TYPE.LADDER)) && !isPlayerOverBlock(BLOCK_TYPE.SOLID)) { // DOWN
 				Player.position[1] = Math.min(CANVAS_HEIGHT, y + ladderSpeed);
@@ -1110,11 +1136,27 @@
 		}
 	}
 
-	function drawPlayer() {
-		ctx.drawImage(Player.images.standing, Player.position[0] - 8, Player.position[1] - 24);
+	function drawPlayer(t) {
+		if (Game.started) {
+			if (Player.isInAir) {
+				ctx.drawImage(Player.facingRight ? Player.images.moving : Player.images.movingFlipped, Player.facingRight ? 0 : 16, 0, 16, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
+			} else if (Player.isMoving) {
+
+				var sx = (Math.floor(t / 100) % 2 < 1) ? 0 : 16,
+					sy = 0,
+					sw = 16,
+					sh = 32;
+				ctx.drawImage(Player.facingRight ? Player.images.moving : Player.images.movingFlipped, sx, sy, sw, sh, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
+			} else {
+				ctx.drawImage(Player.facingRight ? Player.images.moving : Player.images.movingFlipped, Player.facingRight ? 16 : 0, 0, 16, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
+			}
+		} else {
+			ctx.drawImage(Player.facingRight ? Player.images.moving : Player.images.movingFlipped, Player.facingRight ? 16 : 0, 0, 16, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
+		}
 		if (Player.crateCarried !== undefined) {
 			var cur = CratesArray[Player.crateCarried];
-			ctx.drawImage(cur.image, cur.position[0] - 8, cur.position[1] - 8);
+			ctx.drawImage(cur.image, Player.facingRight ? cur.position[0] - 16 - cur.size : cur.position[0] + 2, cur.position[1] - 10);
+
 		}
 
 		if (Crow.isInWarningZone) {
@@ -1127,10 +1169,17 @@
 	}
 
 	function drawCrow(t) {
-		if (!(Crow.stunnedTimeout > t && Math.floor(t / 100) % 2 === 0)) {
-			ctx.drawImage(Crow.images.flying, Crow.position[0] - 8, Crow.position[1] - 8);
+		if (Game.started) {
+			if (!(Crow.stunnedTimeout > t && Math.floor(t / 100) % 2 === 0)) {
+				var sx = (Math.floor(t / 100) % 6 < 3) ? 0 : 16,
+					sy = 0,
+					sw = 16,
+					sh = 16;
+				ctx.drawImage(Crow.images.flying, sx, sy, sw, sh, Crow.position[0] - 8, Crow.position[1] - 8, 16, 16);
+			}
+		} else {
+			ctx.drawImage(Crow.images.flying, 0, 0, 16, 16, Crow.position[0] - 8, Crow.position[1] - 8, 16, 16);
 		}
-		ctx.fillStyle = 'red';
 	}
 
 	function drawLaser() {
@@ -1156,7 +1205,7 @@
 		ctx.fillText("SPEED: " + getPlayerSpeed() + "   BOOST: " + Math.max(0, Math.ceil((Player.speedBoostTimeout - t) / 1000)) + "   TIME: " + Math.max(0, Math.ceil((Game.time - t) / 1000)) + "   CANDIES: " + Player.candies + "   CRATES: " + Player.crates, 50, 396);
 
 		// Crow's status
-		ctx.fillText("SHOTS: " + Crow.shots + "   STUN TIMEOUT: " + Math.max(0, Math.ceil((Crow.stunnedTimeout - t) / 1000)) + "   HEALTH: " + Crow.health, 370, 12);
+		ctx.fillText("SHOTS: " + Crow.shots + "   STUN: " + Math.max(0, Math.ceil((Crow.stunnedTimeout - t) / 1000)) + "   HEALTH: " + Crow.health, 410, 12);
 
 		if (Game.editMode) {
 			ctx.fillText("< > CHANGE BLOCK", 12, 12);
@@ -1176,7 +1225,7 @@
 		clearColor();
 		drawMap();
 		drawEnvironment();
-		drawPlayer();
+		drawPlayer(t);
 		drawCrow(t);
 		drawLaser();
 		drawStatus(t);
@@ -1185,6 +1234,8 @@
 		}
 		if (Game.editMode) {
 			drawBlockTypeAt('' + selectedBlock, currentMousePosition[0] - (currentMousePosition[0] % BLOCK_SIZE), currentMousePosition[1] - (currentMousePosition[1] % BLOCK_SIZE))
+			ctx.strokeStyle = '#000';
+			ctx.strokeRect(currentMousePosition[0] - (currentMousePosition[0] % BLOCK_SIZE), currentMousePosition[1] - (currentMousePosition[1] % BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
 		}
 	}
 
