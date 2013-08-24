@@ -38,7 +38,17 @@
 		NEST: '6',
 		DISPENSER: '7'
 	};
-	var NUM_BLOCKS = 8; // Keep this info for the level editor
+	// Keep this info for the level editor
+	// This is number of blocks + Player + Crow + Granny + Crates position
+	var NUM_BLOCKS = 8,
+		GAME_ELEMENTS = {
+			PLAYER: NUM_BLOCKS + 0,
+			CROW: NUM_BLOCKS + 1,
+			GRANNY: NUM_BLOCKS + 2,
+			CRATES: NUM_BLOCKS + 3
+		},
+		NUM_GAME_ELEMENTS = 4,
+		NUM_EDIT_OPTIONS = NUM_BLOCKS + NUM_GAME_ELEMENTS;
 
 	var SOUND_TYPE = {
 		JUMP: 0,
@@ -88,7 +98,9 @@
 		INTERACT: 32,
 		MENU: 27,
 		DELETE: 68,
-		JSONIZE_LEVEL: 74
+		JSONIZE_LEVEL: 74,
+		GRANNY: 71,
+		CRATES: 67
 	}
 
 	/*
@@ -180,7 +192,7 @@
 		image: null,
 		size: 1,
 		position: null,
-		startPosition: null
+		startPosition: [0, 0]
 	};
 	var CratesArray = [];
 
@@ -432,7 +444,7 @@
 	var introThemeString = INTRO_THEME.slice();
 
 	function playNextNote() {
-		if (introThemeString.length > 0) {
+		if (Game.started && introThemeString.length > 0) {
 			introTheme[introThemeString.shift()]['play']();
 			setTimeout(playNextNote, 200);
 		}
@@ -489,50 +501,16 @@
 		context.textAlign = previousTextAlign;
 	}
 
-	function reset(levelId) {
-		var lvl = Game.currentLevel = Levels[levelId] || Levels[selectedLevel];
-
-		var crateStartingPosition = lvl.crateStartingPosition;
-
-		Game.started = false;
-		Player.position = lvl.startingPlayerPosition.slice();
-		Crow.position = lvl.startingCrowPosition.slice();
-
-		Player.candies = 0;
-		Player.speedBoostTimeout = 0;
-		Player.crateCarried = undefined;
-		Player.crates = MAX_CRATES;
-		Player.isInteracting = false;
-		Player.isJumping = false;
-		Player.isMoving = false;
-		Player.isInAir = false;
-		Player.facingRight = true;
-
-		Crow.health = MAX_CROW_HEALTH;
-		Crow.stunnedTimeout = 0;
-
-		Game.time = 0;
-		Game.editMode = false;
-
-		if (lvl.grannyPosition) {
-			Granny.position = lvl.grannyPosition.slice();
-			Granny.startingLaserPosition = [lvl.grannyPosition[0] + 15, lvl.grannyPosition[1] + 23];
-			Laser.position = Granny.startingLaserPosition.slice();
-		} else {
-			Granny.position = null;
-			Granny.startingLaserPosition = null;
-		}
-
-		Map = '4444444444444444444444444444444444444444' + lvl.map + '4444444444444444444444444444444444444444';
-		Map = Map.split('');
-
-		// Build Crates
-		var currentCrateSize,
+	function resetCrates(lvl) {
+		var crateStartingPosition = lvl.crateStartingPosition,
+			currentCrateSize,
 			newCrate,
 			crateCanvas,
 			crateCtx,
 			x,
 			y;
+
+		Crate.startPosition = crateStartingPosition;
 
 		CratesArray.length = 0;
 		for (var cr = 0; cr < lvl.crates.length; cr++) {
@@ -558,6 +536,47 @@
 			CratesArray.push(newCrate);
 			currentCrateSize += CRATE_SIZE_INCREMENT;
 		}
+	}
+
+	function reset(levelId) {
+		var lvl = Game.currentLevel = Levels[levelId] || Levels[selectedLevel];
+
+		Game.started = false;
+		Player.position = lvl.startingPlayerPosition.slice();
+		Crow.position = lvl.startingCrowPosition.slice();
+
+		Player.candies = 0;
+		Player.speedBoostTimeout = 0;
+		Player.crateCarried = undefined;
+		Player.crates = MAX_CRATES;
+		Player.isInteracting = false;
+		Player.isJumping = false;
+		Player.isMoving = false;
+		Player.isInAir = false;
+		Player.facingRight = true;
+
+		Crow.health = MAX_CROW_HEALTH;
+		Crow.stunnedTimeout = 0;
+
+		Game.time = 0;
+		Game.editMode = false;
+
+		selectedBlock = 0;
+
+		if (lvl.grannyPosition) {
+			Granny.position = lvl.grannyPosition.slice();
+			Granny.startingLaserPosition = [lvl.grannyPosition[0] + 15, lvl.grannyPosition[1] + 23];
+			Laser.position = Granny.startingLaserPosition.slice();
+		} else {
+			Granny.position = null;
+			Granny.startingLaserPosition = null;
+		}
+
+		Map = '4444444444444444444444444444444444444444' + lvl.map + '4444444444444444444444444444444444444444';
+		Map = Map.split('');
+
+		// Build Crates
+		resetCrates(lvl);
 
 		CrumbsArray.length = 0;
 		ShotsArray.length = 0;
@@ -616,7 +635,28 @@
 
 	// Add Mouse Event Listener
 	canvas.addEventListener('click', function (evt) {
-		if (!Game.started) {
+		if (Game.editMode) {
+			if (selectedBlock === GAME_ELEMENTS.PLAYER) {
+				Player.position[0] = currentMousePosition[0];
+				Player.position[1] = currentMousePosition[1];
+			} else if (selectedBlock === GAME_ELEMENTS.CROW) {
+				Crow.position[0] = currentMousePosition[0];
+				Crow.position[1] = currentMousePosition[1];
+			} else if (selectedBlock === GAME_ELEMENTS.GRANNY && Granny.position) {
+				Granny.position[0] = currentMousePosition[0];
+				Granny.position[1] = currentMousePosition[1];
+				Granny.startingLaserPosition = [Granny.position[0] + 15, Granny.position[1] + 23];
+				Laser.position = Granny.startingLaserPosition.slice();
+			} else if (selectedBlock === GAME_ELEMENTS.CRATES) {
+				Crate.startPosition[0] = currentMousePosition[0];
+				Crate.startPosition[1] = currentMousePosition[1];
+				for (var cr = 0; cr < CratesArray.length; cr++) {
+					var crate = CratesArray[cr];
+					crate.position[0] = currentMousePosition[0] + cr * 16;
+					crate.position[1] = currentMousePosition[1] - crate.size;
+				}
+			}
+		} else if (!Game.started) {
 			if (currentMousePosition[0] > Crow.position[0] - 16 && currentMousePosition[0] < Crow.position[0] + 16 && currentMousePosition[1] > Crow.position[1] - 16 && currentMousePosition[1] < Crow.position[1] + 16) {
 				Game.started = true;
 				Game.time = currentT + Game.currentLevel.gameTime;
@@ -635,7 +675,7 @@
 
 	canvas.addEventListener('mousedown', function (evt) {
 		if (evt.which === 1) leftButtonDown = true;
-		if (Game.editMode && leftButtonDown) {
+		if (Game.editMode && leftButtonDown && selectedBlock < NUM_BLOCKS) {
 			setMapAt('' + selectedBlock, Math.floor(currentMousePosition[0] / BLOCK_SIZE), Math.floor(currentMousePosition[1] / BLOCK_SIZE));
 		}
 	});
@@ -651,7 +691,9 @@
 			var newCrowPosition = getCanvasRelativeCoords(evt);
 			Crow.position = newCrowPosition.slice();
 		} else if (Game.editMode && leftButtonDown) {
-			setMapAt('' + selectedBlock, Math.floor(currentMousePosition[0] / BLOCK_SIZE), Math.floor(currentMousePosition[1] / BLOCK_SIZE));
+			if (selectedBlock < NUM_BLOCKS) {
+				setMapAt('' + selectedBlock, Math.floor(currentMousePosition[0] / BLOCK_SIZE), Math.floor(currentMousePosition[1] / BLOCK_SIZE));
+			}
 		}
 	});
 
@@ -798,14 +840,45 @@
 			return;
 		} else if (Game.editMode) {
 			if (k[KEYCODES.LEFT] && !Player.isMoving) {
-				selectedBlock = (selectedBlock + NUM_BLOCKS - 1) % NUM_BLOCKS;
+				selectedBlock = (selectedBlock + NUM_EDIT_OPTIONS - 1) % NUM_EDIT_OPTIONS;
 				Player.isMoving = true;
 			}
 			if (k[KEYCODES.RIGHT] && !Player.isMoving) {
-				selectedBlock = (selectedBlock + 1) % NUM_BLOCKS;
+				selectedBlock = (selectedBlock + 1) % NUM_EDIT_OPTIONS;
 				Player.isMoving = true;
 			}
-			if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT]) {
+			if (k[KEYCODES.GRANNY] && !Player.isMoving) {
+				if (Granny.position instanceof Array) {
+					Granny.position = null;
+					Granny.startingLaserPosition = null;
+					Laser.position = null;
+				} else {
+					Granny.position = [32, 32];
+					Granny.startingLaserPosition = [Granny.position[0] + 15, Granny.position[1] + 23];
+					Laser.position = Granny.startingLaserPosition.slice();
+				}
+				Player.isMoving = true;
+			}
+			if (k[KEYCODES.CRATES] && !Player.isMoving) {
+				Player.isMoving = true;
+				try {
+					var crates = JSON.parse(prompt('Set crates', JSON.stringify(Levels[selectedLevel].crates)));
+					if (crates instanceof Array) {
+						for (var c = 0; c < crates.length; c++) {
+							if (!typeof c === 'number') {
+								alert('Crates not valid');
+							}
+							crates[c] = Math.min(1, Math.max(5, c));
+						}
+					}
+					Levels[selectedLevel].crates = crates;
+					resetCrates(Levels[selectedLevel]);
+				} catch (e) {
+					alert('Crates not valid: ' + e.message);
+				}
+				k[KEYCODES.CRATES] = undefined;
+			}
+			if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.GRANNY] && !k[KEYCODES.CRATES]) {
 				Player.isMoving = false;
 			}
 		} else if (Game.started) {
@@ -861,7 +934,15 @@
 		}
 		if (k[KEYCODES.MENU]) {
 			canvas['style']['cursor'] = 'auto';
-			Levels[selectedLevel].map = Map.join('').substring(I, I * J - I);
+			if (Game.editMode) {
+				Levels[selectedLevel].map = Map.join('').substring(I, I * J - I);
+				Levels[selectedLevel].startingPlayerPosition = Player.position.slice();
+				Levels[selectedLevel].startingCrowPosition = Crow.position.slice();
+				if (Granny.position instanceof Array) {
+					Levels[selectedLevel].grannyPosition = Granny.position.slice();
+				}
+				Levels[selectedLevel].crateStartingPosition = Crate.startPosition.slice();
+			}
 			reset(selectedLevel);
 		}
 	}
@@ -984,6 +1065,9 @@
 
 		// Updating Canvas position
 		Game.canvasBoundingRect = canvas.getBoundingClientRect();
+		// window.onresize = function () {
+		// 	Game.canvasBoundingRect = canvas.getBoundingClientRect();
+		// });
 
 		// Player jumping
 		// var nextY = Player.verticalSpeed;
@@ -1142,16 +1226,16 @@
 				ctx.drawImage(Player.facingRight ? Player.images.moving : Player.images.movingFlipped, Player.facingRight ? 0 : 16, 0, 16, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
 			} else if (Player.isMoving) {
 
-				var sx = (Math.floor(t / 100) % 2 < 1) ? 0 : 16,
+				var sx = (Math.floor(t / 100) % 2 < 1) ? 0 : 17,
 					sy = 0,
-					sw = 16,
+					sw = 15,
 					sh = 32;
 				ctx.drawImage(Player.facingRight ? Player.images.moving : Player.images.movingFlipped, sx, sy, sw, sh, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
 			} else {
-				ctx.drawImage(Player.facingRight ? Player.images.moving : Player.images.movingFlipped, Player.facingRight ? 16 : 0, 0, 16, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
+				ctx.drawImage(Player.facingRight ? Player.images.moving : Player.images.movingFlipped, Player.facingRight ? 17 : 0, 0, 15, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
 			}
 		} else {
-			ctx.drawImage(Player.facingRight ? Player.images.moving : Player.images.movingFlipped, Player.facingRight ? 16 : 0, 0, 16, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
+			ctx.drawImage(Player.facingRight ? Player.images.moving : Player.images.movingFlipped, Player.facingRight ? 17 : 0, 0, 15, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
 		}
 		if (Player.crateCarried !== undefined) {
 			var cur = CratesArray[Player.crateCarried];
@@ -1208,7 +1292,7 @@
 		ctx.fillText("SHOTS: " + Crow.shots + "   STUN: " + Math.max(0, Math.ceil((Crow.stunnedTimeout - t) / 1000)) + "   HEALTH: " + Crow.health, 410, 12);
 
 		if (Game.editMode) {
-			ctx.fillText("< > CHANGE BLOCK", 12, 12);
+			ctx.fillText("< > CHANGE BLOCK   G: GRANNY   C: CRATES", 12, 12);
 		}
 		// Logs to be removed
 		// ctx.fillStyle = 'red';
@@ -1233,9 +1317,24 @@
 			ctx.drawImage(InstructionCanvas, 0, 0);
 		}
 		if (Game.editMode) {
-			drawBlockTypeAt('' + selectedBlock, currentMousePosition[0] - (currentMousePosition[0] % BLOCK_SIZE), currentMousePosition[1] - (currentMousePosition[1] % BLOCK_SIZE))
-			ctx.strokeStyle = '#000';
-			ctx.strokeRect(currentMousePosition[0] - (currentMousePosition[0] % BLOCK_SIZE), currentMousePosition[1] - (currentMousePosition[1] % BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
+			ctx.globalAlpha = 0.6;
+			if (selectedBlock < NUM_BLOCKS) {
+				drawBlockTypeAt('' + selectedBlock, currentMousePosition[0] - (currentMousePosition[0] % BLOCK_SIZE), currentMousePosition[1] - (currentMousePosition[1] % BLOCK_SIZE))
+				ctx.strokeStyle = '#000';
+				ctx.strokeRect(currentMousePosition[0] - (currentMousePosition[0] % BLOCK_SIZE), currentMousePosition[1] - (currentMousePosition[1] % BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
+			} else if (selectedBlock === GAME_ELEMENTS.PLAYER) {
+				ctx.drawImage(Player.images.moving, 17, 0, 15, 32, currentMousePosition[0] - 8, currentMousePosition[1] - 24, 16, 32);
+			} else if (selectedBlock === GAME_ELEMENTS.CROW) {
+				ctx.drawImage(Crow.images.flying, 0, 0, 16, 16, currentMousePosition[0] - 8, currentMousePosition[1] - 8, 16, 16);
+			} else if (selectedBlock === GAME_ELEMENTS.GRANNY) {
+				ctx.drawImage(Granny.image, currentMousePosition[0], currentMousePosition[1]);
+			} else if (selectedBlock === GAME_ELEMENTS.CRATES) {
+				ctx.fillStyle = 'yellow';
+				ctx.fillRect(currentMousePosition[0] - 8, currentMousePosition[1] - 8, 16, 16);
+				ctx.fillStyle = '#000';
+				ctx.fillText('C', currentMousePosition[0] - 4, currentMousePosition[1] + 4);
+			}
+			ctx.globalAlpha = 1;
 		}
 	}
 
