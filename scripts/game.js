@@ -100,7 +100,8 @@
 		DELETE: 68,
 		JSONIZE_LEVEL: 74,
 		GRANNY: 71,
-		CRATES: 67
+		CRATES: 67,
+		NAME: 78
 	}
 
 	/*
@@ -595,7 +596,7 @@
 		icCtx.font = '15px courier';
 		icCtx.fillText("Select level with arrows", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
 		icCtx.fillText("Click the crow to start!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
-		var str = lvl.isCustom ? "N: new   E: edit   D: delete   J: insert/copy JSON" : "E: edit";
+		var str = lvl.isCustom ? "E: edit   D: delete   J: insert/copy JSON" : "E: edit";
 		icCtx.fillText(str, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 120);
 
 		icCtx['beginPath']();
@@ -868,17 +869,21 @@
 							if (!typeof c === 'number') {
 								alert('Crates not valid');
 							}
-							crates[c] = Math.min(1, Math.max(5, c));
+							crates[c] = Math.max(1, Math.min(5, crates[c]));
 						}
+						Levels[selectedLevel].crates = crates;
+						resetCrates(Levels[selectedLevel]);
 					}
-					Levels[selectedLevel].crates = crates;
-					resetCrates(Levels[selectedLevel]);
 				} catch (e) {
 					alert('Crates not valid: ' + e.message);
 				}
 				k[KEYCODES.CRATES] = undefined;
 			}
-			if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.GRANNY] && !k[KEYCODES.CRATES]) {
+			if (k[KEYCODES.NAME] && !Player.isMoving) {
+				Player.isMoving = true;
+				Levels[selectedLevel].name = prompt('Set name', Levels[selectedLevel].name);
+			}
+			if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.GRANNY] && !k[KEYCODES.CRATES] && !k[KEYCODES.NAME]) {
 				Player.isMoving = false;
 			}
 		} else if (Game.started) {
@@ -1279,20 +1284,21 @@
 	}
 
 	function drawStatus(t) {
-		ctx.fillStyle = '#00deff';
-		ctx.fillText("BOY", 10, 396);
-		ctx.fillStyle = 'red';
-		ctx.fillText("CROW", 600, 12);
-		ctx.fillStyle = 'white';
+		if (Game.started) {
+			ctx.fillStyle = '#00deff';
+			ctx.fillText("BOY", 10, 396);
+			ctx.fillStyle = 'red';
+			ctx.fillText("CROW", 600, 12);
+			ctx.fillStyle = 'white';
 
-		// Boy's status
-		ctx.fillText("SPEED: " + getPlayerSpeed() + "   BOOST: " + Math.max(0, Math.ceil((Player.speedBoostTimeout - t) / 1000)) + "   TIME: " + Math.max(0, Math.ceil((Game.time - t) / 1000)) + "   CANDIES: " + Player.candies + "   CRATES: " + Player.crates, 50, 396);
+			// Boy's status
+			ctx.fillText("SPEED: " + getPlayerSpeed() + "   BOOST: " + Math.max(0, Math.ceil((Player.speedBoostTimeout - t) / 1000)) + "   TIME: " + Math.max(0, Math.ceil((Game.time - t) / 1000)) + "   CANDIES: " + Player.candies + "   CRATES: " + Player.crates, 50, 396);
 
-		// Crow's status
-		ctx.fillText("SHOTS: " + Crow.shots + "   STUN: " + Math.max(0, Math.ceil((Crow.stunnedTimeout - t) / 1000)) + "   HEALTH: " + Crow.health, 410, 12);
-
-		if (Game.editMode) {
-			ctx.fillText("< > CHANGE BLOCK   G: GRANNY   C: CRATES", 12, 12);
+			// Crow's status
+			ctx.fillText("SHOTS: " + Crow.shots + "   STUN: " + Math.max(0, Math.ceil((Crow.stunnedTimeout - t) / 1000)) + "   HEALTH: " + Crow.health, 410, 12);
+		} else if (Game.editMode) {
+			ctx.fillStyle = 'white';
+			ctx.fillText("< > CHANGE BLOCK   G: GRANNY   C: CRATES   N: NAME (" + Levels[selectedLevel].name + ")", 12, 12);
 		}
 		// Logs to be removed
 		// ctx.fillStyle = 'red';
