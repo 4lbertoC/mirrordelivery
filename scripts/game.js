@@ -101,7 +101,9 @@
 		JSONIZE_LEVEL: 74,
 		GRANNY: 71,
 		CRATES: 67,
-		NAME: 78
+		NAME: 78,
+		TIME: 84,
+		SHARE: 83
 	}
 
 	/*
@@ -309,6 +311,30 @@
 			'0000000000000000000000000000000000002000' +
 			'1111111111111111111111111111111111111111',
 
+		lvl1Map = '0000000000000000000000000000000000000060' +
+			'0000000000000000000000000000000000000011' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'3333330000000000000000000000000000033333' +
+			'0000000000000000000000000000000000005555' +
+			'0000000000000000000000000000000000005555' +
+			'0000000000700000000000000000000000005555' +
+			'1111111111111111111111111111111111111111',
+
 		lvl5Map = '3333330000000000000000000000000000000060' +
 			'5555530000000000000000000000000000000011' +
 			'5555500000000000000000000033330000000000' +
@@ -382,7 +408,7 @@
 			crates: [1, 2, 3],
 			gameTime: 300000
 		},
-		Levels = [Tutorial1, Tutorial2, Tutorial3, Level5];
+		Levels = (window.localStorage && window.localStorage.Levels && JSON.parse(window.localStorage.Levels)) || [Tutorial1, Tutorial2, Tutorial3, Level5];
 
 	function createCustomLevel() {
 		var currentLevel = Levels[selectedLevel];
@@ -596,7 +622,7 @@
 		icCtx.font = '15px courier';
 		icCtx.fillText("Select level with arrows", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
 		icCtx.fillText("Click the crow to start!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
-		var str = lvl.isCustom ? "E: edit   D: delete   J: insert/copy JSON" : "E: edit";
+		var str = lvl.isCustom ? "E: edit   D: delete   J: insert/copy JSON   S: share" : "E: edit";
 		icCtx.fillText(str, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 120);
 
 		icCtx['beginPath']();
@@ -606,6 +632,10 @@
 		icCtx['stroke']();
 
 		introThemeString = INTRO_THEME.slice();
+
+		if (window.localStorage) {
+			window.localStorage.Levels = JSON.stringify(Levels);
+		}
 	}
 
 	reset(selectedLevel);
@@ -805,28 +835,24 @@
 				selectedLevel = (selectedLevel + Levels.length - 1) % Levels.length;
 				reset(selectedLevel);
 				Player.isMoving = true;
-			}
-			if (k[KEYCODES.RIGHT] && !Player.isMoving) {
+			} else if (k[KEYCODES.RIGHT] && !Player.isMoving) {
 				selectedLevel = (selectedLevel + 1) % Levels.length;
 				reset(selectedLevel);
 				Player.isMoving = true;
-			}
-			if (k[KEYCODES.EAT] && !Player.isMoving) {
+			} else if (k[KEYCODES.EAT] && !Player.isMoving) {
 				if (!Levels[selectedLevel].isCustom) {
 					createCustomLevel();
 					reset(selectedLevel);
 				}
 				Game.editMode = true;
-			}
-			if (k[KEYCODES.DELETE] && !Player.isMoving) {
+			} else if (k[KEYCODES.DELETE] && !Player.isMoving) {
 				Player.isMoving = true;
 				if (Levels[selectedLevel].isCustom) {
 					Levels.splice(selectedLevel, 1);
 					selectedLevel--;
 					reset(selectedLevel);
 				}
-			}
-			if (k[KEYCODES.JSONIZE_LEVEL] && Levels[selectedLevel].isCustom && !Player.isMoving) {
+			} else if (k[KEYCODES.JSONIZE_LEVEL] && Levels[selectedLevel].isCustom && !Player.isMoving) {
 				var jsonLevel = prompt('LEVEL JSON', JSON.stringify(Levels[selectedLevel]));
 				if (jsonLevel && validateJsonLevel(jsonLevel)) {
 					Levels[selectedLevel] = JSON.parse(jsonLevel);
@@ -834,8 +860,19 @@
 				}
 				// Need to do this because the prompt hangs the keycode pressed
 				k[KEYCODES.JSONIZE_LEVEL] = undefined;
-			}
-			if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL]) {
+			} else if (k[KEYCODES.SHARE] && !Player.isMoving) {
+				Player.isMoving = true;
+
+				function reqListener() {
+					console.log(this.responseText);
+				};
+
+				var oReq = new XMLHttpRequest();
+				oReq.onload = reqListener;
+				oReq.open("post", "http://127.0.0.1:3000/addLevel", true);
+				oReq.send(JSON.stringify(Levels[selectedLevel]));
+
+			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL] && !k[KEYCODES.SHARE]) {
 				Player.isMoving = false;
 			}
 			return;
@@ -843,12 +880,10 @@
 			if (k[KEYCODES.LEFT] && !Player.isMoving) {
 				selectedBlock = (selectedBlock + NUM_EDIT_OPTIONS - 1) % NUM_EDIT_OPTIONS;
 				Player.isMoving = true;
-			}
-			if (k[KEYCODES.RIGHT] && !Player.isMoving) {
+			} else if (k[KEYCODES.RIGHT] && !Player.isMoving) {
 				selectedBlock = (selectedBlock + 1) % NUM_EDIT_OPTIONS;
 				Player.isMoving = true;
-			}
-			if (k[KEYCODES.GRANNY] && !Player.isMoving) {
+			} else if (k[KEYCODES.GRANNY] && !Player.isMoving) {
 				if (Granny.position instanceof Array) {
 					Granny.position = null;
 					Granny.startingLaserPosition = null;
@@ -859,8 +894,7 @@
 					Laser.position = Granny.startingLaserPosition.slice();
 				}
 				Player.isMoving = true;
-			}
-			if (k[KEYCODES.CRATES] && !Player.isMoving) {
+			} else if (k[KEYCODES.CRATES] && !Player.isMoving) {
 				Player.isMoving = true;
 				try {
 					var crates = JSON.parse(prompt('Set crates', JSON.stringify(Levels[selectedLevel].crates)));
@@ -878,12 +912,21 @@
 					alert('Crates not valid: ' + e.message);
 				}
 				k[KEYCODES.CRATES] = undefined;
-			}
-			if (k[KEYCODES.NAME] && !Player.isMoving) {
+			} else if (k[KEYCODES.NAME] && !Player.isMoving) {
 				Player.isMoving = true;
-				Levels[selectedLevel].name = prompt('Set name', Levels[selectedLevel].name);
-			}
-			if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.GRANNY] && !k[KEYCODES.CRATES] && !k[KEYCODES.NAME]) {
+				var n = prompt('Set name', Levels[selectedLevel].name);
+				if (n) {
+					Levels[selectedLevel].name = n;
+				}
+				k[KEYCODES.NAME] = false;
+			} else if (k[KEYCODES.TIME] && !Player.isMoving) {
+				Player.isMoving = true;
+				var t = +prompt('Set time', Levels[selectedLevel].gameTime);
+				if (!isNaN(t) && t > 0) {
+					Levels[selectedLevel].gameTime = t;
+				}
+				k[KEYCODES.TIME] = false;
+			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.GRANNY] && !k[KEYCODES.CRATES] && !k[KEYCODES.NAME] && !k[KEYCODES.TIME]) {
 				Player.isMoving = false;
 			}
 		} else if (Game.started) {
@@ -1260,9 +1303,9 @@
 	function drawCrow(t) {
 		if (Game.started) {
 			if (!(Crow.stunnedTimeout > t && Math.floor(t / 100) % 2 === 0)) {
-				var sx = (Math.floor(t / 100) % 6 < 3) ? 0 : 16,
+				var sx = (Math.floor(t / 100) % 6 < 3) ? 1 : 17,
 					sy = 0,
-					sw = 16,
+					sw = 15,
 					sh = 16;
 				ctx.drawImage(Crow.images.flying, sx, sy, sw, sh, Crow.position[0] - 8, Crow.position[1] - 8, 16, 16);
 			}
@@ -1298,7 +1341,7 @@
 			ctx.fillText("SHOTS: " + Crow.shots + "   STUN: " + Math.max(0, Math.ceil((Crow.stunnedTimeout - t) / 1000)) + "   HEALTH: " + Crow.health, 410, 12);
 		} else if (Game.editMode) {
 			ctx.fillStyle = 'white';
-			ctx.fillText("< > CHANGE BLOCK   G: GRANNY   C: CRATES   N: NAME (" + Levels[selectedLevel].name + ")", 12, 12);
+			ctx.fillText("< > CHANGE BLOCK   G: GRANNY   C: CRATES   T: TIME (" + Levels[selectedLevel].gameTime + ")   N: NAME (" + Levels[selectedLevel].name + ")", 12, 12);
 		}
 		// Logs to be removed
 		// ctx.fillStyle = 'red';
