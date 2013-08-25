@@ -355,21 +355,6 @@
 	// 	return c;
 	// }
 
-	function initCanvas(src, width, height, isFlipped) {
-		var c = document.createElement('canvas'),
-			img = initImage(src, width, height, function () {
-				var imCtx = c.getContext('2d');
-				if (isFlipped) {
-					imCtx.translate(width, 0);
-					imCtx.scale(-1, 1);
-				}
-				imCtx.drawImage(img, 0, 0);
-			});
-		c.width = width;
-		c.height = height;
-		return c;
-	}
-
 	var Player = {
 		position: null,
 		speed: 4,
@@ -535,14 +520,11 @@
 			map: tutorialMap,
 			crates: [1],
 			gameTime: 3000000,
-			instructions: {
-				Boy: [[20, 340, ['PLAYER 1']], [100, 340, ['ARROWS: move/jump']], [250, 340, ['SPACEBAR: grab/release crate']],
+			instructions: [[20, 340, ['PLAYER 1']], [100, 340, ['ARROWS: move/jump']], [250, 340, ['SPACEBAR: grab/release crate']],
 				[500, 340, ['UP/DOWN: Climb ladder']], [450, 250, ['Crates break if you fall from too high']],
 				[160, 250, ['SPACE: buy candies when not holding crate', 'E: Use candy to gain speed']],
-				[10, 230, ['Deliver crate to green area']]],
-				Crow: [[580, 30, ['PLAYER 2']], [410, 70, ['Don\'t get shot', 'Hide in the nest']], [410, 130, ['RClick: eat from nest or candy crumbs', 'LClick: shoot!']],
+				[10, 230, ['Deliver crate to green area']], [580, 30, ['PLAYER 2']], [410, 70, ['Don\'t get shot', 'Hide in the nest']], [410, 130, ['RClick: eat from nest or candy crumbs', 'LClick: shoot!']],
 				[140, 60, ['Don\'t touch roofs or the boy']]]
-			}
 		},
 		Level1 = {
 			name: "Level 1",
@@ -1435,11 +1417,8 @@
 		}
 
 		if (Game.currentLevel.instructions) {
-			for (var instr = 0; instr < Game.currentLevel.instructions.Boy.length; instr++) {
-				printText(ctx, Game.currentLevel.instructions.Boy[instr][2], Game.currentLevel.instructions.Boy[instr][0], Game.currentLevel.instructions.Boy[instr][1], 10, 'black');
-			}
-			for (var instr = 0; instr < Game.currentLevel.instructions.Crow.length; instr++) {
-				printText(ctx, Game.currentLevel.instructions.Crow[instr][2], Game.currentLevel.instructions.Crow[instr][0], Game.currentLevel.instructions.Crow[instr][1], 10, 'black');
+			for (var instr = 0; instr < Game.currentLevel.instructions.length; instr++) {
+				printText(ctx, Game.currentLevel.instructions[instr][2], Game.currentLevel.instructions[instr][0], Game.currentLevel.instructions[instr][1], 10, 'black');
 			}
 		}
 	}
