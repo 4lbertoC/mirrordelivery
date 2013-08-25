@@ -104,7 +104,8 @@
 		NAME: 78,
 		TIME: 84,
 		SHARE: 83
-	}
+	};
+
 
 	/*
 	 *
@@ -112,29 +113,29 @@
 	 *
 	 */
 
-		function initImage(src, width, height, onLoadCallback) {
-			var img = new Image();
-			img.width = width || 16;
-			img.height = height || 16;
-			img.onload = onLoadCallback;
-			img.src = src;
-			return img;
-		}
+	function initImage(src, width, height, onLoadCallback) {
+		var img = new Image();
+		img.width = width || 16;
+		img.height = height || 16;
+		img.onload = onLoadCallback;
+		img.src = src;
+		return img;
+	}
 
-		function initCanvas(src, width, height, isFlipped) {
-			var c = document.createElement('canvas'),
-				img = initImage(src, width, height, function () {
-					var imCtx = c.getContext('2d');
-					if (isFlipped) {
-						imCtx.translate(width, 0);
-						imCtx.scale(-1, 1);
-					}
-					imCtx.drawImage(img, 0, 0);
-				});
-			c.width = width;
-			c.height = height;
-			return c;
-		}
+	function initCanvas(src, width, height, isFlipped) {
+		var c = document.createElement('canvas'),
+			img = initImage(src, width, height, function () {
+				var imCtx = c.getContext('2d');
+				if (isFlipped) {
+					imCtx.translate(width, 0);
+					imCtx.scale(-1, 1);
+				}
+				imCtx.drawImage(img, 0, 0);
+			});
+		c.width = width;
+		c.height = height;
+		return c;
+	}
 
 	var Player = {
 		position: null,
@@ -239,77 +240,29 @@
 	 * Levels definition
 	 *
 	 */
-	var tutorial1Map = '0000000000000000000000000000000000000060' +
+	var tutorialMap = '0000000000000000000000000000000000000000' +
+		'0000000000000000000000000000000000000000' +
+		'3300000000000000000000000000000000000060' +
 		'0000000000000000000000000000000000000011' +
+		'0000000000033300000000000006000000000000' +
+		'1100000000033300000000000011100000000000' +
+		'0000000000033300000000000000000000000000' +
 		'0000000000000000000000000000000000000000' +
 		'0000000000000000000000000000000000000000' +
 		'0000000000000000000000000000000000000000' +
+		'3333333333333333333333333333333333333333' +
 		'0000000000000000000000000000000000000000' +
 		'0000000000000000000000000000000000000000' +
 		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000005555' +
-		'0000000000000000000000000000000000005555' +
-		'0000000000000000000000000000000000005555' +
+		'5555000000000000000000000000000000000000' +
+		'5555000000000000000000000000000000000000' +
+		'5555000000000007000000000000002000000000' +
+		'1111111111111111111111111111112000000000' +
+		'0000000000000000000000000000002000000000' +
+		'0000000000000000000000000000002000000000' +
+		'0000000000000000000000000000002000000000' +
+		'0000000000000000000000000000002000000000' +
 		'1111111111111111111111111111111111111111',
-
-		tutorial2Map = '0000000000000000000000000000000000000060' +
-			'0000000000000000000000000000000000000011' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'3333330000000000000000000000000000033333' +
-			'0000000000000000000000000000000000005555' +
-			'0000000000000000000000000000000000005555' +
-			'0000000000700000000000000000000000005555' +
-			'1111111111111111111111111111111111111111',
-
-		tutorial3Map = '0000000000000000000000000000000000000060' +
-			'0000000000000000000000000000000000000011' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'3333333000000000000000000000000000000000' +
-			'5555550000000000000000000000000000000000' +
-			'5555550000000000000000000000000000000000' +
-			'5555550000000002000000000000000333300000' +
-			'1111111111111112000000000000000000000000' +
-			'0000000000000002000000000000000000000000' +
-			'0000000000000002000000000000000007002000' +
-			'3333330000000002111111110001111111112000' +
-			'0000000000000000000000000000000000002000' +
-			'0000000000000000000000000000000000002000' +
-			'0000000000000000000000000000000000002000' +
-			'1111111111111111111111111111111111111111',
 
 		lvl1Map = '0000000000000000000000000000000000000060' +
 			'0000000000000000000000000000000000000011' +
@@ -358,44 +311,22 @@
 			'0000000000000000000000000000211112000000' +
 			'0000000000000000000000000000200000000000' +
 			'1111111111111111111111111111111111111111',
-		Tutorial1 = {
-			name: 'Tutorial 1',
+		Tutorial = {
+			name: 'Tutorial',
 			startingPlayerPosition: [33, 370],
-			startingCrowPosition: [CANVAS_WIDTH - 24, 24],
-			crateStartingPosition: [53, 365],
-			map: tutorial1Map,
+			startingCrowPosition: [CANVAS_WIDTH - 24, 55],
+			crateStartingPosition: [300, 365],
+			grannyPosition: [20, 70],
+			map: tutorialMap,
 			crates: [1],
-			gameTime: 30000,
+			gameTime: 3000000,
 			instructions: {
-				Boy: ['PLAYER 1', 'ARROWS: move/jump', 'SPACEBAR: grab/release crate', 'Leave crate into the green zone.'],
-				Crow: ['PLAYER 2', 'MOUSE: move', 'LClick: shoot', 'RClick: recharge from nest', 'Shoot boy to make his crate fall.']
-			}
-		},
-		Tutorial2 = {
-			name: 'Tutorial 2',
-			startingPlayerPosition: [33, 370],
-			startingCrowPosition: [CANVAS_WIDTH - 24, 24],
-			crateStartingPosition: [53, 365],
-			map: tutorial2Map,
-			crates: [3],
-			gameTime: 30000,
-			instructions: {
-				Boy: ['SPACEBAR: buy candies when not holding a crate.', 'E: use candy', 'Candies give a speed boost.'],
-				Crow: ['Roofs block shots.', 'Don\'t touch the roofs or the boy.', 'RClick: eat candy crumbs to get 5 shots.']
-			}
-		},
-		Tutorial3 = {
-			name: 'Tutorial 3',
-			startingPlayerPosition: [33, 370],
-			startingCrowPosition: [CANVAS_WIDTH - 24, 24],
-			crateStartingPosition: [53, 365],
-			grannyPosition: [100, 227],
-			map: tutorial3Map,
-			crates: [2, 3],
-			gameTime: 60000,
-			instructions: {
-				Boy: ['ARROWS: climb ladder', 'Crates will break if you fall from too high.'],
-				Crow: ['Don\'t get shot!', 'Hide in the nest.']
+				Boy: [[20, 340, ['PLAYER 1']], [100, 340, ['ARROWS: move/jump']], [250, 340, ['SPACEBAR: grab/release crate']],
+				[500, 340, ['UP/DOWN: Climb ladder']], [450, 250, ['Crates break if you fall from too high']],
+				[160, 250, ['SPACE: buy candies when not holding crate', 'E: Use candy to gain speed']],
+				[10, 230, ['Deliver crate to green area']]],
+				Crow: [[580, 30, ['PLAYER 2']], [410, 70, ['Don\'t get shot', 'Hide in the nest']], [410, 130, ['RClick: eat from nest or candy crumbs', 'LClick: shoot!']],
+				[140, 60, ['Don\'t touch roofs or the boy']]]
 			}
 		},
 		Level1 = {
@@ -428,7 +359,7 @@
 			crates: [1, 2, 3],
 			gameTime: 300000
 		},
-		Levels = (window.localStorage && window.localStorage.Levels && JSON.parse(window.localStorage.Levels)) || [Tutorial1, Tutorial2, Tutorial3, Level1, Level2, Level5];
+		Levels = (window.localStorage && window.localStorage.Levels && JSON.parse(window.localStorage.Levels)) || [Tutorial, Level1, Level2, Level5];
 
 	function createCustomLevel() {
 		var currentLevel = Levels[selectedLevel];
@@ -653,9 +584,9 @@
 
 		introThemeString = INTRO_THEME.slice();
 
-		if (window.localStorage) {
-			window.localStorage.Levels = JSON.stringify(Levels);
-		}
+		// if (window.localStorage) {
+		// 	window.localStorage.Levels = JSON.stringify(Levels);
+		// }
 	}
 
 	reset(selectedLevel);
@@ -1286,8 +1217,12 @@
 		}
 
 		if (Game.currentLevel.instructions) {
-			printText(ctx, Game.currentLevel.instructions.Boy, 120, 330, 10, 'black');
-			printText(ctx, Game.currentLevel.instructions.Crow, 620, 70, 10, 'black', 'right');
+			for (var instr = 0; instr < Game.currentLevel.instructions.Boy.length; instr++) {
+				printText(ctx, Game.currentLevel.instructions.Boy[instr][2], Game.currentLevel.instructions.Boy[instr][0], Game.currentLevel.instructions.Boy[instr][1], 10, 'black');
+			}
+			for (var instr = 0; instr < Game.currentLevel.instructions.Crow.length; instr++) {
+				printText(ctx, Game.currentLevel.instructions.Crow[instr][2], Game.currentLevel.instructions.Crow[instr][0], Game.currentLevel.instructions.Crow[instr][1], 10, 'black');
+			}
 		}
 	}
 
