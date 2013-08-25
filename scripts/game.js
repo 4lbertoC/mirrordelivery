@@ -5,10 +5,38 @@
 	 *
 	 */
 
-	var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
-		window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
-	window.requestAnimationFrame = requestAnimationFrame;
+	// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+	// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
 
+	// requestAnimationFrame polyfill by Erik Möller. fixes from Paul Irish and Tino Zijdel
+
+	// MIT license
+	(function () {
+		var lastTime = 0;
+		var vendors = ['webkit', 'moz'];
+		for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+			window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+			window.cancelAnimationFrame =
+				window[vendors[x] + 'CancelAnimationFrame'] || window[vendors[x] + 'CancelRequestAnimationFrame'];
+		}
+
+		if (!window.requestAnimationFrame)
+			window.requestAnimationFrame = function (callback, element) {
+				var currTime = new Date().getTime();
+				var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+				var id = window.setTimeout(function () {
+						callback(currTime + timeToCall);
+					},
+					timeToCall);
+				lastTime = currTime + timeToCall;
+				return id;
+			};
+
+		if (!window.cancelAnimationFrame)
+			window.cancelAnimationFrame = function (id) {
+				clearTimeout(id);
+			};
+	}());
 
 	var canvas = document.getElementById('c'),
 		ctx = canvas.getContext('2d'),
@@ -527,24 +555,24 @@
 				[140, 60, ['Don\'t touch roofs or the boy']]]
 		},
 		Level1 = {
-			name: "Level 1",
+			name: 'Level 1',
 			startingPlayerPosition: [25, 366],
 			startingCrowPosition: [616, 24],
 			crateStartingPosition: [41, 364],
 			grannyPosition: [513, 180],
-			map: "00000000000000000000000000000000000000600000000000000000000000000000000000000011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000003330000000000000000000000000000000000003333300000000000000000000000000000000000055500000000000000000000000000000000000005550000020000000000000200000000000000000555020002000111111111120000333000000000111112000200133333330002000000000000000000000200021130000000000200000000000000000000020002000000000000020000000000000000000002000200020000000002111111100111001101111100111112000000000200000000000000000000000033333200000000020000000000000000000000000000020000000000000000000000000000000000000002000000000000000000000000000000000000000200000000000000000000000000000000001111111111111111111111111111111111111111",
+			map: '00000000000000000000000000000000000000600000000000000000000000000000000000000011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000003330000000000000000000000000000000000003333300000000000000000000000000000000000055500000000000000000000000000000000000005550000020000000000000200000000000000000555020002000111111111120000333000000000111112000200133333330002000000000000000000000200021130000000000200000000000000000000020002000000000000020000000000000000000002000200020000000002111111100111001101111100111112000000000200000000000000000000000033333200000000020000000000000000000000000000020000000000000000000000000000000000000002000000000000000000000000000000000000000200000000000000000000000000000000001111111111111111111111111111111111111111',
 			crates: [1, 2],
 			gameTime: 60000
 		},
 		Level2 = {
-			"name": "Level 2",
-			"startingPlayerPosition": [28, 143],
-			"startingCrowPosition": [600, 296],
-			"crateStartingPosition": [588, 365],
-			"grannyPosition": [51, 50],
-			"map": "33330000000000000000000000000000000000005550000000000033000000000330000000000000555000000000000000000000000000000000000055500000000000000003030000000000000000001111111000000000000030000000000000110010000000010000000000000000000000000100301000000000000200000200000200000200000000100000000011120111102000201111021113002010111100000002000000020200000002000000211100000000000100000000200000000100000020000000000000000000000000000000000002002000000000000000000000000000000000030211100000001110000000000000000000000030020000000000000000000000003333300000000002000000000000000000000000000000000003020200000000000001100000000000000000000002110000000000000000000000000020700000020200000000000000000000000000112110000002020000060000000000010000000000200000000201000011100000000000000000000020000000020000000000000000000000000000002000000002000000000000000000000000000000200000000200000000001111111111111111111111111111111111111111",
-			"crates": [1, 2],
-			"gameTime": 120000
+			name: 'Level 2',
+			startingPlayerPosition: [28, 143],
+			startingCrowPosition: [600, 296],
+			crateStartingPosition: [588, 365],
+			grannyPosition: [51, 50],
+			map: '33330000000000000000000000000000000000005550000000000033000000000330000000000000555000000000000000000000000000000000000055500000000000000003030000000000000000001111111000000000000030000000000000110010000000010000000000000000000000000100301000000000000200000200000200000200000000100000000011120111102000201111021113002010111100000002000000020200000002000000211100000000000100000000200000000100000020000000000000000000000000000000000002002000000000000000000000000000000000030211100000001110000000000000000000000030020000000000000000000000003333300000000002000000000000000000000000000000000003020200000000000001100000000000000000000002110000000000000000000000000020700000020200000000000000000000000000112110000002020000060000000000010000000000200000000201000011100000000000000000000020000000020000000000000000000000000000002000000002000000000000000000000000000000200000000200000000001111111111111111111111111111111111111111',
+			crates: [1, 2],
+			gameTime: 120000
 		},
 		Level5 = {
 			name: 'Level 5',
@@ -768,8 +796,8 @@
 
 		icCtx.fillText('Delivery Boy ' + Game.boyPoints + ' - ' + Game.crowPoints + ' Crow', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
 		icCtx.font = '15px courier';
-		icCtx.fillText("Select level with arrows", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 80);
-		icCtx.fillText("Click the crow to start!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
+		icCtx.fillText("Click the crow to start!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
+		icCtx.fillText("< >: Select level", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
 		var str = lvl.isCustom ? "E: edit   D: delete   J: insert/copy JSON   S: share" : "E: edit";
 		icCtx.fillText(str, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 120);
 
@@ -812,8 +840,18 @@
 		return Math.max(1, Player.speed + Player.speedBoost - (Player.crateCarried !== undefined ? CratesArray[Player.crateCarried].size : 0));
 	}
 
+	function addEvent(el, ev, fn) {
+		if (el.addEventListener) {
+			el.addEventListener(ev, fn, false);
+		} else if (el.attachEvent) {
+			el.attachEvent('on' + ev, fn);
+		} else {
+			el['on' + ev] = fn;
+		}
+	};
+
 	// Add Mouse Event Listener
-	canvas.addEventListener('click', function (evt) {
+	addEvent(canvas, 'click', function (evt) {
 		if (Game.editMode) {
 			if (selectedBlock === GAME_ELEMENTS.PLAYER) {
 				Player.position[0] = currentMousePosition[0];
@@ -852,18 +890,18 @@
 		}
 	});
 
-	canvas.addEventListener('mousedown', function (evt) {
+	addEvent(canvas, 'mousedown', function (evt) {
 		if (evt.which === 1) leftButtonDown = true;
 		if (Game.editMode && leftButtonDown && selectedBlock < NUM_BLOCKS) {
 			setMapAt('' + selectedBlock, Math.floor(currentMousePosition[0] / BLOCK_SIZE), Math.floor(currentMousePosition[1] / BLOCK_SIZE));
 		}
 	});
 
-	canvas.addEventListener('mouseup', function (evt) {
+	addEvent(canvas, 'mouseup', function (evt) {
 		if (evt.which === 1) leftButtonDown = false;
 	});
 
-	canvas.addEventListener('mousemove', function (evt) {
+	addEvent(canvas, 'mousemove', function (evt) {
 		var tempCurMousePos = getCanvasRelativeCoords(evt);
 		currentMousePosition = [tempCurMousePos[0], tempCurMousePos[1]];
 		if (Game.started) { // Update the crow's position
@@ -876,7 +914,7 @@
 		}
 	});
 
-	canvas.addEventListener('contextmenu', function (evt) {
+	addEvent(canvas, 'contextmenu', function (evt) {
 		evt.preventDefault();
 		if (Game.started && Crow.stunnedTimeout < currentT) {
 			var currentMousePosition = getCanvasRelativeCoords(evt);
@@ -1386,7 +1424,6 @@
 		var i, j;
 		for (i = 0; i < I; i++) {
 			for (j = 0; j < J; j++) {
-				/* if (getMapAt(i, j) === BLOCK_TYPE.EMPTY) {} else*/ // Do nothing if it's empty
 				drawBlockTypeAt(getMapAt(i, j), i * BLOCK_SIZE, j * BLOCK_SIZE);
 			}
 		}
@@ -1403,16 +1440,13 @@
 		for (cr = 0; cr < CrumbsArray.length; cr++) {
 			cur = CrumbsArray[cr];
 			drawImage(IMAGE_MAP_DATA_NAMES.CRUMBS, cur.position[0] - 8, cur.position[1] - 8);
-			// ctx.drawImage(cur.image, cur.position[0] - 8, cur.position[1] - 8);
 		}
 		for (cr = 0; cr < ShotsArray.length; cr++) {
 			cur = ShotsArray[cr];
 			drawImage(IMAGE_MAP_DATA_NAMES.SHOT, cur.position[0] - 8, cur.position[1] - 8);
-			// ctx.drawImage(cur.image, cur.position[0] - 8, cur.position[1] - 8);
 		}
 
 		if (Granny.position) {
-			// ctx.drawImage(Granny.image, Granny.position[0], Granny.position[1]);
 			drawImage(IMAGE_MAP_DATA_NAMES.GRANNY, Granny.position[0], Granny.position[1]);
 		}
 
@@ -1427,17 +1461,13 @@
 		if (Game.started) {
 			if (Player.isInAir) {
 				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 0, Player.facingLeft);
-				// ctx.drawImage(Player.facingLeft ? Player.images.moving : Player.images.movingFlipped, Player.facingLeft ? 0 : 16, 0, 16, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
 			} else if (Player.isMoving) {
 				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 10, Player.facingLeft, t);
-				// ctx.drawImage(Player.facingLeft ? Player.images.moving : Player.images.movingFlipped, sx, sy, sw, sh, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
 			} else {
 				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 1, Player.facingLeft);
-				// ctx.drawImage(Player.facingLeft ? Player.images.moving : Player.images.movingFlipped, Player.facingLeft ? 17 : 0, 0, 15, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
 			}
 		} else {
 			drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 1);
-			// ctx.drawImage(Player.facingLeft ? Player.images.moving : Player.images.movingFlipped, Player.facingLeft ? 17 : 0, 0, 15, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
 		}
 		if (Player.crateCarried !== undefined) {
 			var cur = CratesArray[Player.crateCarried];
@@ -1463,7 +1493,6 @@
 				drawAnim(IMAGE_MAP_DATA_NAMES.CROW, Crow.position[0] - 8, Crow.position[1] - 8, 2, false, t);
 			}
 		} else {
-			// drawImage(IMAGE_MAP_DATA_NAMES.CROW, Crow.position[0] - 8, Crow.position[1] - 8);
 			drawAnim(IMAGE_MAP_DATA_NAMES.CROW, Crow.position[0] - 8, Crow.position[1] - 8, 0);
 		}
 	}
@@ -1527,13 +1556,10 @@
 				ctx.strokeRect(currentMousePosition[0] - (currentMousePosition[0] % BLOCK_SIZE), currentMousePosition[1] - (currentMousePosition[1] % BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
 			} else if (selectedBlock === GAME_ELEMENTS.PLAYER) {
 				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, currentMousePosition[0] - 8, currentMousePosition[1] - 24, 1);
-				// ctx.drawImage(Player.images.moving, 17, 0, 15, 32, currentMousePosition[0] - 8, currentMousePosition[1] - 24, 16, 32);
 			} else if (selectedBlock === GAME_ELEMENTS.CROW) {
 				drawAnim(IMAGE_MAP_DATA_NAMES.CROW, currentMousePosition[0] - 8, currentMousePosition[1] - 8, 0);
-				// ctx.drawImage(Crow.images.flying, 0, 0, 16, 16, currentMousePosition[0] - 8, currentMousePosition[1] - 8, 16, 16);
 			} else if (selectedBlock === GAME_ELEMENTS.GRANNY) {
 				drawImage(IMAGE_MAP_DATA_NAMES.GRANNY, currentMousePosition[0], currentMousePosition[1]);
-				// ctx.drawImage(Granny.image, currentMousePosition[0], currentMousePosition[1]);
 			} else if (selectedBlock === GAME_ELEMENTS.CRATES) {
 				ctx.fillStyle = 'yellow';
 				ctx.fillRect(currentMousePosition[0] - 8, currentMousePosition[1] - 8, 16, 16);
