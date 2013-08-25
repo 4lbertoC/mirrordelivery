@@ -106,6 +106,224 @@
 		SHARE: 83
 	};
 
+	var IMAGE_MAP_DATA_NAMES = {
+		CROW: 0,
+		CRUMBS: 1,
+		DISPENSER: 2,
+		GRANNY: 3,
+		LADDER: 4,
+		MAN: 5,
+		NEST: 6,
+		ROOF: 7,
+		SHOT: 8,
+		WALL: 9
+	}
+	var IMAGE_MAP_DATA = {};
+
+	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.CROW] = {
+		frame: {
+			x: 30,
+			y: 0,
+			w: 30,
+			h: 14
+		},
+		spriteSourceSize: {
+			x: 1,
+			y: 1,
+			w: 30,
+			h: 14
+		},
+		frames: [
+			{
+				x: 1,
+				y: 1,
+				w: 15,
+				h: 13
+			},
+			{
+				x: 17,
+				y: 1,
+				w: 15,
+				h: 13
+			}
+		]
+	};
+	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.CRUMBS] = {
+		frame: {
+			x: 14,
+			y: 40,
+			w: 14,
+			h: 8
+		},
+		spriteSourceSize: {
+			x: 1,
+			y: 7,
+			w: 14,
+			h: 8
+		}
+	};
+	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.DISPENSER] = {
+		frame: {
+			x: 32,
+			y: 14,
+			w: 16,
+			h: 16
+		},
+		spriteSourceSize: {
+			x: 0,
+			y: 0,
+			w: 16,
+			h: 16
+		}
+	};
+	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.GRANNY] = {
+		frame: {
+			x: 0,
+			y: 24,
+			w: 14,
+			h: 24
+		},
+		spriteSourceSize: {
+			x: 1,
+			y: 7,
+			w: 14,
+			h: 24
+		}
+	};
+	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.LADDER] = {
+		frame: {
+			x: 16,
+			y: 48,
+			w: 16,
+			h: 16
+		},
+		spriteSourceSize: {
+			x: 0,
+			y: 0,
+			w: 16,
+			h: 16
+		}
+	};
+	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.MAN] = {
+		frame: {
+			x: 0,
+			y: 0,
+			w: 30,
+			h: 24
+		},
+		spriteSourceSize: {
+			x: 1,
+			y: 3,
+			w: 30,
+			h: 24
+		},
+		frames: [
+			{
+				x: 0,
+				y: 0,
+				w: 15,
+				h: 24
+			},
+			{
+				x: 15,
+				y: 0,
+				w: 15,
+				h: 24
+			}
+		]
+	};
+	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.NEST] = {
+		frame: {
+			x: 48,
+			y: 14,
+			w: 16,
+			h: 10
+		},
+		spriteSourceSize: {
+			x: 0,
+			y: 10,
+			w: 16,
+			h: 10
+		}
+	};
+	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.ROOF] = {
+		frame: {
+			x: 14,
+			y: 24,
+			w: 16,
+			h: 16
+		},
+		spriteSourceSize: {
+			x: 0,
+			y: 0,
+			w: 16,
+			h: 16
+		}
+	};
+	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.SHOT] = {
+		frame: {
+			x: 30,
+			y: 30,
+			w: 6,
+			h: 14
+		},
+		spriteSourceSize: {
+			x: 4,
+			y: 1,
+			w: 6,
+			h: 14
+		}
+	};
+	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.WALL] = {
+		frame: {
+			x: 0,
+			y: 48,
+			w: 16,
+			h: 16
+		},
+		spriteSourceSize: {
+			x: 0,
+			y: 0,
+			w: 16,
+			h: 16
+		}
+	};
+
+	var ImageMap = new Image(),
+		FlippedImageMap = document.createElement('canvas'),
+		ImageMapWidth = 0;
+	ImageMap.onload = function () {
+		FlippedImageMap.width = ImageMapWidth = ImageMap.naturalWidth;
+		FlippedImageMap.height = ImageMap.naturalHeight;
+		var imCtx = FlippedImageMap.getContext('2d');
+		imCtx.translate(ImageMap.naturalWidth, 0);
+		imCtx.scale(-1, 1);
+		imCtx.drawImage(ImageMap, 0, 0);
+	};
+	ImageMap.src = 'img/imgmap.png';
+
+	function drawImage(name, x, y, w, h) {
+		var source = IMAGE_MAP_DATA[name].frame,
+			destinationOffset = IMAGE_MAP_DATA[name].spriteSourceSize;
+		ctx.drawImage(ImageMap, source.x, source.y, w || source.w, h || source.h, x + destinationOffset.x, y + destinationOffset.y, destinationOffset.w, destinationOffset.h);
+	}
+
+	function drawAnim(name, x, y, frameRate, isFlipped, t) {
+		// if t is not specified, frameRate is the number of the frame to display
+		var source = IMAGE_MAP_DATA[name].frame,
+			destinationOffset = IMAGE_MAP_DATA[name].spriteSourceSize,
+			frames = IMAGE_MAP_DATA[name].frames,
+			/*
+				time/frame = 1000/60
+				frame = framerate/1000 * time
+			*/
+			currentFrame = t ? frames[Math.floor(t * frameRate / 1000) % frames.length] : frames[frameRate];
+		if (isFlipped) {
+			ctx.drawImage(FlippedImageMap, ImageMapWidth - (source.x + currentFrame.x) - currentFrame.w, source.y + currentFrame.y, currentFrame.w, currentFrame.h, x + destinationOffset.x, y + destinationOffset.y, currentFrame.w, currentFrame.h);
+		} else {
+			ctx.drawImage(ImageMap, source.x + currentFrame.x, source.y + currentFrame.y, currentFrame.w, currentFrame.h, x + destinationOffset.x, y + destinationOffset.y, currentFrame.w, currentFrame.h);
+		}
+	}
 
 	/*
 	 *
@@ -113,14 +331,29 @@
 	 *
 	 */
 
-	function initImage(src, width, height, onLoadCallback) {
-		var img = new Image();
-		img.width = width || 16;
-		img.height = height || 16;
-		img.onload = onLoadCallback;
-		img.src = src;
-		return img;
-	}
+	// function initImage(src, width, height, onLoadCallback) {
+	// 	var img = new Image();
+	// 	img.width = width || 16;
+	// 	img.height = height || 16;
+	// 	img.onload = onLoadCallback;
+	// 	img.src = src;
+	// 	return img;
+	// }
+
+	// function initCanvas(src, width, height, isFlipped) {
+	// 	var c = document.createElement('canvas'),
+	// 		img = initImage(src, width, height, function () {
+	// 			var imCtx = c.getContext('2d');
+	// 			if (isFlipped) {
+	// 				imCtx.translate(width, 0);
+	// 				imCtx.scale(-1, 1);
+	// 			}
+	// 			imCtx.drawImage(img, 0, 0);
+	// 		});
+	// 	c.width = width;
+	// 	c.height = height;
+	// 	return c;
+	// }
 
 	function initCanvas(src, width, height, isFlipped) {
 		var c = document.createElement('canvas'),
@@ -150,10 +383,10 @@
 		isMoving: false,
 		isInteracting: false,
 		verticalSpeed: 0,
-		images: {
-			moving: initCanvas('img/man2.png', 32, 32),
-			movingFlipped: initCanvas('img/man2.png', 32, 32, true)
-		},
+		// images: {
+		// 	moving: initCanvas('img/man2.png', 32, 32),
+		// 	movingFlipped: initCanvas('img/man2.png', 32, 32, true)
+		// },
 		wasOverSolidBlock: false,
 		crateCarried: undefined,
 		candies: 0,
@@ -163,9 +396,9 @@
 
 	var Crow = {
 		position: null,
-		images: {
-			flying: initImage('img/crow2.png')
-		},
+		// images: {
+		// 	flying: initImage('img/crow2.png')
+		// },
 		shots: NEST_SHOTS,
 		isInWarningZone: false,
 		stunnedTimeout: 0,
@@ -173,24 +406,6 @@
 	};
 
 	var Map = [];
-
-	var Environment = {
-		Ladder: {
-			image: initImage('img/ladder.png')
-		},
-		Nest: {
-			image: initImage('img/nest.png')
-		},
-		Dispenser: {
-			image: initImage('img/dispenser.png')
-		},
-		Roof: {
-			image: initImage('img/roof.gif')
-		},
-		Wall: {
-			image: initImage('img/wall.gif')
-		}
-	};
 
 	var Crate = {
 		image: null,
@@ -201,13 +416,13 @@
 	var CratesArray = [];
 
 	var Crumbs = {
-		image: initImage('img/crumbs.png'),
+		// image: initImage('img/crumbs.png'),
 		position: null
 	};
 	var CrumbsArray = [];
 
 	var Shot = {
-		image: initImage('img/shot.png'),
+		// image: initImage('img/shot.png'),
 		position: null,
 		speed: 6
 	};
@@ -231,7 +446,7 @@
 
 	var Granny = {
 		position: [80, 53],
-		image: initImage('img/granny.png'),
+		// image: initImage('img/granny.png'),
 		startingLaserPosition: [95, 78]
 	}
 
@@ -531,7 +746,7 @@
 		Player.isJumping = false;
 		Player.isMoving = false;
 		Player.isInAir = false;
-		Player.facingRight = true;
+		Player.facingLeft = false;
 
 		Crow.health = MAX_CROW_HEALTH;
 		Crow.stunnedTimeout = 0;
@@ -919,12 +1134,12 @@
 			if (k[KEYCODES.LEFT]) { // LEFT
 				Player.position[0] = Math.max(BLOCK_SIZE, x - calculateLeftRightSpeed(t));
 				Player.isMoving = true;
-				Player.facingRight = false;
+				Player.facingLeft = true;
 			}
 			if (k[KEYCODES.RIGHT]) { // RIGHT
 				Player.position[0] = Math.min(CANVAS_WIDTH - 2 * BLOCK_SIZE, x + calculateLeftRightSpeed(t));
 				Player.isMoving = true;
-				Player.facingRight = true;
+				Player.facingLeft = false;
 			}
 			if (k[KEYCODES.DOWN] && (isPlayerOnBlock(BLOCK_TYPE.LADDER) || isPlayerOverBlock(BLOCK_TYPE.LADDER)) && !isPlayerOverBlock(BLOCK_TYPE.SOLID)) { // DOWN
 				Player.position[1] = Math.min(CANVAS_HEIGHT, y + ladderSpeed);
@@ -1164,24 +1379,24 @@
 		var image = null,
 			color = '#00deff'; // As default, use sky color, also as background for images that have transparency
 		if (blockType === BLOCK_TYPE.SOLID) {
-			image = Environment.Wall.image;
+			image = IMAGE_MAP_DATA_NAMES.WALL;
 		} else if (blockType === BLOCK_TYPE.ROOF) {
-			image = Environment.Roof.image;
+			image = IMAGE_MAP_DATA_NAMES.ROOF;
 		} else if (blockType === BLOCK_TYPE.STATUS_BAR) {
 			color = '#000';
 		} else if (blockType === BLOCK_TYPE.GOAL) {
 			color = '#0f0';
 		} else if (blockType === BLOCK_TYPE.NEST) {
-			image = Environment.Nest.image;
+			image = IMAGE_MAP_DATA_NAMES.NEST;
 		} else if (blockType === BLOCK_TYPE.LADDER) {
-			image = Environment.Ladder.image;
+			image = IMAGE_MAP_DATA_NAMES.LADDER;
 		} else if (blockType === BLOCK_TYPE.DISPENSER) {
-			image = Environment.Dispenser.image;
+			image = IMAGE_MAP_DATA_NAMES.DISPENSER;
 		}
 		ctx.fillStyle = color;
 		ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
 		if (image !== null) {
-			ctx.drawImage(image, x, y, BLOCK_SIZE, BLOCK_SIZE);
+			drawImage(image, x, y, BLOCK_SIZE, BLOCK_SIZE);
 		}
 	}
 
@@ -1205,15 +1420,18 @@
 		}
 		for (cr = 0; cr < CrumbsArray.length; cr++) {
 			cur = CrumbsArray[cr];
-			ctx.drawImage(cur.image, cur.position[0] - 8, cur.position[1] - 8);
+			drawImage(IMAGE_MAP_DATA_NAMES.CRUMBS, cur.position[0] - 8, cur.position[1] - 8);
+			// ctx.drawImage(cur.image, cur.position[0] - 8, cur.position[1] - 8);
 		}
 		for (cr = 0; cr < ShotsArray.length; cr++) {
 			cur = ShotsArray[cr];
-			ctx.drawImage(cur.image, cur.position[0] - 8, cur.position[1] - 8);
+			drawImage(IMAGE_MAP_DATA_NAMES.SHOT, cur.position[0] - 8, cur.position[1] - 8);
+			// ctx.drawImage(cur.image, cur.position[0] - 8, cur.position[1] - 8);
 		}
 
 		if (Granny.position) {
-			ctx.drawImage(Granny.image, Granny.position[0], Granny.position[1]);
+			// ctx.drawImage(Granny.image, Granny.position[0], Granny.position[1]);
+			drawImage(IMAGE_MAP_DATA_NAMES.GRANNY, Granny.position[0], Granny.position[1]);
 		}
 
 		if (Game.currentLevel.instructions) {
@@ -1229,24 +1447,22 @@
 	function drawPlayer(t) {
 		if (Game.started) {
 			if (Player.isInAir) {
-				ctx.drawImage(Player.facingRight ? Player.images.moving : Player.images.movingFlipped, Player.facingRight ? 0 : 16, 0, 16, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
+				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 0, Player.facingLeft);
+				// ctx.drawImage(Player.facingLeft ? Player.images.moving : Player.images.movingFlipped, Player.facingLeft ? 0 : 16, 0, 16, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
 			} else if (Player.isMoving) {
-
-				var sx = (Math.floor(t / 100) % 2 < 1) ? 0 : 17,
-					sy = 0,
-					sw = 15,
-					sh = 32;
-				ctx.drawImage(Player.facingRight ? Player.images.moving : Player.images.movingFlipped, sx, sy, sw, sh, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
+				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 10, Player.facingLeft, t);
+				// ctx.drawImage(Player.facingLeft ? Player.images.moving : Player.images.movingFlipped, sx, sy, sw, sh, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
 			} else {
-				ctx.drawImage(Player.facingRight ? Player.images.moving : Player.images.movingFlipped, Player.facingRight ? 17 : 0, 0, 15, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
+				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 1, Player.facingLeft);
+				// ctx.drawImage(Player.facingLeft ? Player.images.moving : Player.images.movingFlipped, Player.facingLeft ? 17 : 0, 0, 15, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
 			}
 		} else {
-			ctx.drawImage(Player.facingRight ? Player.images.moving : Player.images.movingFlipped, Player.facingRight ? 17 : 0, 0, 15, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
+			drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 1);
+			// ctx.drawImage(Player.facingLeft ? Player.images.moving : Player.images.movingFlipped, Player.facingLeft ? 17 : 0, 0, 15, 32, Player.position[0] - 8, Player.position[1] - 24, 16, 32);
 		}
 		if (Player.crateCarried !== undefined) {
 			var cur = CratesArray[Player.crateCarried];
-			ctx.drawImage(cur.image, Player.facingRight ? cur.position[0] - 16 - cur.size : cur.position[0] + 2, cur.position[1] - 10);
-
+			ctx.drawImage(cur.image, Player.facingLeft ? cur.position[0] + 2 : cur.position[0] - 16 - cur.size, cur.position[1] - 10);
 		}
 
 		if (Crow.isInWarningZone) {
@@ -1265,10 +1481,11 @@
 					sy = 0,
 					sw = 15,
 					sh = 16;
-				ctx.drawImage(Crow.images.flying, sx, sy, sw, sh, Crow.position[0] - 8, Crow.position[1] - 8, 16, 16);
+				drawAnim(IMAGE_MAP_DATA_NAMES.CROW, Crow.position[0] - 8, Crow.position[1] - 8, 2, false, t);
 			}
 		} else {
-			ctx.drawImage(Crow.images.flying, 0, 0, 16, 16, Crow.position[0] - 8, Crow.position[1] - 8, 16, 16);
+			// drawImage(IMAGE_MAP_DATA_NAMES.CROW, Crow.position[0] - 8, Crow.position[1] - 8);
+			drawAnim(IMAGE_MAP_DATA_NAMES.CROW, Crow.position[0] - 8, Crow.position[1] - 8, 0);
 		}
 	}
 
@@ -1330,11 +1547,14 @@
 				ctx.strokeStyle = '#000';
 				ctx.strokeRect(currentMousePosition[0] - (currentMousePosition[0] % BLOCK_SIZE), currentMousePosition[1] - (currentMousePosition[1] % BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
 			} else if (selectedBlock === GAME_ELEMENTS.PLAYER) {
-				ctx.drawImage(Player.images.moving, 17, 0, 15, 32, currentMousePosition[0] - 8, currentMousePosition[1] - 24, 16, 32);
+				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, currentMousePosition[0] - 8, currentMousePosition[1] - 24, 1);
+				// ctx.drawImage(Player.images.moving, 17, 0, 15, 32, currentMousePosition[0] - 8, currentMousePosition[1] - 24, 16, 32);
 			} else if (selectedBlock === GAME_ELEMENTS.CROW) {
-				ctx.drawImage(Crow.images.flying, 0, 0, 16, 16, currentMousePosition[0] - 8, currentMousePosition[1] - 8, 16, 16);
+				drawAnim(IMAGE_MAP_DATA_NAMES.CROW, currentMousePosition[0] - 8, currentMousePosition[1] - 8, 0);
+				// ctx.drawImage(Crow.images.flying, 0, 0, 16, 16, currentMousePosition[0] - 8, currentMousePosition[1] - 8, 16, 16);
 			} else if (selectedBlock === GAME_ELEMENTS.GRANNY) {
-				ctx.drawImage(Granny.image, currentMousePosition[0], currentMousePosition[1]);
+				drawImage(IMAGE_MAP_DATA_NAMES.GRANNY, currentMousePosition[0], currentMousePosition[1]);
+				// ctx.drawImage(Granny.image, currentMousePosition[0], currentMousePosition[1]);
 			} else if (selectedBlock === GAME_ELEMENTS.CRATES) {
 				ctx.fillStyle = 'yellow';
 				ctx.fillRect(currentMousePosition[0] - 8, currentMousePosition[1] - 8, 16, 16);
