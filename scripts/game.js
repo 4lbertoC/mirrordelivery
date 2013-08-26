@@ -835,7 +835,7 @@
 
 		icCtx.fillText('Delivery Boy ' + Game.boyPoints + ' - ' + Game.crowPoints + ' Crow', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
 		icCtx.font = '15px courier';
-		icCtx.fillText("Click the crow to start!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
+		icCtx.fillText("Click the " + (isMobileDevice ? "screen" : "crow") + " to start!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
 		icCtx.fillText("< >: Select level", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
 		var str = lvl.isCustom ? "E: edit   " + (isMobileDevice ? "1" : "D") + ": delete   " + (isMobileDevice ? "2" : "J") + ": insert/copy JSON" + (isOnline ? "   S: share" : "") : "E: edit";
 		icCtx.fillText(str, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 120);
@@ -893,6 +893,14 @@
 		}
 	};
 
+	function startGame() {
+		setGameState(GAME_STATE.PLAYING);
+		Game.time = currentT + Game.currentLevel.gameTime;
+		playNextNote();
+
+		canvas['style']['cursor'] = 'none';
+	}
+
 	// Add Mouse Event Listener
 
 	function shoot(evt) {
@@ -919,13 +927,9 @@
 					crate.position[1] = currentMousePosition[1] - crate.size;
 				}
 			}
-		} else if (Game.state === GAME_STATE.MENU) {
+		} else if (Game.state === GAME_STATE.MENU && !isMobileDevice) {
 			if (currentMousePosition[0] > Crow.position[0] - 16 && currentMousePosition[0] < Crow.position[0] + 16 && currentMousePosition[1] > Crow.position[1] - 16 && currentMousePosition[1] < Crow.position[1] + 16) {
-				setGameState(GAME_STATE.PLAYING);
-				Game.time = currentT + Game.currentLevel.gameTime;
-				playNextNote();
-
-				canvas['style']['cursor'] = 'none';
+				startGame();
 			}
 		} else if (Crow.shots > 0 && Crow.stunnedTimeout < currentT) {
 			Crow.shots--;
@@ -959,6 +963,12 @@
 		}
 	});
 
+	addEvent(canvas, 'touchstart', function () {
+		if (Game.state === GAME_STATE.MENU) {
+			startGame();
+		}
+	});
+
 	function bindButtonToKeyCode(buttonId, keyCode) {
 		var btn = document.getElementById(buttonId);
 		addEvent(btn, 'touchstart', function () {
@@ -973,13 +983,13 @@
 		});
 	}
 
-	function bindButtomToCustomFunction(buttonId, touchStartCallback, touchEndCallback) {
+	function bindButtonToCustomFunction(buttonId, touchStartCallback, touchEndCallback) {
 		var btn = document.getElementById(buttonId);
 		addEvent(btn, 'touchstart', touchStartCallback);
 		addEvent(btn, 'touchend', touchEndCallback);
 	}
 
-	bindButtomToCustomFunction('s', function () {
+	bindButtonToCustomFunction('s', function () {
 		if (Game.state === GAME_STATE.MENU) {
 			KeyHandler.onKeyDown({
 				'keyCode': KEYCODES.DELETE
@@ -1018,7 +1028,7 @@
 	addEvent(canvas, 'contextmenu', crowEat);
 	var eatButton = document.getElementById('e');
 
-	bindButtomToCustomFunction('e', function (evt) {
+	bindButtonToCustomFunction('e', function (evt) {
 		if (Game.state === GAME_STATE.MENU) {
 			KeyHandler.onKeyDown({
 				'keyCode': KEYCODES.JSONIZE_LEVEL
@@ -1051,7 +1061,7 @@
 		isTouchingDPad = false;
 	});
 
-	bindButtomToCustomFunction('p', function () {
+	bindButtonToCustomFunction('p', function () {
 		KeyHandler.onKeyDown({
 			'keyCode': (Game.state !== GAME_STATE.MENU) ? KEYCODES.INTERACT : KEYCODES.JSONIZE_LEVEL
 		});
@@ -1155,6 +1165,7 @@
 	function validateJsonLevel(jsonLevel) {
 		try {
 			var level = JSON.parse(jsonLevel);
+			// TODO Validate the json
 			//if(level.startingPlayerPosition)
 			return true;
 		} catch (e) {
