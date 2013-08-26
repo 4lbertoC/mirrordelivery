@@ -57,7 +57,8 @@
 		currentMousePosition = [0, 0],
 		leftButtonDown = false,
 		toggleEditDraw = false,
-		customLevelCounter = 1;
+		customLevelCounter = 1,
+		isOnline = false;
 
 	// EDIT MODE VARIABLES
 	var selectedBlock = 0;
@@ -836,7 +837,7 @@
 		icCtx.font = '15px courier';
 		icCtx.fillText("Click the crow to start!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
 		icCtx.fillText("< >: Select level", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
-		var str = lvl.isCustom ? "E: edit   " + (isMobileDevice ? "1" : "D") + ": delete   " + (isMobileDevice ? "2" : "J") + ": insert/copy JSON   S: share" : "E: edit";
+		var str = lvl.isCustom ? "E: edit   " + (isMobileDevice ? "1" : "D") + ": delete   " + (isMobileDevice ? "2" : "J") + ": insert/copy JSON" + (isOnline ? "   S: share" : "") : "E: edit";
 		icCtx.fillText(str, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 120);
 
 		icCtx['beginPath']();
@@ -1170,6 +1171,8 @@
 			Levels[selectedLevel].startingCrowPosition = Crow.position.slice();
 			if (Granny.position instanceof Array) {
 				Levels[selectedLevel].grannyPosition = Granny.position.slice();
+			} else {
+				Levels[selectedLevel].grannyPosition = undefined;
 			}
 			Levels[selectedLevel].crateStartingPosition = Crate.startPosition.slice();
 		}
@@ -1218,17 +1221,20 @@
 			} else if (k[KEYCODES.SHARE] && !Player.isMoving) {
 				Player.isMoving = true;
 
-				// TODO Check if Online
+				// TODO
+				// Use a server API to check if online
+				// Add share functionality by eval'ing code from server,
+				// so that if offline you cannot share
 
-				function reqListener() {
-					prompt('Your level share url', this.responseText);
-					k[KEYCODES.SHARE] = undefined;
-				};
+				// function reqListener() {
+				// 	prompt('Your level share url', this.responseText);
+				// 	k[KEYCODES.SHARE] = undefined;
+				// };
 
-				var oReq = new XMLHttpRequest();
-				oReq.onload = reqListener;
-				oReq.open("post", "http://127.0.0.1:3000/addLevel", true);
-				oReq.send(JSON.stringify(Levels[selectedLevel]));
+				// var oReq = new XMLHttpRequest();
+				// oReq.onload = reqListener;
+				// oReq.open("post", "http://127.0.0.1:3000/addLevel", true);
+				// oReq.send(JSON.stringify(Levels[selectedLevel]));
 
 			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL] && !k[KEYCODES.SHARE]) {
 				Player.isMoving = false;
