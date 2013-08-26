@@ -312,7 +312,7 @@
 	};
 	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.SHOT] = {
 		frame: {
-			x: 30,
+			x: 31,
 			y: 30,
 			w: 6,
 			h: 14
@@ -543,7 +543,7 @@
 			'5555500000000000000000000033330000000000' +
 			'5555500000000000000200000000000000000000' +
 			'1111110010011001111201110011110000000000' +
-			'0000000000000000000200000000001000000000' +
+			'0000000000033000000200000000001000000000' +
 			'0000000000000000070200000000000100000000' +
 			'0001110000000000111111000000000010020000' +
 			'0020000000000000333333300003333301021000' +
@@ -555,9 +555,9 @@
 			'0020000000000000000000000000000000000000' +
 			'0020000000000000000020000000000002000000' +
 			'0020111100111110011120111001111112011111' +
-			'0020000000000000000020000000000002000000' +
+			'0020000000000000000020000003030302000000' +
 			'0020000000000000000020700000000002000000' +
-			'0000333330000000000011110000200002000000' +
+			'0000333330003030300011110000200002000000' +
 			'0000000000000000000000000000211112000000' +
 			'0000000000000000000000000000200000000000' +
 			'1111111111111111111111111111111111111111',
@@ -1079,15 +1079,17 @@
 
 	function setGameState(state) {
 		Game.state = state;
-		if (state === GAME_STATE.EDIT) {
-			var editButtons = document['getElementsByClassName']('edit');
-			for (var eb = 0; eb < editButtons.length; eb++) {
-				editButtons[eb].setAttribute('class', 'btn edit');
-			}
-		} else {
-			var editButtons = document['getElementsByClassName']('edit');
-			for (var eb = 0; eb < editButtons.length; eb++) {
-				editButtons[eb].setAttribute('class', 'btn h edit');
+		if (isMobileDevice) {
+			if (state === GAME_STATE.EDIT) {
+				var editButtons = document['getElementsByClassName']('edit');
+				for (var eb = 0; eb < editButtons.length; eb++) {
+					editButtons[eb].setAttribute('class', 'btn edit');
+				}
+			} else {
+				var editButtons = document['getElementsByClassName']('edit');
+				for (var eb = 0; eb < editButtons.length; eb++) {
+					editButtons[eb].setAttribute('class', 'btn h edit');
+				}
 			}
 		}
 	}
