@@ -1384,9 +1384,7 @@
 				Player.isMoving = true;
 			} else if (k[KEYCODES.GRANNY] && !Player.isMoving) {
 				if (Granny.position instanceof Array) {
-					Granny.position = null;
-					Granny.startingLaserPosition = null;
-					Laser.position = null;
+					Granny.position = Granny.startingLaserPosition = Laser.position = null;
 				} else {
 					Granny.position = [32, 32];
 					Granny.startingLaserPosition = [Granny.position[0] + 15, Granny.position[1] + 23];
