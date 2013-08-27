@@ -669,9 +669,9 @@
 			[1, 2]
 		],
 
-		Level5 = [
+		Level4 = [
 			/* NAME */
-			'Level 5',
+			'Level 4',
 			/* PLAYER STARTING POSITION */
 			[75, 370],
 			/* CROW STARTING POSITION */
@@ -688,7 +688,7 @@
 			[1, 2, 3]
 		];
 
-	var baseLevels = [Tutorial, Level1, Level2, Level3, Level5];
+	var baseLevels = [Tutorial, Level1, Level2, Level3, Level4];
 	Levels = (window.localStorage && window.localStorage.Levels && JSON.parse(window.localStorage.Levels)) || baseLevels;
 	customLevelCounter = Levels.length - baseLevels.length + 1;
 
@@ -775,9 +775,7 @@
 				introTheme[introThemeString.shift()]['play']();
 				setTimeout(playNextNote, 200);
 			}
-		} catch (e) {
-			alert('Error!');
-		}
+		} catch (e) {}
 	}
 
 	var Sounds = {};
@@ -788,9 +786,7 @@
 		}
 		try {
 			Sounds[name] = jsfxlib.createWave(data);
-		} catch (e) {
-			alert('Error!');
-		}
+		} catch (e) {}
 	}
 	loadSound(SOUND_TYPE.JUMP, ["square", 0.0000, 0.4000, 0.0000, 0.1740, 0.0000, 0.2800, 20.0000, 497.0000, 2400.0000, 0.2200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0665, 0.0000, 0.0000, 0.0000, 0.0000, 0.7830, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.PLAYER_CRASH, ["noise", 0.0000, 0.4000, 0.0000, 0.1400, 0.4050, 0.1160, 20.0000, 479.0000, 2400.0000, -0.0700, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, -0.0860, -0.1220, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
@@ -815,9 +811,7 @@
 				Sounds[soundName]['currentTime'] = 0;
 				Sounds[soundName]['play']();
 			}
-		} catch (e) {
-			alert('Error!');
-		}
+		} catch (e) {}
 	}
 
 	/*
@@ -1011,19 +1005,15 @@
 			if (selectedBlock < NUM_BLOCKS) {
 				setMapAt('' + selectedBlock, Math.floor(currentMousePosition[0] / BLOCK_SIZE), Math.floor(currentMousePosition[1] / BLOCK_SIZE));
 			} else if (selectedBlock === GAME_ELEMENTS.PLAYER) {
-				Player.position[0] = currentMousePosition[0];
-				Player.position[1] = currentMousePosition[1];
+				Player.position = currentMousePosition.slice();
 			} else if (selectedBlock === GAME_ELEMENTS.CROW) {
-				Crow.position[0] = currentMousePosition[0];
-				Crow.position[1] = currentMousePosition[1];
+				Crow.position = currentMousePosition.slice();
 			} else if (selectedBlock === GAME_ELEMENTS.GRANNY && Granny.position) {
-				Granny.position[0] = currentMousePosition[0];
-				Granny.position[1] = currentMousePosition[1];
+				Granny.position = currentMousePosition.slice();
 				Granny.startingLaserPosition = [Granny.position[0] + 15, Granny.position[1] + 23];
 				Laser.position = Granny.startingLaserPosition.slice();
 			} else if (selectedBlock === GAME_ELEMENTS.CRATES) {
-				Crate.startPosition[0] = currentMousePosition[0];
-				Crate.startPosition[1] = currentMousePosition[1];
+				Crate.startPosition = currentMousePosition.slice();
 				for (var cr = 0; cr < CratesArray.length; cr++) {
 					var crate = CratesArray[cr];
 					crate.position[0] = currentMousePosition[0] + cr * 16;
@@ -1304,7 +1294,32 @@
 		reset(selectedLevel);
 	}
 
+	// var inputHandlers = [];
+	// for (var gs = 0; gs < GAME_STATE.length; gs++) {
+	// 	inputHandlers[gs] = {};
+	// }
+
+	// function assignInput(gameState, keyCode, callback) {
+	// 	inputHandlers[gameState][keyCode] = callback;
+	// }
+	// var state = GAME_STATE.MENU;
+	// assignInput(state, KEYCODES.LEFT, function () {
+	// 	selectedLevel = (selectedLevel + Levels.length - 1) % Levels.length;
+	// 	reset(selectedLevel);
+	// });
+
 	function processInput(t) {
+		// var k = KeyHandler.k;
+		// if (!Player.isMoving) {
+		// 	for (var key in k) {
+		// 		if (k[key] && inputHandlers[k[key]]) {
+		// 			inputHandlers[k[key]]();
+		// 			Player.isMoving 
+		// 		}
+		// 	}
+		// }
+
+
 		var speed = getPlayerSpeed(),
 			ladderSpeed = Player.ladderSpeed,
 			x = Player.position[0],
@@ -1353,7 +1368,7 @@
 					request.send(JSON.stringify(Levels[selectedLevel]));
 					k[KEYCODES.SHARE] = undefined;
 				}
-			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.DELETE] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL] && !k[KEYCODES.SHARE]) {
+} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.DELETE] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL] && !k[KEYCODES.SHARE]) {
 				Player.isMoving = false;
 			}
 			return;
