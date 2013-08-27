@@ -1479,8 +1479,8 @@
 	}
 
 	function isPlayerOnBlock(blockType) {
-		return isAABBCollidingWithBlock(Player.position[0] - 16, Player.position[1] - 32, 16, 32, blockType) ||
-			isAABBCollidingWithBlock(Player.position[0] - 8, Player.position[1] - 8, 0, 0, blockType);
+		return isAABBCollidingWithBlock(Player.position[0] - 8, Player.position[1] - 32, 16, 32, blockType) ||
+			isAABBCollidingWithBlock(Player.position[0], Player.position[1] - 8, 0, 0, blockType);
 	}
 
 	function squareDistance(pos1, pos2) {
@@ -1683,7 +1683,7 @@
 			}
 		}
 
-		if ((isCrowInPlayerDamageZone() || /* isPositionOnBlock(Crow.position, BLOCK_TYPE.ROOF)*/ isAABBCollidingWithBlock(Crow.position[0], Crow.position[1], 0, 0, BLOCK_TYPE.ROOF) || (Granny.position && (Math.sqrt(squareDistance(Laser.position, Crow.position)) < LASER_MOVEMENT_THRESHOLD))) && Crow.stunnedTimeout < t) {
+		if ((isCrowInPlayerDamageZone() || isAABBCollidingWithBlock(Crow.position[0], Crow.position[1], 0, 0, BLOCK_TYPE.ROOF) || (Granny.position && (Math.sqrt(squareDistance(Laser.position, Crow.position)) < LASER_MOVEMENT_THRESHOLD))) && Crow.stunnedTimeout < t) {
 			stunCrow(t);
 		}
 	}
@@ -1760,18 +1760,18 @@
 	function drawPlayer(t) {
 		if (Game.state === GAME_STATE.PLAYING) {
 			if (Player.isInAir) {
-				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 16, Player.position[1] - 24, 0, Player.facingLeft);
+				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 0, Player.facingLeft);
 			} else if (Player.isMoving) {
-				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 16, Player.position[1] - 24, 10, Player.facingLeft, t);
+				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 10, Player.facingLeft, t);
 			} else {
-				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 16, Player.position[1] - 24, 1, Player.facingLeft);
+				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 1, Player.facingLeft);
 			}
 		} else {
 			drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 1);
 		}
 		if (Player.crateCarried !== undefined) {
 			var cur = CratesArray[Player.crateCarried];
-			ctx.drawImage(cur.image, Player.facingLeft ? cur.position[0] - 8 : cur.position[0] - 20 - cur.size, cur.position[1] - 10);
+			ctx.drawImage(cur.image, Player.facingLeft ? cur.position[0] + 2 : cur.position[0] - 15 - cur.size, cur.position[1] - 10);
 		}
 
 		if (Crow.isInWarningZone) {
