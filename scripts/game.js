@@ -71,31 +71,31 @@
 	// Check if online
 	var SERVER_URL = 'http://127.0.0.1:3000';
 
-	var isOnline = false;
-	var request = createCORSRequest("get", SERVER_URL + "/getServerCode");
-	if (request) {
-		request.onload = function () {
-			if (request.responseText === 'Ok') {
-				isOnline = true;
-				var level = window['location']['hash'];
-				if (level.length > 1) {
-					level = level.substr(1);
-					var levelRequest = createCORSRequest("get", SERVER_URL + "/getLevel/" + level);
-					levelRequest.onload = function () {
-						try {
-							var resp = levelRequest.responseText;
-							if (resp.length > 0) {
-								createCustomLevel(JSON.parse(resp));
-							}
-						} catch (e) {
-							alert('Error!');
-						}
-					}
-					levelRequest.send();
+	var level = window['location']['hash'];
+	if (level.length > 1) {
+		level = level.substr(1);
+		var levelRequest = createCORSRequest("get", SERVER_URL + "/getLevel/" + level);
+		levelRequest.onload = function () {
+			try {
+				var resp = levelRequest.responseText;
+				if (resp.length > 0) {
+					createCustomLevel(JSON.parse(resp));
 				}
+			} catch (e) {
+				alert('Error!');
 			}
-		};
-		request.send();
+		}
+		levelRequest.send();
+	}
+
+	function addEvent(el, ev, fn) {
+		if (el.addEventListener) {
+			el.addEventListener(ev, fn, false);
+		} else if (el.attachEvent) {
+			el.attachEvent('on' + ev, fn);
+		} else {
+			el['on' + ev] = fn;
+		}
 	}
 
 	var canvas = document.getElementById('C'),
@@ -946,7 +946,7 @@
 		icCtx.font = '15px courier';
 		icCtx.fillText("Click the " + (isMobileDevice ? "screen" : "crow") + " to start!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
 		icCtx.fillText("< >: Select level", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
-		var str = lvl[LEVEL_PARAMS.IS_CUSTOM] ? "E: edit   " + (isMobileDevice ? "1" : "D") + ": delete   " + (isMobileDevice ? "2" : "J") + ": insert/copy JSON" + (isOnline ? "   S: share" : "") : "E: edit";
+		var str = lvl[LEVEL_PARAMS.IS_CUSTOM] ? "E: edit   " + (isMobileDevice ? "1" : "D") + ": delete   " + (isMobileDevice ? "2" : "J") + ": insert/copy JSON   S: share" : "E: edit";
 		icCtx.fillText(str, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 120);
 
 		icCtx['beginPath']();
@@ -991,16 +991,6 @@
 	function getPlayerSpeed() {
 		return Math.max(1, Player.speed + Player.speedBoost - (Player.crateCarried !== undefined ? CratesArray[Player.crateCarried].size : 0));
 	}
-
-	function addEvent(el, ev, fn) {
-		if (el.addEventListener) {
-			el.addEventListener(ev, fn, false);
-		} else if (el.attachEvent) {
-			el.attachEvent('on' + ev, fn);
-		} else {
-			el['on' + ev] = fn;
-		}
-	};
 
 	function startGame() {
 		setGameState(GAME_STATE.PLAYING);
@@ -1372,14 +1362,15 @@
 				k[KEYCODES.JSONIZE_LEVEL] = undefined;
 			} else if (k[KEYCODES.SHARE] && !Player.isMoving) {
 				Player.isMoving = true;
-				if (isOnline) {
-					var request = createCORSRequest('post', SERVER_URL + '/addLevel');
-					request.onload = function () {
-						prompt('Your level share url', request.responseText);
-					}
-					request.send(JSON.stringify(Levels[selectedLevel]));
-					k[KEYCODES.SHARE] = undefined;
+				var request = createCORSRequest('post', SERVER_URL + '/addLevel');
+				request.onload = function () {
+					prompt('Your level share url', request.responseText);
 				}
+				request.onerror = function () {
+					alert('Not available now');
+				}
+				request.send(JSON.stringify(Levels[selectedLevel]));
+				k[KEYCODES.SHARE] = undefined;
 			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.DELETE] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL] && !k[KEYCODES.SHARE]) {
 				Player.isMoving = false;
 			}
