@@ -218,174 +218,186 @@
 	}
 	var IMAGE_MAP_DATA = {};
 
-	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.CROW] = {
-		frame: {
-			x: 30,
-			y: 0,
-			w: 30,
-			h: 14
-		},
-		spriteSourceSize: {
-			x: 1,
-			y: 1,
-			w: 30,
-			h: 14
-		},
-		frames: [
-			{
+	IMAGE_MAP_DATA = [
+		/* CROW */
+		{
+			frame: {
+				x: 30,
+				y: 0,
+				w: 30,
+				h: 14
+			},
+			spriteSourceSize: {
 				x: 1,
 				y: 1,
-				w: 15,
-				h: 13
+				w: 30,
+				h: 14
 			},
-			{
-				x: 17,
-				y: 1,
-				w: 15,
-				h: 13
+			frames: [
+				{
+					x: 1,
+					y: 1,
+					w: 15,
+					h: 13
+				},
+				{
+					x: 17,
+					y: 1,
+					w: 15,
+					h: 13
+				}
+			]
+		},
+		/* CRUMBS */
+		{
+			frame: {
+				x: 14,
+				y: 40,
+				w: 14,
+				h: 8
+			},
+			spriteSourceSize: {
+				x: 1,
+				y: 7,
+				w: 14,
+				h: 8
 			}
-		]
-	};
-	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.CRUMBS] = {
-		frame: {
-			x: 14,
-			y: 40,
-			w: 14,
-			h: 8
 		},
-		spriteSourceSize: {
-			x: 1,
-			y: 7,
-			w: 14,
-			h: 8
-		}
-	};
-	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.DISPENSER] = {
-		frame: {
-			x: 32,
-			y: 14,
-			w: 16,
-			h: 16
-		},
-		spriteSourceSize: {
-			x: 0,
-			y: 0,
-			w: 16,
-			h: 16
-		}
-	};
-	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.GRANNY] = {
-		frame: {
-			x: 0,
-			y: 24,
-			w: 14,
-			h: 24
-		},
-		spriteSourceSize: {
-			x: 1,
-			y: 7,
-			w: 14,
-			h: 24
-		}
-	};
-	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.LADDER] = {
-		frame: {
-			x: 16,
-			y: 48,
-			w: 16,
-			h: 16
-		},
-		spriteSourceSize: {
-			x: 0,
-			y: 0,
-			w: 16,
-			h: 16
-		}
-	};
-	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.MAN] = {
-		frame: {
-			x: 0,
-			y: 0,
-			w: 30,
-			h: 24
-		},
-		spriteSourceSize: {
-			x: 1,
-			y: 3,
-			w: 30,
-			h: 24
-		},
-		frames: [
-			{
+		/* DISPENSER */
+		{
+			frame: {
+				x: 32,
+				y: 14,
+				w: 16,
+				h: 16
+			},
+			spriteSourceSize: {
 				x: 0,
 				y: 0,
-				w: 15,
+				w: 16,
+				h: 16
+			}
+		},
+		/* GRANNY */
+		{
+			frame: {
+				x: 0,
+				y: 24,
+				w: 14,
 				h: 24
 			},
-			{
-				x: 15,
-				y: 0,
-				w: 15,
+			spriteSourceSize: {
+				x: 1,
+				y: 7,
+				w: 14,
 				h: 24
 			}
-		]
-	};
-	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.NEST] = {
-		frame: {
-			x: 48,
-			y: 14,
-			w: 16,
-			h: 10
 		},
-		spriteSourceSize: {
-			x: 0,
-			y: 10,
-			w: 16,
-			h: 10
-		}
-	};
-	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.ROOF] = {
-		frame: {
-			x: 14,
-			y: 24,
-			w: 16,
-			h: 16
+		/* LADDER */
+		{
+			frame: {
+				x: 16,
+				y: 48,
+				w: 16,
+				h: 16
+			},
+			spriteSourceSize: {
+				x: 0,
+				y: 0,
+				w: 16,
+				h: 16
+			}
 		},
-		spriteSourceSize: {
-			x: 0,
-			y: 0,
-			w: 16,
-			h: 16
-		}
-	};
-	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.SHOT] = {
-		frame: {
-			x: 31,
-			y: 30,
-			w: 6,
-			h: 14
+		/* MAN */
+		{
+			frame: {
+				x: 0,
+				y: 0,
+				w: 30,
+				h: 24
+			},
+			spriteSourceSize: {
+				x: 1,
+				y: 3,
+				w: 30,
+				h: 24
+			},
+			frames: [
+				{
+					x: 0,
+					y: 0,
+					w: 15,
+					h: 24
+				},
+				{
+					x: 15,
+					y: 0,
+					w: 15,
+					h: 24
+				}
+			]
 		},
-		spriteSourceSize: {
-			x: 4,
-			y: 1,
-			w: 6,
-			h: 14
-		}
-	};
-	IMAGE_MAP_DATA[IMAGE_MAP_DATA_NAMES.WALL] = {
-		frame: {
-			x: 0,
-			y: 48,
-			w: 16,
-			h: 16
+		/* NEST */
+		{
+			frame: {
+				x: 48,
+				y: 14,
+				w: 16,
+				h: 10
+			},
+			spriteSourceSize: {
+				x: 0,
+				y: 10,
+				w: 16,
+				h: 10
+			}
 		},
-		spriteSourceSize: {
-			x: 0,
-			y: 0,
-			w: 16,
-			h: 16
+		/* ROOF */
+		{
+			frame: {
+				x: 14,
+				y: 24,
+				w: 16,
+				h: 16
+			},
+			spriteSourceSize: {
+				x: 0,
+				y: 0,
+				w: 16,
+				h: 16
+			}
+		},
+		/* SHOT*/
+		{
+			frame: {
+				x: 31,
+				y: 30,
+				w: 6,
+				h: 14
+			},
+			spriteSourceSize: {
+				x: 4,
+				y: 1,
+				w: 6,
+				h: 14
+			}
+		},
+		/* WALL */
+		{
+			frame: {
+				x: 0,
+				y: 48,
+				w: 16,
+				h: 16
+			},
+			spriteSourceSize: {
+				x: 0,
+				y: 0,
+				w: 16,
+				h: 16
+			}
 		}
-	};
+	];
 
 	var LEVEL_PARAMS = {
 		NAME: 0,
@@ -1368,7 +1380,7 @@
 					request.send(JSON.stringify(Levels[selectedLevel]));
 					k[KEYCODES.SHARE] = undefined;
 				}
-} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.DELETE] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL] && !k[KEYCODES.SHARE]) {
+			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.DELETE] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL] && !k[KEYCODES.SHARE]) {
 				Player.isMoving = false;
 			}
 			return;
