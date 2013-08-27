@@ -1353,7 +1353,7 @@
 				}
 				k[KEYCODES.DELETE] = undefined;
 			} else if (k[KEYCODES.JSONIZE_LEVEL] && Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM] && !Player.isMoving) {
-				var jsonLevel = prompt('LEVEL JSON', JSON.stringify(Levels[selectedLevel]));
+				var jsonLevel = prompt('Level JSON', JSON.stringify(Levels[selectedLevel]));
 				if (jsonLevel && validateJsonLevel(jsonLevel)) {
 					Levels[selectedLevel] = JSON.parse(jsonLevel);
 					reset(selectedLevel);
@@ -1364,7 +1364,7 @@
 				Player.isMoving = true;
 				var request = createCORSRequest('post', SERVER_URL + '/addLevel');
 				request.onload = function () {
-					prompt('Your level share url', request.responseText);
+					prompt('Share URL', request.responseText);
 				}
 				request.onerror = function () {
 					alert('Not available now');
@@ -1394,7 +1394,7 @@
 			} else if (k[KEYCODES.CRATES] && !Player.isMoving) {
 				Player.isMoving = true;
 				try {
-					var crates = JSON.parse(prompt('Set crates', JSON.stringify(Levels[selectedLevel][LEVEL_PARAMS.CRATES])));
+					var crates = JSON.parse(prompt('Crates', JSON.stringify(Levels[selectedLevel][LEVEL_PARAMS.CRATES])));
 					if (crates instanceof Array) {
 						for (var c = 0; c < crates.length; c++) {
 							if (!typeof c === 'number') {
@@ -1411,14 +1411,14 @@
 				k[KEYCODES.CRATES] = undefined;
 			} else if (k[KEYCODES.NAME] && !Player.isMoving) {
 				Player.isMoving = true;
-				var n = prompt('Set name', Levels[selectedLevel][LEVEL_PARAMS.NAME]);
+				var n = prompt('Name', Levels[selectedLevel][LEVEL_PARAMS.NAME]);
 				if (n) {
 					Levels[selectedLevel][LEVEL_PARAMS.NAME] = n;
 				}
 				k[KEYCODES.NAME] = false;
 			} else if (k[KEYCODES.TIME] && !Player.isMoving) {
 				Player.isMoving = true;
-				var t = +prompt('Set time', Levels[selectedLevel][LEVEL_PARAMS.TIME]);
+				var t = +prompt('Time', Levels[selectedLevel][LEVEL_PARAMS.TIME]);
 				if (!isNaN(t) && t > 0) {
 					Levels[selectedLevel][LEVEL_PARAMS.TIME] = t;
 				}
