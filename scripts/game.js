@@ -88,7 +88,7 @@
 								createCustomLevel(JSON.parse(resp));
 							}
 						} catch (e) {
-							console.log('Invalid level received: ' + e.message);
+							alert('Error!');
 						}
 					}
 					levelRequest.send();
@@ -650,6 +650,25 @@
 			[1, 2]
 		],
 
+		Level3 = [
+			/* NAME */
+			'Level 3',
+			/* PLAYER STARTING POSITION */
+			[17, 349],
+			/* CROW STARTING POSITION */
+			[281, 39],
+			/* CRATES STARTING POSITION */
+			[96, 316],
+			/* GRANNY POSITION */
+			[49, 163],
+			/* TIME */
+			240000,
+			/* MAP */
+			"00000000000000010001000000000000000000000000000000300001666100003000000000000020000000000003000111110003000000000007002000000000000030000000003000000000001110203000000000000000000000000000000000000020332200000000000000000000000000000000002033202000000000000000000000000000000000203320320000000000222000000000000000000020332033111001111100011111000110011001102055200000000000000000000000000110011000205520000000000000000000000000000000000020111100000000000000000000000000000000002000000000000000030003000000000220022000200000000000000030000030000200000000000020000000000000000300030000020000000000002000003030300000000200000002011001100110200003030303030303020000000200011001100020000000000030303032111111000000000000000000000000000000000203030303030000000000000000011100070000023030303030300000000000000000000011100002000000000000000000000011110000000000000200000000000000000000001111111111111111111111111111111111111111",
+			/* CRATES */
+			[1, 2]
+		],
+
 		Level5 = [
 			/* NAME */
 			'Level 5',
@@ -669,7 +688,7 @@
 			[1, 2, 3]
 		];
 
-	var baseLevels = [Tutorial, Level1, Level2, Level5];
+	var baseLevels = [Tutorial, Level1, Level2, Level3, Level5];
 	Levels = (window.localStorage && window.localStorage.Levels && JSON.parse(window.localStorage.Levels)) || baseLevels;
 	customLevelCounter = Levels.length - baseLevels.length + 1;
 
@@ -756,7 +775,9 @@
 				introTheme[introThemeString.shift()]['play']();
 				setTimeout(playNextNote, 200);
 			}
-		} catch (e) {}
+		} catch (e) {
+			alert('Error!');
+		}
 	}
 
 	var Sounds = {};
@@ -767,7 +788,9 @@
 		}
 		try {
 			Sounds[name] = jsfxlib.createWave(data);
-		} catch (e) {}
+		} catch (e) {
+			alert('Error!');
+		}
 	}
 	loadSound(SOUND_TYPE.JUMP, ["square", 0.0000, 0.4000, 0.0000, 0.1740, 0.0000, 0.2800, 20.0000, 497.0000, 2400.0000, 0.2200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0665, 0.0000, 0.0000, 0.0000, 0.0000, 0.7830, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.PLAYER_CRASH, ["noise", 0.0000, 0.4000, 0.0000, 0.1400, 0.4050, 0.1160, 20.0000, 479.0000, 2400.0000, -0.0700, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, -0.0860, -0.1220, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
@@ -792,7 +815,9 @@
 				Sounds[soundName]['currentTime'] = 0;
 				Sounds[soundName]['play']();
 			}
-		} catch (e) {}
+		} catch (e) {
+			alert('Error!');
+		}
 	}
 
 	/*
@@ -1258,7 +1283,7 @@
 			// TODO Validate the json
 			return true;
 		} catch (e) {
-			alert('Level not valid: ' + e.message);
+			alert('Error!');
 		}
 		return false;
 	}
@@ -1357,7 +1382,7 @@
 					if (crates instanceof Array) {
 						for (var c = 0; c < crates.length; c++) {
 							if (!typeof c === 'number') {
-								alert('Crates not valid');
+								alert('Error!');
 							}
 							crates[c] = Math.max(1, Math.min(5, crates[c]));
 						}
@@ -1365,7 +1390,7 @@
 						resetCrates(Levels[selectedLevel]);
 					}
 				} catch (e) {
-					alert('Crates not valid: ' + e.message);
+					alert('Error!');
 				}
 				k[KEYCODES.CRATES] = undefined;
 			} else if (k[KEYCODES.NAME] && !Player.isMoving) {
@@ -1786,10 +1811,6 @@
 	function drawCrow(t) {
 		if (Game.state === GAME_STATE.PLAYING) {
 			if (!(Crow.stunnedTimeout > t && Math.floor(t / 100) % 2 === 0)) {
-				var sx = (Math.floor(t / 100) % 6 < 3) ? 1 : 17,
-					sy = 0,
-					sw = 15,
-					sh = 16;
 				drawAnim(IMAGE_MAP_DATA_NAMES.CROW, Crow.position[0] - 8, Crow.position[1] - 8, 2, false, t);
 			}
 		} else {
