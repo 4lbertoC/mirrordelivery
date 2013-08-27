@@ -7,6 +7,14 @@ var http = require('http'),
 	fs = require('fs'),
 	crypto = require('crypto');
 
+var OK_REQUEST_HEADERS = {
+	'Content-Type': 'text/html',
+	'Access-Control-Allow-Origin': '*',
+	'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+	'Access-Control-Allow-Headers': 'X-Requested-With, Content-Type',
+	'Access-Control-Max-Age': '1800'
+};
+
 fs['exists']('levels.json', function (exists) {
 	if (!exists) {
 		fs['writeFileSync'](FILENAME, '{}');
@@ -19,21 +27,13 @@ fs['exists']('levels.json', function (exists) {
 		}
 	}
 
-	console.log(levels);
+	// console.log(levels);
 	var server = http['createServer'](function (req, res) {
-
-		if (req['method'] == 'OPTIONS' && req.url === '/addLevel') {
-			console.log("OPTIONS ", req.url);
-			res['writeHead'](200, {
-				'Content-Type': 'text/html',
-				'Access-Control-Allow-Origin': '*',
-				'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-				'Access-Control-Allow-Headers': 'X-Requested-With, Content-Type',
-				'Access-Control-Max-Age': '1800'
-			});
+		console.log(req.method, req.url);
+		if (req['method'] == 'OPTIONS') {
+			res['writeHead'](200, OK_REQUEST_HEADERS);
 			res['end']('options received');
 		} else if (req['method'] == 'POST' && req.url === '/addLevel') {
-			console.log("POST", req.url);
 			var body = '';
 
 			req['on']('data', function (data) {
@@ -57,35 +57,29 @@ fs['exists']('levels.json', function (exists) {
 
 					fs['writeFileSync'](FILENAME, JSON.stringify(levels));
 
-					res['writeHead'](200, {
-						'Content-Type': 'text/plain',
-						'Access-Control-Allow-Origin': '*',
-						'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-						'Access-Control-Allow-Headers': 'X-Requested-With, Content-Type',
-						'Access-Control-Max-Age': '1800'
-					});
+					res['writeHead'](200, OK_REQUEST_HEADERS);
 					res['end'](HOST + '/getLevel/' + levelHash);
 				} catch (e) {
 					console.log("Tried to add an invalid level: " + e.message);
 					res['writeHead'](400, {
-						'Content-Type': 'text/plain',
-						'Access-Control-Allow-Origin': '*',
-						'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-						'Access-Control-Allow-Headers': 'X-Requested-With, Content-Type',
-						'Access-Control-Max-Age': '1800'
+						'Content-Type': 'text/html'
 					});
 					res['end']('Invalid Level Information');
 				}
 			});
 
 		} else if (req['method'] == 'GET' && req.url.indexOf('/getLevel') === 0) {
-			console.log("GET", req.url);
-
-			var html = 'ToDo'
-			res['writeHead'](200, {
-				'Content-Type': 'text/html'
-			});
-			res['end'](html);
+			var levelHash = req.url.substr(req.url.indexOf('/getLevel') + 10),
+				level;
+			console.log('Requested level with hash ' + levelHash, !! levels[levelHash]);
+			res['writeHead'](200, OK_REQUEST_HEADERS);
+			if (levels[levelHash]) {
+				level = levels[levelHash].lvl;
+			}
+			res['end'](level);
+		} else if (req['method'] == 'GET' && req.url.indexOf('/getServerCode') === 0) {
+			res['writeHead'](200, OK_REQUEST_HEADERS);
+			res['end']('Ok');
 		} else {
 			res['writeHead'](400, {
 				'Content-Type': 'text/html'

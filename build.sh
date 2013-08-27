@@ -9,7 +9,7 @@ rm -rf $BUILDFOLDER
 mkdir $BUILDFOLDER
 echo "Compiling..."
 java -jar compiler.jar --js scripts/jsfx/audio.js --js scripts/jsfx/jsfx.js --js scripts/jsfx/jsfxlib.js --js scripts/game.js --compilation_level ADVANCED_OPTIMIZATIONS --externs scripts/jsfx/externs.js > $BUILDFOLDER/game.min.js
-cp index.html $BUILDFOLDER
+cat index.html | tr -d '\t\n' > $BUILDFOLDER/index.html
 cp -R img $BUILDFOLDER
 echo "Zipping..."
 zip -rq9 $PACKAGE_FILE_NAME $BUILDFOLDER

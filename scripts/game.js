@@ -38,10 +38,28 @@
 			};
 	}());
 
+	// CORS Request
+	// http://www.nczonline.net/blog/2010/05/25/cross-domain-ajax-with-cross-origin-resource-sharing/
+
+	function createCORSRequest(method, url) {
+		var xhr = new XMLHttpRequest();
+		if ("withCredentials" in xhr) {
+			xhr.open(method, url, true);
+		} else if (typeof XDomainRequest != "undefined") {
+			xhr = new XDomainRequest();
+			xhr.open(method, url);
+		} else {
+			xhr = null;
+		}
+		return xhr;
+	}
+	window['createCORSRequest'] = createCORSRequest;
+
 	// Is touch device?
 	var isMobileDevice = false;
 	if ('ontouchstart' in document['documentElement']) {
 		isMobileDevice = true;
+
 		var hiddenButtons = document.getElementsByClassName('btn');
 		for (var b = 0; b < hiddenButtons.length; b++) {
 			if (hiddenButtons[b].getAttribute('class').indexOf('edit') === -1) {
@@ -50,18 +68,47 @@
 		}
 	}
 
+	// Check if online
+	var SERVER_URL = 'http://127.0.0.1:3000';
+
+	var isOnline = false;
+	var request = createCORSRequest("get", SERVER_URL + "/getServerCode");
+	if (request) {
+		request.onload = function () {
+			if (request.responseText === 'Ok') {
+				isOnline = true;
+				var level = window['location']['hash'];
+				if (level.length > 1) {
+					level = level.substr(1);
+					var levelRequest = createCORSRequest("get", SERVER_URL + "/getLevel/" + level);
+					levelRequest.onload = function () {
+						try {
+							var resp = levelRequest.responseText;
+							if (resp.length > 0) {
+								createCustomLevel(JSON.parse(resp));
+							}
+						} catch (e) {
+							console.log('Invalid level received: ' + e.message);
+						}
+					}
+					levelRequest.send();
+				}
+			}
+		};
+		request.send();
+	}
+
 	var canvas = document.getElementById('C'),
 		ctx = canvas.getContext('2d'),
 		currentT = 0,
 		selectedLevel = 0,
 		currentMousePosition = [0, 0],
 		leftButtonDown = false,
-		toggleEditDraw = false,
-		customLevelCounter = 1,
-		isOnline = false;
+		customLevelCounter = 1;
 
 	// EDIT MODE VARIABLES
-	var selectedBlock = 0;
+	var selectedBlock = 0,
+		toggleEditDraw = false;
 
 	// CONSTANTS
 	var CANVAS_WIDTH = 640,
@@ -340,6 +387,19 @@
 		}
 	};
 
+	var LEVEL_PARAMS = {
+		NAME: 0,
+		PLAYER_STARTING_POSITION: 1,
+		CROW_STARTING_POSITION: 2,
+		CRATES_STARTING_POSITION: 3,
+		GRANNY_POSITION: 4,
+		TIME: 5,
+		MAP: 6,
+		CRATES: 7,
+		INSTRUCTIONS: 8,
+		IS_CUSTOM: 9
+	}
+
 	var ImageMap = new Image(),
 		FlippedImageMap = document.createElement('canvas'),
 		ImageMapWidth = 0;
@@ -382,30 +442,6 @@
 	 *
 	 */
 
-	// function initImage(src, width, height, onLoadCallback) {
-	// 	var img = new Image();
-	// 	img.width = width || 16;
-	// 	img.height = height || 16;
-	// 	img.onload = onLoadCallback;
-	// 	img.src = src;
-	// 	return img;
-	// }
-
-	// function initCanvas(src, width, height, isFlipped) {
-	// 	var c = document.createElement('canvas'),
-	// 		img = initImage(src, width, height, function () {
-	// 			var imCtx = c.getContext('2d');
-	// 			if (isFlipped) {
-	// 				imCtx.translate(width, 0);
-	// 				imCtx.scale(-1, 1);
-	// 			}
-	// 			imCtx.drawImage(img, 0, 0);
-	// 		});
-	// 	c.width = width;
-	// 	c.height = height;
-	// 	return c;
-	// }
-
 	var Player = {
 		position: null,
 		speed: 4,
@@ -419,23 +455,15 @@
 		isMoving: false,
 		isInteracting: false,
 		verticalSpeed: 0,
-		// images: {
-		// 	moving: initCanvas('img/man2.png', 32, 32),
-		// 	movingFlipped: initCanvas('img/man2.png', 32, 32, true)
-		// },
-		wasOverSolidBlock: false,
 		crateCarried: undefined,
 		candies: 0,
 		crates: MAX_CRATES,
-		facingRight: true
+		facingLeft: false
 	};
 
 	var Crow = {
 		position: null,
 		nextPosition: null,
-		// images: {
-		// 	flying: initImage('img/crow2.png')
-		// },
 		shots: 0,
 		isInWarningZone: false,
 		stunnedTimeout: 0,
@@ -453,13 +481,11 @@
 	var CratesArray = [];
 
 	var Crumbs = {
-		// image: initImage('img/crumbs.png'),
 		position: null
 	};
 	var CrumbsArray = [];
 
 	var Shot = {
-		// image: initImage('img/shot.png'),
 		position: null,
 		speed: 6
 	};
@@ -562,68 +588,120 @@
 			'0000000000000000000000000000211112000000' +
 			'0000000000000000000000000000200000000000' +
 			'1111111111111111111111111111111111111111',
-		Tutorial = {
-			name: 'Tutorial',
-			startingPlayerPosition: [33, 370],
-			startingCrowPosition: [CANVAS_WIDTH - 24, 55],
-			crateStartingPosition: [300, 365],
-			grannyPosition: [20, 70],
-			map: tutorialMap,
-			crates: [1],
-			gameTime: 3000000,
-			instructions: [[20, 340, ['PLAYER 1']], [100, 340, ['ARROWS: move/jump']], [250, 340, ['SPACEBAR: grab/release crate']],
+		Tutorial = [
+			/* NAME */
+			'Tutorial',
+			/* PLAYER STARTING POSITION */
+			[33, 370],
+			/* CROW STARTING POSITION */
+			[CANVAS_WIDTH - 24, 55],
+			/* CRATES STARTING POSITION */
+			[300, 365],
+			/* GRANNY POSITION */
+			[20, 70],
+			/* TIME */
+			3000000,
+			/* MAP */
+			tutorialMap,
+			/* CRATES */
+			[1],
+			/* INSTRUCTIONS */
+			[[20, 340, ['PLAYER 1']], [100, 340, ['ARROWS: move/jump']], [250, 340, ['SPACEBAR: grab/release crate']],
 				[500, 340, ['UP/DOWN: Climb ladder']], [450, 250, ['Crates break if you fall from too high']],
 				[160, 250, [(isMobileDevice ? 'S' : 'SPACEBAR') + ': buy candies when not holding crate', 'E: Use candy to gain speed']],
 				[10, 230, ['Deliver crate to green area']], [560, 30, ['PLAYER 2', (isMobileDevice ? 'DPad' : 'Mouse') + ': move']], [410, 70, ['Don\'t get shot', 'Hide in the nest']], [410, 130, [(isMobileDevice ? '2' : 'RClick') + ': eat from nest or candy crumbs', (isMobileDevice ? '1' : 'LClick') + ': shoot!']],
-				[140, 60, ['Don\'t touch roofs or the boy']]]
-		},
-		Level1 = {
-			name: 'Level 1',
-			startingPlayerPosition: [25, 366],
-			startingCrowPosition: [616, 24],
-			crateStartingPosition: [41, 364],
-			grannyPosition: [513, 180],
-			map: '00000000000000000000000000000000000000600000000000000000000000000000000000000011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000003330000000000000000000000000000000000003333300000000000000000000000000000000000055500000000000000000000000000000000000005550000020000000000000200000000000000000555020002000111111111120000333000000000111112000200133333330002000000000000000000000200021130000000000200000000000000000000020002000000000000020000000000000000000002000200020000000002111111100111001101111100111112000000000200000000000000000000000033333200000000020000000000000000000000000000020000000000000000000000000000000000000002000000000000000000000000000000000000000200000000000000000000000000000000001111111111111111111111111111111111111111',
-			crates: [1, 2],
-			gameTime: 60000
-		},
-		Level2 = {
-			name: 'Level 2',
-			startingPlayerPosition: [28, 143],
-			startingCrowPosition: [600, 296],
-			crateStartingPosition: [588, 365],
-			grannyPosition: [51, 50],
-			map: '33330000000000000000000000000000000000005550000000000033000000000330000000000000555000000000000000000000000000000000000055500000000000000003030000000000000000001111111000000000000030000000000000110010000000010000000000000000000000000100301000000000000200000200000200000200000000100000000011120111102000201111021113002010111100000002000000020200000002000000211100000000000100000000200000000100000020000000000000000000000000000000000002002000000000000000000000000000000000030211100000001110000000000000000000000030020000000000000000000000003333300000000002000000000000000000000000000000000003020200000000000001100000000000000000000002110000000000000000000000000020700000020200000000000000000000000000112110000002020000060000000000010000000000200000000201000011100000000000000000000020000000020000000000000000000000000000002000000002000000000000000000000000000000200000000200000000001111111111111111111111111111111111111111',
-			crates: [1, 2],
-			gameTime: 120000
-		},
-		Level5 = {
-			name: 'Level 5',
-			startingPlayerPosition: [75, 370],
-			startingCrowPosition: [CANVAS_WIDTH - 24, 24],
-			crateStartingPosition: [83, 365],
-			grannyPosition: [80, 53],
-			map: lvl5Map,
-			crates: [1, 2, 3],
-			gameTime: 300000
-		},
-		Levels = (window.localStorage && window.localStorage.Levels && JSON.parse(window.localStorage.Levels)) || [Tutorial, Level1, Level2, Level5];
+				[140, 60, ['Don\'t touch roofs or the boy']]]],
 
-	function createCustomLevel() {
-		var currentLevel = Levels[selectedLevel];
-		var CustomLevel = {
-			name: 'CustomLevel' + customLevelCounter++,
-			startingPlayerPosition: currentLevel.startingPlayerPosition.slice(),
-			startingCrowPosition: currentLevel.startingCrowPosition.slice(),
-			crateStartingPosition: currentLevel.crateStartingPosition.slice(),
-			grannyPosition: currentLevel.grannyPosition && currentLevel.grannyPosition.slice(),
-			map: currentLevel.map,
-			crates: currentLevel.crates.slice(),
-			gameTime: currentLevel.gameTime,
-			isCustom: true
-		}
+		Level1 = [
+			/* NAME */
+			'Level 1',
+			/* PLAYER STARTING POSITION */
+			[25, 366],
+			/* CROW STARTING POSITION */
+			[616, 24],
+			/* CRATES STARTING POSITION */
+			[41, 364],
+			/* GRANNY POSITION */
+			[513, 180],
+			/* TIME */
+			60000,
+			/* MAP */
+			'00000000000000000000000000000000000000600000000000000000000000000000000000000011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000003330000000000000000000000000000000000003333300000000000000000000000000000000000055500000000000000000000000000000000000005550000020000000000000200000000000000000555020002000111111111120000333000000000111112000200133333330002000000000000000000000200021130000000000200000000000000000000020002000000000000020000000000000000000002000200020000000002111111100111001101111100111112000000000200000000000000000000000033333200000000020000000000000000000000000000020000000000000000000000000000000000000002000000000000000000000000000000000000000200000000000000000000000000000000001111111111111111111111111111111111111111',
+			/* CRATES */
+			[1, 2]
+		],
+
+		Level2 = [
+			/* NAME */
+			'Level 2',
+			/* PLAYER STARTING POSITION */
+			[28, 143],
+			/* CROW STARTING POSITION */
+			[600, 296],
+			/* CRATES STARTING POSITION */
+			[588, 365],
+			/* GRANNY POSITION */
+			[51, 50],
+			/* TIME */
+			120000,
+			/* MAP */
+			'33330000000000000000000000000000000000005550000000000033000000000330000000000000555000000000000000000000000000000000000055500000000000000003030000000000000000001111111000000000000030000000000000110010000000010000000000000000000000000100301000000000000200000200000200000200000000100000000011120111102000201111021113002010111100000002000000020200000002000000211100000000000100000000200000000100000020000000000000000000000000000000000002002000000000000000000000000000000000030211100000001110000000000000000000000030020000000000000000000000003333300000000002000000000000000000000000000000000003020200000000000001100000000000000000000002110000000000000000000000000020700000020200000000000000000000000000112110000002020000060000000000010000000000200000000201000011100000000000000000000020000000020000000000000000000000000000002000000002000000000000000000000000000000200000000200000000001111111111111111111111111111111111111111',
+			/* CRATES */
+			[1, 2]
+		],
+
+		Level5 = [
+			/* NAME */
+			'Level 5',
+			/* PLAYER STARTING POSITION */
+			[75, 370],
+			/* CROW STARTING POSITION */
+			[CANVAS_WIDTH - 24, 24],
+			/* CRATES STARTING POSITION */
+			[83, 365],
+			/* GRANNY POSITION */
+			[80, 53],
+			/* TIME */
+			300000,
+			/* MAP */
+			lvl5Map,
+			/* CRATES */
+			[1, 2, 3]
+		];
+
+	var baseLevels = [Tutorial, Level1, Level2, Level5];
+	Levels = (window.localStorage && window.localStorage.Levels && JSON.parse(window.localStorage.Levels)) || baseLevels;
+	customLevelCounter = Levels.length - baseLevels.length + 1;
+
+	function createCustomLevel(level) {
+		var currentLevel = level || Levels[selectedLevel];
+		var CustomLevel = [
+			/* NAME */
+			'CustomLevel' + customLevelCounter++,
+			/* PLAYER STARTING POSITION */
+			currentLevel[LEVEL_PARAMS.PLAYER_STARTING_POSITION].slice(),
+			/* CROW STARTING POSITION */
+			currentLevel[LEVEL_PARAMS.CROW_STARTING_POSITION].slice(),
+			/* CRATES STARTING POSITION */
+			currentLevel[LEVEL_PARAMS.CRATES_STARTING_POSITION].slice(),
+			/* GRANNY POSITION */
+			currentLevel[LEVEL_PARAMS.GRANNY_POSITION] && currentLevel[LEVEL_PARAMS.GRANNY_POSITION].slice(),
+			/* TIME */
+			currentLevel[LEVEL_PARAMS.TIME],
+			/* MAP */
+			currentLevel[LEVEL_PARAMS.MAP],
+			/* CRATES */
+			currentLevel[LEVEL_PARAMS.CRATES].slice(),
+			/* INSTRUCTIONS */
+			null,
+			/* IS_CUSTOM */
+			true
+		];
 		Levels.push(CustomLevel);
-		selectedLevel = Levels.length - 1;
+		if (Game.state === GAME_STATE.MENU) {
+			selectedLevel = Levels.length - 1;
+			reset(selectedLevel);
+		}
 	}
 
 	/*
@@ -743,7 +821,7 @@
 	}
 
 	function resetCrates(lvl) {
-		var crateStartingPosition = lvl.crateStartingPosition,
+		var crateStartingPosition = lvl[LEVEL_PARAMS.CRATES_STARTING_POSITION],
 			currentCrateSize,
 			newCrate,
 			crateCanvas,
@@ -754,8 +832,8 @@
 		Crate.startPosition = crateStartingPosition;
 
 		CratesArray.length = 0;
-		for (var cr = 0; cr < lvl.crates.length; cr++) {
-			currentCrateSize = lvl.crates[cr];
+		for (var cr = 0; cr < lvl[LEVEL_PARAMS.CRATES].length; cr++) {
+			currentCrateSize = lvl[LEVEL_PARAMS.CRATES][cr];
 			var newCrate = Object.create(Crate);
 			newCrate.size = currentCrateSize;
 
@@ -783,8 +861,8 @@
 		var lvl = Game.currentLevel = Levels[levelId] || Levels[selectedLevel];
 
 		setGameState(GAME_STATE.MENU);
-		Player.position = lvl.startingPlayerPosition.slice();
-		Crow.position = lvl.startingCrowPosition.slice();
+		Player.position = lvl[LEVEL_PARAMS.PLAYER_STARTING_POSITION].slice();
+		Crow.position = lvl[LEVEL_PARAMS.CROW_STARTING_POSITION].slice();
 
 		Player.candies = 0;
 		Player.speedBoostTimeout = 0;
@@ -805,16 +883,16 @@
 
 		selectedBlock = 0;
 
-		if (lvl.grannyPosition) {
-			Granny.position = lvl.grannyPosition.slice();
-			Granny.startingLaserPosition = [lvl.grannyPosition[0] + 15, lvl.grannyPosition[1] + 23];
+		if (lvl[LEVEL_PARAMS.GRANNY_POSITION]) {
+			Granny.position = lvl[LEVEL_PARAMS.GRANNY_POSITION].slice();
+			Granny.startingLaserPosition = [lvl[LEVEL_PARAMS.GRANNY_POSITION][0] + 15, lvl[LEVEL_PARAMS.GRANNY_POSITION][1] + 23];
 			Laser.position = Granny.startingLaserPosition.slice();
 		} else {
 			Granny.position = null;
 			Granny.startingLaserPosition = null;
 		}
 
-		Map = '4444444444444444444444444444444444444444' + lvl.map + '4444444444444444444444444444444444444444';
+		Map = '4444444444444444444444444444444444444444' + lvl[LEVEL_PARAMS.MAP] + '4444444444444444444444444444444444444444';
 		Map = Map.split('');
 
 		// Build Crates
@@ -831,13 +909,13 @@
 		icCtx.fillStyle = '#fff';
 		icCtx.font = '20px courier';
 		icCtx['textAlign'] = 'center';
-		icCtx.fillText(Game.currentLevel.name, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
+		icCtx.fillText(Game.currentLevel[LEVEL_PARAMS.NAME], CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
 
 		icCtx.fillText('Delivery Boy ' + Game.boyPoints + ' - ' + Game.crowPoints + ' Crow', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
 		icCtx.font = '15px courier';
 		icCtx.fillText("Click the " + (isMobileDevice ? "screen" : "crow") + " to start!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
 		icCtx.fillText("< >: Select level", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
-		var str = lvl.isCustom ? "E: edit   " + (isMobileDevice ? "1" : "D") + ": delete   " + (isMobileDevice ? "2" : "J") + ": insert/copy JSON" + (isOnline ? "   S: share" : "") : "E: edit";
+		var str = lvl[LEVEL_PARAMS.IS_CUSTOM] ? "E: edit   " + (isMobileDevice ? "1" : "D") + ": delete   " + (isMobileDevice ? "2" : "J") + ": insert/copy JSON" + (isOnline ? "   S: share" : "") : "E: edit";
 		icCtx.fillText(str, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 120);
 
 		icCtx['beginPath']();
@@ -895,7 +973,7 @@
 
 	function startGame() {
 		setGameState(GAME_STATE.PLAYING);
-		Game.time = currentT + Game.currentLevel.gameTime;
+		Game.time = currentT + Game.currentLevel[LEVEL_PARAMS.TIME];
 		playNextNote();
 
 		canvas['style']['cursor'] = 'none';
@@ -963,46 +1041,6 @@
 		}
 	});
 
-	addEvent(canvas, 'touchstart', function () {
-		if (Game.state === GAME_STATE.MENU) {
-			startGame();
-		}
-	});
-
-	function bindButtonToKeyCode(buttonId, keyCode) {
-		var btn = document.getElementById(buttonId);
-		addEvent(btn, 'touchstart', function () {
-			KeyHandler.onKeyDown({
-				'keyCode': keyCode
-			});
-		});
-		addEvent(btn, 'touchend', function () {
-			KeyHandler.onKeyUp({
-				'keyCode': keyCode
-			});
-		});
-	}
-
-	function bindButtonToCustomFunction(buttonId, touchStartCallback, touchEndCallback) {
-		var btn = document.getElementById(buttonId);
-		addEvent(btn, 'touchstart', touchStartCallback);
-		addEvent(btn, 'touchend', touchEndCallback);
-	}
-
-	bindButtonToCustomFunction('s', function () {
-		if (Game.state === GAME_STATE.MENU) {
-			KeyHandler.onKeyDown({
-				'keyCode': KEYCODES.DELETE
-			});
-		} else {
-			shoot();
-		}
-	}, function () {
-		KeyHandler.onKeyUp({
-			'keyCode': KEYCODES.DELETE
-		});
-	});
-
 	function crowEat(evt) {
 		evt.preventDefault();
 		if (Game.state === GAME_STATE.EDIT) {
@@ -1026,61 +1064,109 @@
 		}
 	}
 	addEvent(canvas, 'contextmenu', crowEat);
-	var eatButton = document.getElementById('e');
 
-	bindButtonToCustomFunction('e', function (evt) {
-		if (Game.state === GAME_STATE.MENU) {
-			KeyHandler.onKeyDown({
+	/*
+	 *
+	 * Mobile touch callbacks
+	 *
+	 */
+
+	if (isMobileDevice) {
+		function bindButtonToKeyCode(buttonId, keyCode) {
+			var btn = document.getElementById(buttonId);
+			addEvent(btn, 'touchstart', function () {
+				KeyHandler.onKeyDown({
+					'keyCode': keyCode
+				});
+			});
+			addEvent(btn, 'touchend', function () {
+				KeyHandler.onKeyUp({
+					'keyCode': keyCode
+				});
+			});
+		}
+
+		function bindButtonToCustomFunction(buttonId, touchStartCallback, touchEndCallback) {
+			var btn = document.getElementById(buttonId);
+			addEvent(btn, 'touchstart', touchStartCallback);
+			addEvent(btn, 'touchend', touchEndCallback);
+		}
+
+		addEvent(canvas, 'touchstart', function () {
+			if (Game.state === GAME_STATE.MENU) {
+				startGame();
+			}
+		});
+
+		bindButtonToCustomFunction('s', function () {
+			if (Game.state === GAME_STATE.MENU) {
+				KeyHandler.onKeyDown({
+					'keyCode': KEYCODES.DELETE
+				});
+			} else {
+				shoot();
+			}
+		}, function () {
+			KeyHandler.onKeyUp({
+				'keyCode': KEYCODES.DELETE
+			});
+		});
+
+		bindButtonToCustomFunction('e', function (evt) {
+			if (Game.state === GAME_STATE.MENU) {
+				KeyHandler.onKeyDown({
+					'keyCode': KEYCODES.JSONIZE_LEVEL
+				});
+			} else {
+				crowEat(evt);
+			}
+		}, function () {
+			KeyHandler.onKeyUp({
 				'keyCode': KEYCODES.JSONIZE_LEVEL
 			});
-		} else {
-			crowEat(evt);
-		}
-	}, function () {
-		KeyHandler.onKeyUp({
-			'keyCode': KEYCODES.JSONIZE_LEVEL
 		});
-	});
 
-	var dPad = document.getElementById('o'),
-		dPadDivPosition = dPad.getBoundingClientRect(),
-		dPadCenter = [100, 100],
-		isTouchingDPad = false,
-		touchPositions,
-		dPadHandler = function (evt) {
-			evt.preventDefault();
-			touchPositions = evt.changedTouches;
-			// TODO move this line to onResize
+		var dPad = document.getElementById('o'),
 			dPadDivPosition = dPad.getBoundingClientRect(),
-			isTouchingDPad = true;
-		};
-	addEvent(dPad, 'touchstart', dPadHandler);
-	addEvent(dPad, 'touchmove', dPadHandler);
-	addEvent(dPad, 'touchend', function (evt) {
-		evt.preventDefault();
-		isTouchingDPad = false;
-	});
-
-	bindButtonToCustomFunction('p', function () {
-		KeyHandler.onKeyDown({
-			'keyCode': (Game.state !== GAME_STATE.MENU) ? KEYCODES.INTERACT : KEYCODES.JSONIZE_LEVEL
+			dPadCenter = [100, 100],
+			isTouchingDPad = false,
+			touchPositions,
+			dPadHandler = function (evt) {
+				evt.preventDefault();
+				touchPositions = evt.changedTouches;
+				// TODO move this line to onResize
+				dPadDivPosition = dPad.getBoundingClientRect(),
+				isTouchingDPad = true;
+			};
+		addEvent(dPad, 'touchstart', dPadHandler);
+		addEvent(dPad, 'touchmove', dPadHandler);
+		addEvent(dPad, 'touchend', function (evt) {
+			evt.preventDefault();
+			isTouchingDPad = false;
 		});
-	}, function () {
-		KeyHandler.onKeyUp({
-			'keyCode': (Game.state !== GAME_STATE.MENU) ? KEYCODES.INTERACT : KEYCODES.JSONIZE_LEVEL
+
+		bindButtonToCustomFunction('p', function () {
+			KeyHandler.onKeyDown({
+				'keyCode': (Game.state !== GAME_STATE.MENU) ? KEYCODES.INTERACT : KEYCODES.JSONIZE_LEVEL
+			});
+		}, function () {
+			KeyHandler.onKeyUp({
+				'keyCode': (Game.state !== GAME_STATE.MENU) ? KEYCODES.INTERACT : KEYCODES.JSONIZE_LEVEL
+			});
 		});
-	});
 
-	bindButtonToKeyCode('a', KEYCODES.EAT);
-	bindButtonToKeyCode('l', KEYCODES.LEFT);
-	bindButtonToKeyCode('u', KEYCODES.UP);
-	bindButtonToKeyCode('r', KEYCODES.RIGHT);
-	bindButtonToKeyCode('d', KEYCODES.DOWN);
+		bindButtonToKeyCode('a', KEYCODES.EAT);
+		bindButtonToKeyCode('l', KEYCODES.LEFT);
+		bindButtonToKeyCode('u', KEYCODES.UP);
+		bindButtonToKeyCode('r', KEYCODES.RIGHT);
+		bindButtonToKeyCode('d', KEYCODES.DOWN);
 
-	bindButtonToKeyCode('g', KEYCODES.GRANNY);
-	bindButtonToKeyCode('c', KEYCODES.CRATES);
-	bindButtonToKeyCode('t', KEYCODES.TIME);
-	bindButtonToKeyCode('n', KEYCODES.NAME);
+		bindButtonToKeyCode('g', KEYCODES.GRANNY);
+		bindButtonToKeyCode('c', KEYCODES.CRATES);
+		bindButtonToKeyCode('t', KEYCODES.TIME);
+		bindButtonToKeyCode('n', KEYCODES.NAME);
+
+	}
 
 	/*
 	 *
@@ -1107,6 +1193,10 @@
 
 	function getMapAt(i, j) {
 		return Map[I * j + i];
+	}
+
+	function getMapAtXY(x, y) {
+		return Map[I * Math.floor(y / BLOCK_SIZE) + Math.floor(x / BLOCK_SIZE)];
 	}
 
 	function setMapAt(value, i, j) {
@@ -1157,16 +1247,15 @@
 		if (!Player.isMoving) {
 			currentSpeed = 0;
 		}
-		currentSpeed = Math.min(speed, currentSpeed + speed / 5);
+		currentSpeed = Math.min(speed, currentSpeed + speed / 7);
 		Player.currentSpeed = currentSpeed;
-		return (isPlayerOnBlock(BLOCK_TYPE.LADDER) ? speed / 3 : currentSpeed);
+		return (isPlayerOnBlock(BLOCK_TYPE.LADDER) ? speed / 2 : currentSpeed);
 	}
 
 	function validateJsonLevel(jsonLevel) {
 		try {
 			var level = JSON.parse(jsonLevel);
 			// TODO Validate the json
-			//if(level.startingPlayerPosition)
 			return true;
 		} catch (e) {
 			alert('Level not valid: ' + e.message);
@@ -1177,15 +1266,15 @@
 	function exitFromEditModeAndSave() {
 		canvas['style']['cursor'] = 'auto';
 		if (Game.state === GAME_STATE.EDIT) {
-			Levels[selectedLevel].map = Map.join('').substring(I, I * J - I);
-			Levels[selectedLevel].startingPlayerPosition = Player.position.slice();
-			Levels[selectedLevel].startingCrowPosition = Crow.position.slice();
+			Levels[selectedLevel][LEVEL_PARAMS.MAP] = Map.join('').substring(I, I * J - I);
+			Levels[selectedLevel][LEVEL_PARAMS.PLAYER_STARTING_POSITION] = Player.position.slice();
+			Levels[selectedLevel][LEVEL_PARAMS.CROW_STARTING_POSITION] = Crow.position.slice();
 			if (Granny.position instanceof Array) {
-				Levels[selectedLevel].grannyPosition = Granny.position.slice();
+				Levels[selectedLevel][LEVEL_PARAMS.GRANNY_POSITION] = Granny.position.slice();
 			} else {
-				Levels[selectedLevel].grannyPosition = undefined;
+				Levels[selectedLevel][LEVEL_PARAMS.GRANNY_POSITION] = undefined;
 			}
-			Levels[selectedLevel].crateStartingPosition = Crate.startPosition.slice();
+			Levels[selectedLevel][LEVEL_PARAMS.CRATES_STARTING_POSITION] = Crate.startPosition.slice();
 		}
 		reset(selectedLevel);
 	}
@@ -1208,20 +1297,20 @@
 				Player.isMoving = true;
 			} else if (k[KEYCODES.EAT] && !Player.isMoving) {
 				Player.isMoving = true;
-				if (!Levels[selectedLevel].isCustom) {
+				if (!Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM]) {
 					createCustomLevel();
-					reset(selectedLevel);
 				}
 				setGameState(GAME_STATE.EDIT);
 				k[KEYCODES.EAT] = undefined;
 			} else if (k[KEYCODES.DELETE] && !Player.isMoving) {
 				Player.isMoving = true;
-				if (Levels[selectedLevel].isCustom) {
+				if (Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM]) {
 					Levels.splice(selectedLevel, 1);
 					selectedLevel--;
 					reset(selectedLevel);
 				}
-			} else if (k[KEYCODES.JSONIZE_LEVEL] && Levels[selectedLevel].isCustom && !Player.isMoving) {
+				k[KEYCODES.DELETE] = undefined;
+			} else if (k[KEYCODES.JSONIZE_LEVEL] && Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM] && !Player.isMoving) {
 				var jsonLevel = prompt('LEVEL JSON', JSON.stringify(Levels[selectedLevel]));
 				if (jsonLevel && validateJsonLevel(jsonLevel)) {
 					Levels[selectedLevel] = JSON.parse(jsonLevel);
@@ -1231,23 +1320,15 @@
 				k[KEYCODES.JSONIZE_LEVEL] = undefined;
 			} else if (k[KEYCODES.SHARE] && !Player.isMoving) {
 				Player.isMoving = true;
-
-				// TODO
-				// Use a server API to check if online
-				// Add share functionality by eval'ing code from server,
-				// so that if offline you cannot share
-
-				// function reqListener() {
-				// 	prompt('Your level share url', this.responseText);
-				// 	k[KEYCODES.SHARE] = undefined;
-				// };
-
-				// var oReq = new XMLHttpRequest();
-				// oReq.onload = reqListener;
-				// oReq.open("post", "http://127.0.0.1:3000/addLevel", true);
-				// oReq.send(JSON.stringify(Levels[selectedLevel]));
-
-			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL] && !k[KEYCODES.SHARE]) {
+				if (isOnline) {
+					var request = createCORSRequest('post', SERVER_URL + '/addLevel');
+					request.onload = function () {
+						prompt('Your level share url', request.responseText);
+					}
+					request.send(JSON.stringify(Levels[selectedLevel]));
+					k[KEYCODES.SHARE] = undefined;
+				}
+			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.DELETE] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL] && !k[KEYCODES.SHARE]) {
 				Player.isMoving = false;
 			}
 			return;
@@ -1272,7 +1353,7 @@
 			} else if (k[KEYCODES.CRATES] && !Player.isMoving) {
 				Player.isMoving = true;
 				try {
-					var crates = JSON.parse(prompt('Set crates', JSON.stringify(Levels[selectedLevel].crates)));
+					var crates = JSON.parse(prompt('Set crates', JSON.stringify(Levels[selectedLevel][LEVEL_PARAMS.CRATES])));
 					if (crates instanceof Array) {
 						for (var c = 0; c < crates.length; c++) {
 							if (!typeof c === 'number') {
@@ -1280,7 +1361,7 @@
 							}
 							crates[c] = Math.max(1, Math.min(5, crates[c]));
 						}
-						Levels[selectedLevel].crates = crates;
+						Levels[selectedLevel][LEVEL_PARAMS.CRATES] = crates;
 						resetCrates(Levels[selectedLevel]);
 					}
 				} catch (e) {
@@ -1289,16 +1370,16 @@
 				k[KEYCODES.CRATES] = undefined;
 			} else if (k[KEYCODES.NAME] && !Player.isMoving) {
 				Player.isMoving = true;
-				var n = prompt('Set name', Levels[selectedLevel].name);
+				var n = prompt('Set name', Levels[selectedLevel][LEVEL_PARAMS.NAME]);
 				if (n) {
-					Levels[selectedLevel].name = n;
+					Levels[selectedLevel][LEVEL_PARAMS.NAME] = n;
 				}
 				k[KEYCODES.NAME] = false;
 			} else if (k[KEYCODES.TIME] && !Player.isMoving) {
 				Player.isMoving = true;
-				var t = +prompt('Set time', Levels[selectedLevel].gameTime);
+				var t = +prompt('Set time', Levels[selectedLevel][LEVEL_PARAMS.TIME]);
 				if (!isNaN(t) && t > 0) {
-					Levels[selectedLevel].gameTime = t;
+					Levels[selectedLevel][LEVEL_PARAMS.TIME] = t;
 				}
 				k[KEYCODES.TIME] = false;
 			} else if (k[KEYCODES.EAT] && !Player.isMoving) {
@@ -1367,13 +1448,13 @@
 	function isAABBCollidingWithBlock(x1, y1, w1, h1, blockType) {
 		var x = x1,
 			y = y1,
-			topLeft = getMapAt(Math.floor(x / BLOCK_SIZE), Math.floor(y / BLOCK_SIZE));
+			topLeft = getMapAtXY(x, y);
 		x = x1 + w1;
-		topRight = getMapAt(Math.floor(x / BLOCK_SIZE), Math.floor(y / BLOCK_SIZE));
+		topRight = getMapAtXY(x, y);
 		y = y1 + h1;
-		bottomRight = getMapAt(Math.floor(x / BLOCK_SIZE), Math.floor(y / BLOCK_SIZE));
+		bottomRight = getMapAtXY(x, y);
 		x = x1, y = y1,
-		bottomLeft = getMapAt(Math.floor(x / BLOCK_SIZE), Math.floor(y / BLOCK_SIZE));
+		bottomLeft = getMapAtXY(x, y);
 
 		return (topLeft === blockType) || (topRight === blockType) || (bottomRight === blockType) || (bottomLeft === blockType);
 	}
@@ -1381,9 +1462,9 @@
 	function isAABBOverBlock(x1, y1, w1, h1, blockType) {
 		var x = x1,
 			y = y1 + h1,
-			bottomRight = getMapAt(Math.floor(x / BLOCK_SIZE), Math.floor(y / BLOCK_SIZE));
+			bottomRight = getMapAtXY(x, y);
 		x = x1 + w1,
-		bottomLeft = getMapAt(Math.floor(x / BLOCK_SIZE), Math.floor(y / BLOCK_SIZE));
+		bottomLeft = getMapAtXY(x, y);
 
 		return (bottomRight === blockType) || (bottomLeft === blockType);
 	}
@@ -1669,9 +1750,9 @@
 			drawImage(IMAGE_MAP_DATA_NAMES.GRANNY, Granny.position[0], Granny.position[1]);
 		}
 
-		if (Game.currentLevel.instructions) {
-			for (var instr = 0; instr < Game.currentLevel.instructions.length; instr++) {
-				printText(ctx, Game.currentLevel.instructions[instr][2], Game.currentLevel.instructions[instr][0], Game.currentLevel.instructions[instr][1], 10, 'black');
+		if (Game.currentLevel[LEVEL_PARAMS.INSTRUCTIONS]) {
+			for (var instr = 0; instr < Game.currentLevel[LEVEL_PARAMS.INSTRUCTIONS].length; instr++) {
+				printText(ctx, Game.currentLevel[LEVEL_PARAMS.INSTRUCTIONS][instr][2], Game.currentLevel[LEVEL_PARAMS.INSTRUCTIONS][instr][0], Game.currentLevel[LEVEL_PARAMS.INSTRUCTIONS][instr][1], 10, 'black');
 			}
 		}
 	}
@@ -1679,18 +1760,18 @@
 	function drawPlayer(t) {
 		if (Game.state === GAME_STATE.PLAYING) {
 			if (Player.isInAir) {
-				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 0, Player.facingLeft);
+				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 16, Player.position[1] - 24, 0, Player.facingLeft);
 			} else if (Player.isMoving) {
-				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 10, Player.facingLeft, t);
+				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 16, Player.position[1] - 24, 10, Player.facingLeft, t);
 			} else {
-				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 1, Player.facingLeft);
+				drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 16, Player.position[1] - 24, 1, Player.facingLeft);
 			}
 		} else {
 			drawAnim(IMAGE_MAP_DATA_NAMES.MAN, Player.position[0] - 8, Player.position[1] - 24, 1);
 		}
 		if (Player.crateCarried !== undefined) {
 			var cur = CratesArray[Player.crateCarried];
-			ctx.drawImage(cur.image, Player.facingLeft ? cur.position[0] + 2 : cur.position[0] - 16 - cur.size, cur.position[1] - 10);
+			ctx.drawImage(cur.image, Player.facingLeft ? cur.position[0] - 8 : cur.position[0] - 20 - cur.size, cur.position[1] - 10);
 		}
 
 		if (Crow.isInWarningZone) {
@@ -1743,7 +1824,7 @@
 			ctx.fillText("SHOTS: " + Crow.shots + "   STUN: " + Math.max(0, Math.ceil((Crow.stunnedTimeout - t) / 1000)) + "   HEALTH: " + Crow.health, 410, 12);
 		} else if (Game.state === GAME_STATE.EDIT) {
 			ctx.fillStyle = 'white';
-			ctx.fillText("< > CHANGE BLOCK   G: GRANNY   C: CRATES   T: TIME (" + Levels[selectedLevel].gameTime + ")   N: NAME (" + Levels[selectedLevel].name + ")" + (isMobileDevice ? '   1: PAINT   2: TOGGLE PAINT' : ''), 12, 12);
+			ctx.fillText("< > CHANGE BLOCK   G: GRANNY   C: CRATES   T: TIME (" + Levels[selectedLevel][LEVEL_PARAMS.TIME] + ")   N: NAME (" + Levels[selectedLevel][LEVEL_PARAMS.NAME] + ")" + (isMobileDevice ? '   1: PAINT   2: TOGGLE PAINT' : ''), 12, 12);
 		}
 		// Logs to be removed
 		// ctx.fillStyle = 'red';
