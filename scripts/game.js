@@ -798,7 +798,7 @@
 
 	/*////////////////////////////////////////
 	 *
-	 * Game helper functions
+	 * Game functions
 	 *
 	 */ ///////////////////////////////////////
 
@@ -1080,7 +1080,6 @@
 			}
 		}
 	}
-
 
 	function exitFromEditModeAndSave() {
 		canvas['style']['cursor'] = 'auto';
