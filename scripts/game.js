@@ -24,7 +24,8 @@
 			ROOF: 7,
 			SHOT: 8,
 			WALL: 9,
-			CAT: 10
+			CAT: 10,
+			CAT_MOVING: 11
 		},
 		IMAGE_MAP_DATA = [
 			/* CROW */
@@ -219,6 +220,21 @@
 					w: 12,
 					h: 13
 				}
+			},
+			/* CAT MOVING */
+			{
+				frame: {
+					x: 49,
+					y: 25,
+					w: 15,
+					h: 16
+				},
+				spriteSourceSize: {
+					x: 0,
+					y: 0,
+					w: 15,
+					h: 16
+				}
 			}
 		],
 
@@ -315,6 +331,12 @@
 		CROW_STUN_TIME = 5000,
 		MAX_CROW_HEALTH = 10,
 		CROW_SPEED = 16,
+
+		//
+		// CAT
+		//
+		CAT_SPAWN_THRESHOLD = 4,
+		NEXT_CAT_MOVEMENT_TIMEOUT = 2000,
 
 		//
 		// GRANNY
@@ -625,7 +647,9 @@
 		},
 
 		Cat = {
-			position: null
+			position: null,
+			nextPosition: null,
+			nextCatMovement: 0
 		},
 
 		Map = [],
@@ -1017,7 +1041,7 @@
 		Crow.shots = 0;
 		Crow.stunnedTimeout = 0;
 
-		Cat.position = null;
+		Cat.position = Cat.nextPosition = null;
 
 		Game.time = 0;
 		setGameState(GAME_STATE.MENU);
@@ -1201,21 +1225,24 @@
 		Crow.health--;
 		if (Crow.health <= 0) {
 			winBoy();
+		} else if (Crow.health < CAT_SPAWN_THRESHOLD) {
+			showCat(t);
 		}
-		showCat();
 	}
 
 	//
 	// PLAYER ACTIONS
 	//
 
-	function breakCurrentCrate(currentCrate) {
+	function breakCurrentCrate(currentCrate, t) {
 		playSound(SOUND_TYPE.PLAYER_CRASH);
 		Player.crateCarried = undefined;
 		currentCrate.position = currentCrate.startPosition.slice();
 		Player.crates--;
 		if (Player.crates <= 0) {
 			winCrow();
+		} else if (Player.crates < CAT_SPAWN_THRESHOLD) {
+			showCat(t);
 		}
 	}
 
@@ -1230,12 +1257,12 @@
 		return (isPlayerOnBlock(BLOCK_TYPE.LADDER) ? speed / 2 : currentSpeed);
 	}
 
-	function checkIfCurrentCrateBreaks() {
+	function checkIfCurrentCrateBreaks(t) {
 		var currentCrate = getCurrentCrate();
 		if (currentCrate) {
 			var verticalSpeedThreshold = MIN_VERTICAL_SPEED_TO_CRASH - currentCrate.size;
 			if (Player.verticalSpeed > verticalSpeedThreshold && currentCrate) {
-				breakCrate(currentCrate);
+				breakCrate(currentCrate, t);
 			}
 		}
 	}
@@ -1296,9 +1323,13 @@
 		return [x * BLOCK_SIZE, y * BLOCK_SIZE];
 	}
 
-	function showCat() {
+	function showCat(t) {
 		var nextPosition = getCatNextPosition();
-		Cat.position = [nextPosition[0] - 6, nextPosition[1] - 10];
+		Cat.nextPosition = [nextPosition[0] - 6, nextPosition[1] - 10];
+		if (!Cat.position) {
+			Cat.position = Cat.nextPosition.slice();
+		}
+		Cat.nextCatMovement = t + NEXT_CAT_MOVEMENT_TIMEOUT;
 	}
 
 	//
@@ -1615,6 +1646,27 @@
 	// GAME
 	//
 
+	function updateMovingPosition(entity, threshold) {
+		if (entity.position && entity.nextPosition) {
+			var crowAngle = getDirectionAngle(entity.position, entity.nextPosition),
+				crowTangentSize = entity.position[0] > entity.nextPosition[0] ? -1 : 1,
+				absDX = Math.abs(entity.position[0] - entity.nextPosition[0]),
+				absDY = Math.abs(entity.position[1] - entity.nextPosition[1]);
+			if (absDX > threshold || absDY > threshold) {
+				var dx = Math.cos(crowAngle) * crowTangentSize * CROW_SPEED,
+					dy = Math.sin(crowAngle) * crowTangentSize * CROW_SPEED;
+				if (Math.abs(dx) > absDX) {
+					dx = absDX * dx / Math.abs(dx);
+				}
+				if (Math.abs(dy) > absDY) {
+					dy = absDY * dy / Math.abs(dy);
+				}
+				entity.position[0] += dx;
+				entity.position[1] += dy;
+			}
+		}
+	}
+
 	function update(t) {
 
 		currentT = t;
@@ -1680,7 +1732,7 @@
 			Player.position[1] = stoppingY;
 			if (Player.isInAir) {
 				Player.currentSpeed = 0;
-				checkIfCurrentCrateBreaks();
+				checkIfCurrentCrateBreaks(t);
 			}
 			Player.isInAir = false;
 			Player.verticalSpeed = 0;
@@ -1725,24 +1777,22 @@
 		}
 
 		// Update Crow's position
-		if (Crow.position && Crow.nextPosition) {
-			var crowAngle = getDirectionAngle(Crow.position, Crow.nextPosition),
-				crowTangentSize = Crow.position[0] > Crow.nextPosition[0] ? -1 : 1,
-				absDX = Math.abs(Crow.position[0] - Crow.nextPosition[0]),
-				absDY = Math.abs(Crow.position[1] - Crow.nextPosition[1]);
-			if (absDX > CROW_MOVEMENT_THRESHOLD || absDY > CROW_MOVEMENT_THRESHOLD) {
-				var dx = Math.cos(crowAngle) * crowTangentSize * CROW_SPEED,
-					dy = Math.sin(crowAngle) * crowTangentSize * CROW_SPEED;
-				if (Math.abs(dx) > absDX) {
-					dx = absDX * dx / Math.abs(dx);
-				}
-				if (Math.abs(dy) > absDY) {
-					dy = absDY * dy / Math.abs(dy);
-				}
-				Crow.position[0] += dx;
-				Crow.position[1] += dy;
+		updateMovingPosition(Crow, CROW_MOVEMENT_THRESHOLD);
+
+		// Update Cat's position
+		if (Cat.position) {
+			if (distance(Player.position, Cat.position) < 15) {
+				getCurrentCrate() && breakCurrentCrate(getCurrentCrate(), t);
 			}
+			if (distance(Crow.position, Cat.position) < 15) {
+				stunCrow(t);
+			}
+			if (Cat.nextCatMovement < t) {
+				showCat(t);
+			}
+			updateMovingPosition(Cat, CROW_MOVEMENT_THRESHOLD);
 		}
+
 
 		// Check if Crow is inside player's radius
 		Crow.isInWarningZone = isCrowInPlayerWarningZone();
@@ -1799,7 +1849,7 @@
 
 	function drawCat() {
 		if (Cat.position) {
-			drawImage(IMAGE_MAP_DATA_NAMES.CAT, Cat.position[0] - 8, Cat.position[1]);
+			drawImage(distance(Cat.position, Cat.nextPosition) > 5 ? IMAGE_MAP_DATA_NAMES.CAT_MOVING : IMAGE_MAP_DATA_NAMES.CAT, Cat.position[0] - 8, Cat.position[1]);
 		}
 	}
 
