@@ -1,16 +1,371 @@
 (function () {
-	/*
+	/*////////////////////////////////////////
 	 *
-	 * Variable Initialization
+	 * Constants
 	 *
-	 */
+	 */ ///////////////////////////////////////
 
+	//
+	// GRAPHICS
+	//
+	var CANVAS_WIDTH = 640,
+		CANVAS_HEIGHT = 400,
+		BLOCK_SIZE = 16,
+		I = CANVAS_WIDTH / BLOCK_SIZE,
+		J = CANVAS_HEIGHT / BLOCK_SIZE,
+		IMAGE_MAP_DATA_NAMES = {
+			CROW: 0,
+			CRUMBS: 1,
+			DISPENSER: 2,
+			GRANNY: 3,
+			LADDER: 4,
+			MAN: 5,
+			NEST: 6,
+			ROOF: 7,
+			SHOT: 8,
+			WALL: 9
+		},
+		IMAGE_MAP_DATA = [
+			/* CROW */
+			{
+				frame: {
+					x: 30,
+					y: 0,
+					w: 30,
+					h: 14
+				},
+				spriteSourceSize: {
+					x: 1,
+					y: 1,
+					w: 30,
+					h: 14
+				},
+				frames: [
+					{
+						x: 1,
+						y: 1,
+						w: 15,
+						h: 13
+				},
+					{
+						x: 17,
+						y: 1,
+						w: 15,
+						h: 13
+					}
+				]
+			},
+			/* CRUMBS */
+			{
+				frame: {
+					x: 14,
+					y: 40,
+					w: 14,
+					h: 8
+				},
+				spriteSourceSize: {
+					x: 1,
+					y: 7,
+					w: 14,
+					h: 8
+				}
+			},
+			/* DISPENSER */
+			{
+				frame: {
+					x: 32,
+					y: 14,
+					w: 16,
+					h: 16
+				},
+				spriteSourceSize: {
+					x: 0,
+					y: 0,
+					w: 16,
+					h: 16
+				}
+			},
+			/* GRANNY */
+			{
+				frame: {
+					x: 0,
+					y: 24,
+					w: 14,
+					h: 24
+				},
+				spriteSourceSize: {
+					x: 1,
+					y: 7,
+					w: 14,
+					h: 24
+				}
+			},
+			/* LADDER */
+			{
+				frame: {
+					x: 16,
+					y: 48,
+					w: 16,
+					h: 16
+				},
+				spriteSourceSize: {
+					x: 0,
+					y: 0,
+					w: 16,
+					h: 16
+				}
+			},
+			/* MAN */
+			{
+				frame: {
+					x: 0,
+					y: 0,
+					w: 30,
+					h: 24
+				},
+				spriteSourceSize: {
+					x: 1,
+					y: 3,
+					w: 30,
+					h: 24
+				},
+				frames: [
+					{
+						x: 0,
+						y: 0,
+						w: 15,
+						h: 24
+				},
+					{
+						x: 15,
+						y: 0,
+						w: 15,
+						h: 24
+					}
+				]
+			},
+			/* NEST */
+			{
+				frame: {
+					x: 48,
+					y: 14,
+					w: 16,
+					h: 10
+				},
+				spriteSourceSize: {
+					x: 0,
+					y: 10,
+					w: 16,
+					h: 10
+				}
+			},
+			/* ROOF */
+			{
+				frame: {
+					x: 14,
+					y: 24,
+					w: 16,
+					h: 16
+				},
+				spriteSourceSize: {
+					x: 0,
+					y: 0,
+					w: 16,
+					h: 16
+				}
+			},
+			/* SHOT*/
+			{
+				frame: {
+					x: 31,
+					y: 30,
+					w: 6,
+					h: 14
+				},
+				spriteSourceSize: {
+					x: 4,
+					y: 1,
+					w: 6,
+					h: 14
+				}
+			},
+			/* WALL */
+			{
+				frame: {
+					x: 0,
+					y: 48,
+					w: 16,
+					h: 16
+				},
+				spriteSourceSize: {
+					x: 0,
+					y: 0,
+					w: 16,
+					h: 16
+				}
+			}
+		],
+
+		//
+		// AUDIO
+		//
+		NOTES_CDEFGABC = [
+	        523.25,
+	        587.33,
+	        659.26,
+	        698.46,
+	        783.99,
+	        880.00,
+	        987.77,
+	        1046.50,
+	        1108.73
+   		],
+		IS_AUDIO_SUPPORTED = window['btoa'] && window['atob'],
+		INTRO_THEME = '023123467'.split(''),
+		SOUND_TYPE = {
+			JUMP: 0,
+			PLAYER_CRASH: 1,
+			CROW_SHOT: 2,
+			CROW_CRASH: 3,
+			CRATE_PICKUP: 4,
+			CRATE_DELIVERY: 5,
+			SUCCESS: 6,
+			FAILURE: 7,
+			SPEED_BOOST: 8,
+			CROW_EAT: 9,
+			DISPENSER: 10,
+			GRANNY_SHOT: 11
+		},
+
+		//
+		// MAP & EDITOR
+		//
+		BLOCK_TYPE = {
+			EMPTY: '0',
+			SOLID: '1',
+			LADDER: '2',
+			ROOF: '3',
+			STATUS_BAR: '4',
+			GOAL: '5',
+			NEST: '6',
+			DISPENSER: '7'
+		},
+		// Keep this info for the level editor
+		// This is number of blocks + Player + Crow + Granny + Crates position
+		NUM_BLOCKS = 8,
+		GAME_ELEMENTS = {
+			PLAYER: NUM_BLOCKS + 0,
+			CROW: NUM_BLOCKS + 1,
+			GRANNY: NUM_BLOCKS + 2,
+			CRATES: NUM_BLOCKS + 3
+		},
+		NUM_GAME_ELEMENTS = 4,
+		NUM_EDIT_OPTIONS = NUM_BLOCKS + NUM_GAME_ELEMENTS,
+
+		//
+		// GAME
+		//
+		GAME_STATE = {
+			MENU: 0,
+			PLAYING: 1,
+			EDIT: 2
+		},
+
+		//
+		// CRATES
+		//
+		MAX_CRATES = 10,
+		MIN_CRATE_SIZE = 1,
+		CRATE_SIZE_INCREMENT = 1,
+		CRATE_WIDTH = 12,
+		CRATE_POSITION_OFFSET = [1, -6],
+		MIN_VERTICAL_SPEED_TO_CRASH = 12,
+
+		//
+		// PLAYER
+		//
+		SPEED_BOOST = 3,
+		SPEED_BOOST_TIMEOUT = 5000,
+		PLAYER_WARNING_RADIUS = 75,
+		PLAYER_DAMAGE_RADIUS = 25,
+		PLAYER_RADIUS_MULTIPLIER = 7,
+		DISPENSER_CANDIES = 3,
+
+		//
+		// CROW
+		//
+		NEST_SHOTS = 3,
+		CRUMBS_SHOTS = 5,
+		CROW_STUN_TIME = 5000,
+		MAX_CROW_HEALTH = 10,
+		CROW_SPEED = 16,
+
+		//
+		// GRANNY
+		//
+		LASER_SPEED = 1,
+		LASER_MOVEMENT_THRESHOLD = 3,
+		CROW_MOVEMENT_THRESHOLD = 3,
+
+		//
+		// INPUT
+		//
+		KEYCODES = {
+			LEFT: 37,
+			UP: 38,
+			RIGHT: 39,
+			DOWN: 40,
+			EAT: 69,
+			INTERACT: 32,
+			MENU: 27,
+			DELETE: 68,
+			EXPORT_LEVEL: 74,
+			GRANNY: 71,
+			CRATES: 67,
+			NAME: 78,
+			TIME: 84,
+			IMPORT_LEVEL: 73
+		},
+
+		//
+		// LEVELS
+		//
+		LEVEL_PARAMS = {
+			NAME: 0,
+			PLAYER_STARTING_POSITION: 1,
+			CROW_STARTING_POSITION: 2,
+			CRATES_STARTING_POSITION: 3,
+			GRANNY_POSITION: 4,
+			TIME: 5,
+			MAP: 6,
+			CRATES: 7,
+			INSTRUCTIONS: 8,
+			IS_CUSTOM: 9
+		};
+
+	//
+	// NETWORK
+	//
+	// SERVER_URL = 'http://mirrordelivery.herokuapp.com';
+
+
+
+	/*////////////////////////////////////////
+	 *
+	 * Cross-browser helper functions
+	 *
+	 */ ///////////////////////////////////////
+
+	//
+	// requestAnimationFrame
+	//
 	// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
 	// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
-
+	//
 	// requestAnimationFrame polyfill by Erik Möller. fixes from Paul Irish and Tino Zijdel
-
+	//
 	// MIT license
+	//
 	(function () {
 		var lastTime = 0;
 		var vendors = ['webkit', 'moz'];
@@ -38,24 +393,44 @@
 			};
 	}());
 
+	//
 	// CORS Request
 	// http://www.nczonline.net/blog/2010/05/25/cross-domain-ajax-with-cross-origin-resource-sharing/
+	//
 
-	function createCORSRequest(method, url) {
-		var xhr = new XMLHttpRequest();
-		if ("withCredentials" in xhr) {
-			xhr.open(method, url, true);
-		} else if (typeof XDomainRequest != "undefined") {
-			xhr = new XDomainRequest();
-			xhr.open(method, url);
+	// function createCORSRequest(method, url) {
+	// 	var xhr = new XMLHttpRequest();
+	// 	if ("withCredentials" in xhr) {
+	// 		xhr.open(method, url, true);
+	// 	} else if (typeof XDomainRequest != "undefined") {
+	// 		xhr = new XDomainRequest();
+	// 		xhr.open(method, url);
+	// 	} else {
+	// 		xhr = null;
+	// 	}
+	// 	return xhr;
+	// }
+	// window['createCORSRequest'] = createCORSRequest;
+
+	//
+	// Event handling
+	// http://javascriptrules.com/2009/07/22/cross-browser-event-listener-with-design-patterns/
+	//
+
+	function addEvent(el, ev, fn) {
+		if (el.addEventListener) {
+			el.addEventListener(ev, fn, false);
+		} else if (el.attachEvent) {
+			el.attachEvent('on' + ev, fn);
 		} else {
-			xhr = null;
+			el['on' + ev] = fn;
 		}
-		return xhr;
 	}
-	window['createCORSRequest'] = createCORSRequest;
 
-	// Is touch device?
+	//
+	// Detect touch device ()
+	// http://stackoverflow.com/questions/3974827/detecting-touch-screen-devices-with-javascript
+	//
 	var isMobileDevice = false;
 	if ('ontouchstart' in document['documentElement']) {
 		isMobileDevice = true;
@@ -68,538 +443,208 @@
 		}
 	}
 
-	// Check if online
-	var SERVER_URL = 'http://127.0.0.1:3000';
-
-	var level = window['location']['hash'];
-	if (level.length > 1) {
-		level = level.substr(1);
-		var levelRequest = createCORSRequest("get", SERVER_URL + "/getLevel/" + level);
-		levelRequest.onload = function () {
-			try {
-				var resp = levelRequest.responseText;
-				if (resp.length > 0) {
-					createCustomLevel(JSON.parse(resp));
-				}
-			} catch (e) {
-				alert('Error!');
+	// LZW Compression/Decompression for Strings
+	// http://rosettacode.org/wiki/LZW_compression#JavaScript
+	var LZW = {
+		compress: function (uncompressed) {
+			"use strict";
+			// Build the dictionary.
+			var i,
+				dictionary = {},
+				c,
+				wc,
+				w = "",
+				result = [],
+				dictSize = 256;
+			for (i = 0; i < 256; i += 1) {
+				dictionary[String.fromCharCode(i)] = i;
 			}
-		}
-		levelRequest.send();
-	}
 
-	function addEvent(el, ev, fn) {
-		if (el.addEventListener) {
-			el.addEventListener(ev, fn, false);
-		} else if (el.attachEvent) {
-			el.attachEvent('on' + ev, fn);
-		} else {
-			el['on' + ev] = fn;
-		}
-	}
+			for (i = 0; i < uncompressed.length; i += 1) {
+				c = uncompressed.charAt(i);
+				wc = w + c;
+				//Do not use dictionary[wc] because javascript arrays 
+				//will return values for array['pop'], array['push'] etc
+				// if (dictionary[wc]) {
+				if (dictionary.hasOwnProperty(wc)) {
+					w = wc;
+				} else {
+					result.push(dictionary[w]);
+					// Add wc to the dictionary.
+					dictionary[wc] = dictSize++;
+					w = String(c);
+				}
+			}
 
-	var canvas = document.getElementById('C'),
-		ctx = canvas.getContext('2d'),
+			// Output the code for w.
+			if (w !== "") {
+				result.push(dictionary[w]);
+			}
+			return result;
+		},
+
+
+		decompress: function (compressed) {
+			"use strict";
+			// Build the dictionary.
+			var i,
+				dictionary = [],
+				w,
+				result,
+				k,
+				entry = "",
+				dictSize = 256;
+			for (i = 0; i < 256; i += 1) {
+				dictionary[i] = String.fromCharCode(i);
+			}
+
+			w = String.fromCharCode(compressed[0]);
+			result = w;
+			for (i = 1; i < compressed.length; i += 1) {
+				k = compressed[i];
+				if (dictionary[k]) {
+					entry = dictionary[k];
+				} else {
+					if (k === dictSize) {
+						entry = w + w.charAt(0);
+					} else {
+						return null;
+					}
+				}
+
+				result += entry;
+
+				// Add w+entry[0] to the dictionary.
+				dictionary[dictSize++] = w + entry.charAt(0);
+
+				w = entry;
+			}
+			return result;
+		}
+	};
+
+
+
+	/*////////////////////////////////////////
+	 *
+	 * Variables
+	 *
+	 */ ///////////////////////////////////////
+
+	//
+	// GRAPHICS
+	//
+	var canvas = document.getElementById('C'), // The main game canvas
+		ctx = canvas.getContext('2d'), // The game canvas' context
+		ImageMap = new Image(), // The texture atlas
+		FlippedImageMap = document.createElement('canvas'), // The mirrored texture atlas, used when player is facing left
+		imageMapWidth = 0,
+		MenuCanvas = document.createElement('canvas'),
+
+		//
+		// GAME
+		//
 		currentT = 0,
-		selectedLevel = 0,
+
+		//
+		// INPUT
+		//
 		currentMousePosition = [0, 0],
-		leftButtonDown = false,
-		customLevelCounter = 1;
+		isLeftMouseButtonDown = false,
+		KeyHandler = {
+			k: {},
 
-	// EDIT MODE VARIABLES
-	var selectedBlock = 0,
-		toggleEditDraw = false;
-
-	// CONSTANTS
-	var CANVAS_WIDTH = 640,
-		CANVAS_HEIGHT = 400,
-		BLOCK_SIZE = 16,
-		I = CANVAS_WIDTH / BLOCK_SIZE,
-		J = CANVAS_HEIGHT / BLOCK_SIZE,
-		IS_AUDIO_SUPPORTED = window['btoa'] && window['atob'];
-
-	var BLOCK_TYPE = {
-		EMPTY: '0',
-		SOLID: '1',
-		LADDER: '2',
-		ROOF: '3',
-		STATUS_BAR: '4',
-		GOAL: '5',
-		NEST: '6',
-		DISPENSER: '7'
-	};
-	// Keep this info for the level editor
-	// This is number of blocks + Player + Crow + Granny + Crates position
-	var NUM_BLOCKS = 8,
-		GAME_ELEMENTS = {
-			PLAYER: NUM_BLOCKS + 0,
-			CROW: NUM_BLOCKS + 1,
-			GRANNY: NUM_BLOCKS + 2,
-			CRATES: NUM_BLOCKS + 3
-		},
-		NUM_GAME_ELEMENTS = 4,
-		NUM_EDIT_OPTIONS = NUM_BLOCKS + NUM_GAME_ELEMENTS;
-
-	var GAME_STATE = {
-		MENU: 0,
-		PLAYING: 1,
-		EDIT: 2
-	};
-
-	var SOUND_TYPE = {
-		JUMP: 0,
-		PLAYER_CRASH: 1,
-		CROW_SHOT: 2,
-		CROW_CRASH: 3,
-		CRATE_PICKUP: 4,
-		CRATE_DELIVERY: 5,
-		SUCCESS: 6,
-		FAILURE: 7,
-		SPEED_BOOST: 8,
-		CROW_EAT: 9,
-		DISPENSER: 10,
-		GRANNY_SHOT: 11
-	};
-
-	var MAX_CRATES = 10,
-		MIN_CRATE_SIZE = 1,
-		CRATE_SIZE_INCREMENT = 1,
-		CRATE_WIDTH = 12,
-		CRATE_POSITION_OFFSET = [1, -6],
-		MIN_VERTICAL_SPEED_TO_CRASH = 12;
-
-	var SPEED_BOOST = 3,
-		SPEED_BOOST_TIMEOUT = 5000,
-		PLAYER_WARNING_RADIUS = 75,
-		PLAYER_DAMAGE_RADIUS = 25,
-		PLAYER_RADIUS_MULTIPLIER = 7,
-		DISPENSER_CANDIES = 3;
-
-	var NEST_SHOTS = 3,
-		CRUMBS_SHOTS = 5,
-		CROW_STUN_TIME = 5000,
-		MAX_CROW_HEALTH = 10,
-		CROW_SPEED = 16;
-
-	var LASER_SPEED = 1,
-		LASER_MOVEMENT_THRESHOLD = 3,
-		CROW_MOVEMENT_THRESHOLD = 3;
-
-	var INTRO_THEME = '023123467'.split('');
-
-	var KEYCODES = {
-		LEFT: 37,
-		UP: 38,
-		RIGHT: 39,
-		DOWN: 40,
-		EAT: 69,
-		INTERACT: 32,
-		MENU: 27,
-		DELETE: 68,
-		JSONIZE_LEVEL: 74,
-		GRANNY: 71,
-		CRATES: 67,
-		NAME: 78,
-		TIME: 84,
-		SHARE: 83
-	};
-
-	var IMAGE_MAP_DATA_NAMES = {
-		CROW: 0,
-		CRUMBS: 1,
-		DISPENSER: 2,
-		GRANNY: 3,
-		LADDER: 4,
-		MAN: 5,
-		NEST: 6,
-		ROOF: 7,
-		SHOT: 8,
-		WALL: 9
-	}
-	var IMAGE_MAP_DATA = {};
-
-	IMAGE_MAP_DATA = [
-		/* CROW */
-		{
-			frame: {
-				x: 30,
-				y: 0,
-				w: 30,
-				h: 14
+			onKeyUp: function (event) {
+				KeyHandler.k[event['keyCode']] = undefined;
 			},
-			spriteSourceSize: {
-				x: 1,
-				y: 1,
-				w: 30,
-				h: 14
-			},
-			frames: [
-				{
-					x: 1,
-					y: 1,
-					w: 15,
-					h: 13
-				},
-				{
-					x: 17,
-					y: 1,
-					w: 15,
-					h: 13
-				}
-			]
-		},
-		/* CRUMBS */
-		{
-			frame: {
-				x: 14,
-				y: 40,
-				w: 14,
-				h: 8
-			},
-			spriteSourceSize: {
-				x: 1,
-				y: 7,
-				w: 14,
-				h: 8
+
+			onKeyDown: function (event) {
+				KeyHandler.k[event['keyCode']] = currentT;
 			}
 		},
-		/* DISPENSER */
-		{
-			frame: {
-				x: 32,
-				y: 14,
-				w: 16,
-				h: 16
-			},
-			spriteSourceSize: {
-				x: 0,
-				y: 0,
-				w: 16,
-				h: 16
-			}
+
+		//
+		// AUDIO
+		//
+		Sounds = [],
+		introTheme = {},
+		introThemeString,
+
+		//
+		// EDIT MODE
+		//
+		selectedBlock = 0,
+		toggleEditDraw = false,
+
+		//
+		// ENTITIES
+		//
+		Player = {
+			position: null,
+			speed: 4,
+			currentSpeed: 0,
+			speedBoost: 0,
+			speedBoostTimeout: 0,
+			ladderSpeed: 2,
+			jumpSpeed: -7,
+			isJumping: false,
+			isInAir: false,
+			isMoving: false,
+			isInteracting: false,
+			verticalSpeed: 0,
+			crateCarried: undefined,
+			candies: 0,
+			crates: MAX_CRATES,
+			facingLeft: false
 		},
-		/* GRANNY */
-		{
-			frame: {
-				x: 0,
-				y: 24,
-				w: 14,
-				h: 24
-			},
-			spriteSourceSize: {
-				x: 1,
-				y: 7,
-				w: 14,
-				h: 24
-			}
+
+		Crow = {
+			position: null,
+			nextPosition: null,
+			shots: 0,
+			isInWarningZone: false,
+			stunnedTimeout: 0,
+			health: MAX_CROW_HEALTH
 		},
-		/* LADDER */
-		{
-			frame: {
-				x: 16,
-				y: 48,
-				w: 16,
-				h: 16
-			},
-			spriteSourceSize: {
-				x: 0,
-				y: 0,
-				w: 16,
-				h: 16
-			}
+
+		Map = [],
+
+		Crate = {
+			image: null,
+			size: 1,
+			position: null,
+			startPosition: [0, 0]
 		},
-		/* MAN */
-		{
-			frame: {
-				x: 0,
-				y: 0,
-				w: 30,
-				h: 24
-			},
-			spriteSourceSize: {
-				x: 1,
-				y: 3,
-				w: 30,
-				h: 24
-			},
-			frames: [
-				{
-					x: 0,
-					y: 0,
-					w: 15,
-					h: 24
-				},
-				{
-					x: 15,
-					y: 0,
-					w: 15,
-					h: 24
-				}
-			]
+		CratesArray = [],
+
+		Crumbs = {
+			position: null
 		},
-		/* NEST */
-		{
-			frame: {
-				x: 48,
-				y: 14,
-				w: 16,
-				h: 10
-			},
-			spriteSourceSize: {
-				x: 0,
-				y: 10,
-				w: 16,
-				h: 10
-			}
+		CrumbsArray = [],
+
+		Shot = {
+			position: null,
+			speed: 6
 		},
-		/* ROOF */
-		{
-			frame: {
-				x: 14,
-				y: 24,
-				w: 16,
-				h: 16
-			},
-			spriteSourceSize: {
-				x: 0,
-				y: 0,
-				w: 16,
-				h: 16
-			}
+		ShotsArray = [],
+
+		Granny = {
+			position: null,
+			startingLaserPosition: null,
+			laserPosition: null
 		},
-		/* SHOT*/
-		{
-			frame: {
-				x: 31,
-				y: 30,
-				w: 6,
-				h: 14
-			},
-			spriteSourceSize: {
-				x: 4,
-				y: 1,
-				w: 6,
-				h: 14
-			}
+
+		// THE CURRENT GAME THAT IS BEING PLAYED
+		Game = {
+			state: GAME_STATE.MENU,
+			canvasBoundingRect: canvas.getBoundingClientRect(),
+			time: 0,
+			boyPoints: 0,
+			crowPoints: 0,
+			currentLevel: null
 		},
-		/* WALL */
-		{
-			frame: {
-				x: 0,
-				y: 48,
-				w: 16,
-				h: 16
-			},
-			spriteSourceSize: {
-				x: 0,
-				y: 0,
-				w: 16,
-				h: 16
-			}
-		}
-	];
 
-	var LEVEL_PARAMS = {
-		NAME: 0,
-		PLAYER_STARTING_POSITION: 1,
-		CROW_STARTING_POSITION: 2,
-		CRATES_STARTING_POSITION: 3,
-		GRANNY_POSITION: 4,
-		TIME: 5,
-		MAP: 6,
-		CRATES: 7,
-		INSTRUCTIONS: 8,
-		IS_CUSTOM: 9
-	}
-
-	var ImageMap = new Image(),
-		FlippedImageMap = document.createElement('canvas'),
-		ImageMapWidth = 0;
-	ImageMap.onload = function () {
-		FlippedImageMap.width = ImageMapWidth = ImageMap.naturalWidth;
-		FlippedImageMap.height = ImageMap.naturalHeight;
-		var imCtx = FlippedImageMap.getContext('2d');
-		imCtx.translate(ImageMap.naturalWidth, 0);
-		imCtx.scale(-1, 1);
-		imCtx.drawImage(ImageMap, 0, 0);
-	};
-	ImageMap.src = 'img/imgmap.png';
-
-	function drawImage(name, x, y, w, h) {
-		var source = IMAGE_MAP_DATA[name].frame,
-			destinationOffset = IMAGE_MAP_DATA[name].spriteSourceSize;
-		ctx.drawImage(ImageMap, source.x, source.y, w || source.w, h || source.h, x + destinationOffset.x, y + destinationOffset.y, destinationOffset.w, destinationOffset.h);
-	}
-
-	function drawAnim(name, x, y, frameRate, isFlipped, t) {
-		// if t is not specified, frameRate is the number of the frame to display
-		var source = IMAGE_MAP_DATA[name].frame,
-			destinationOffset = IMAGE_MAP_DATA[name].spriteSourceSize,
-			frames = IMAGE_MAP_DATA[name].frames,
-			/*
-				time/frame = 1000/60
-				frame = framerate/1000 * time
-			*/
-			currentFrame = t ? frames[Math.floor(t * frameRate / 1000) % frames.length] : frames[frameRate];
-		if (isFlipped) {
-			ctx.drawImage(FlippedImageMap, ImageMapWidth - (source.x + currentFrame.x) - currentFrame.w, source.y + currentFrame.y, currentFrame.w, currentFrame.h, x + destinationOffset.x, y + destinationOffset.y, currentFrame.w, currentFrame.h);
-		} else {
-			ctx.drawImage(ImageMap, source.x + currentFrame.x, source.y + currentFrame.y, currentFrame.w, currentFrame.h, x + destinationOffset.x, y + destinationOffset.y, currentFrame.w, currentFrame.h);
-		}
-	}
-
-	/*
-	 *
-	 * The game objects
-	 *
-	 */
-
-	var Player = {
-		position: null,
-		speed: 4,
-		currentSpeed: 0,
-		speedBoost: 0,
-		speedBoostTimeout: 0,
-		ladderSpeed: 2,
-		jumpSpeed: -7,
-		isJumping: false,
-		isInAir: false,
-		isMoving: false,
-		isInteracting: false,
-		verticalSpeed: 0,
-		crateCarried: undefined,
-		candies: 0,
-		crates: MAX_CRATES,
-		facingLeft: false
-	};
-
-	var Crow = {
-		position: null,
-		nextPosition: null,
-		shots: 0,
-		isInWarningZone: false,
-		stunnedTimeout: 0,
-		health: MAX_CROW_HEALTH
-	};
-
-	var Map = [];
-
-	var Crate = {
-		image: null,
-		size: 1,
-		position: null,
-		startPosition: [0, 0]
-	};
-	var CratesArray = [];
-
-	var Crumbs = {
-		position: null
-	};
-	var CrumbsArray = [];
-
-	var Shot = {
-		position: null,
-		speed: 6
-	};
-	var ShotsArray = [];
-
-	var Game = {
-		state: GAME_STATE.MENU,
-		canvasBoundingRect: canvas.getBoundingClientRect(),
-		time: 0,
-		boyPoints: 0,
-		crowPoints: 0,
-		currentLevel: null
-	};
-
-	var InstructionCanvas = document.createElement('canvas');
-
-	var Laser = {
-		position: null
-	}
-
-	var Granny = {
-		position: [80, 53],
-		// image: initImage('img/granny.png'),
-		startingLaserPosition: [95, 78]
-	}
-
-	/*
-	 *
-	 * Levels definition
-	 *
-	 */
-	var tutorialMap = '0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'3300000000000000000000000000000000000060' +
-		'0000000000000000000000000000000000000011' +
-		'0000000000033300000000000006000000000000' +
-		'1100000000033300000000000011100000000000' +
-		'0000000000033300000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'3333333333333333333333333333333333333333' +
-		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'0000000000000000000000000000000000000000' +
-		'5555000000000000000000000000000000000000' +
-		'5555000000000000000000000000000000000000' +
-		'5555000000000007000000000000002000000000' +
-		'1111111111111111111111111111112000000000' +
-		'0000000000000000000000000000002000000000' +
-		'0000000000000000000000000000002000000000' +
-		'0000000000000000000000000000002000000000' +
-		'0000000000000000000000000000002000000000' +
-		'1111111111111111111111111111111111111111',
-
-		lvl1Map = '0000000000000000000000000000000000000060' +
-			'0000000000000000000000000000000000000011' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'0000000000000000000000000000000000000000' +
-			'3333330000000000000000000000000000033333' +
-			'0000000000000000000000000000000000005555' +
-			'0000000000000000000000000000000000005555' +
-			'0000000000700000000000000000000000005555' +
-			'1111111111111111111111111111111111111111',
-
-		lvl5Map = '3333330000000000000000000000000000000060' +
-			'5555530000000000000000000000000000000011' +
-			'5555500000000000000000000033330000000000' +
-			'5555500000000000000200000000000000000000' +
-			'1111110010011001111201110011110000000000' +
-			'0000000000033000000200000000001000000000' +
-			'0000000000000000070200000000000100000000' +
-			'0001110000000000111111000000000010020000' +
-			'0020000000000000333333300003333301021000' +
-			'0020003333330000000000000000000000020000' +
-			'0020000000000000000000000000000000020000' +
-			'0020000000000000100100100110000202020000' +
-			'0020111111111111100000003331100111121110' +
-			'0020033333333330000000000003300000033333' +
-			'0020000000000000000000000000000000000000' +
-			'0020000000000000000020000000000002000000' +
-			'0020111100111110011120111001111112011111' +
-			'0020000000000000000020000003030302000000' +
-			'0020000000000000000020700000000002000000' +
-			'0000333330003030300011110000200002000000' +
-			'0000000000000000000000000000211112000000' +
-			'0000000000000000000000000000200000000000' +
-			'1111111111111111111111111111111111111111',
+		// THE PREDEFINED LEVELS
 		Tutorial = [
 			/* NAME */
 			'Tutorial',
@@ -614,7 +659,29 @@
 			/* TIME */
 			3000000,
 			/* MAP */
-			tutorialMap,
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'3300000000000000000000000000000000000060' +
+			'0000000000000000000000000000000000000011' +
+			'0000000000033300000000000006000000000000' +
+			'1100000000033300000000000011100000000000' +
+			'0000000000033300000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'3333333333333333333333333333333333333333' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0000000000000000000000000000000000000000' +
+			'5555000000000000000000000000000000000000' +
+			'5555000000000000000000000000000000000000' +
+			'5555000000000007000000000000002000000000' +
+			'1111111111111111111111111111112000000000' +
+			'0000000000000000000000000000002000000000' +
+			'0000000000000000000000000000002000000000' +
+			'0000000000000000000000000000002000000000' +
+			'0000000000000000000000000000002000000000' +
+			'1111111111111111111111111111111111111111',
 			/* CRATES */
 			[1],
 			/* INSTRUCTIONS */
@@ -695,14 +762,141 @@
 			/* TIME */
 			300000,
 			/* MAP */
-			lvl5Map,
+			'3333330000000000000000000000000000000060' +
+			'5555530000000000000000000000000000000011' +
+			'5555500000000000000000000033330000000000' +
+			'5555500000000000000200000000000000000000' +
+			'1111110010011001111201110011110000000000' +
+			'0000000000033000000200000000001000000000' +
+			'0000000000000000070200000000000100000000' +
+			'0001110000000000111111000000000010020000' +
+			'0020000000000000333333300003333301021000' +
+			'0020003333330000000000000000000000020000' +
+			'0020000000000000000000000000000000020000' +
+			'0020000000000000100100100110000202020000' +
+			'0020111111111111100000003331100111121110' +
+			'0020033333333330000000000003300000033333' +
+			'0020000000000000000000000000000000000000' +
+			'0020000000000000000020000000000002000000' +
+			'0020111100111110011120111001111112011111' +
+			'0020000000000000000020000003030302000000' +
+			'0020000000000000000020700000000002000000' +
+			'0000333330003030300011110000200002000000' +
+			'0000000000000000000000000000211112000000' +
+			'0000000000000000000000000000200000000000' +
+			'1111111111111111111111111111111111111111',
 			/* CRATES */
 			[1, 2, 3]
-		];
+		],
 
-	var baseLevels = [Tutorial, Level1, Level2, Level3, Level4];
-	Levels = (window.localStorage && window.localStorage.Levels && JSON.parse(window.localStorage.Levels)) || baseLevels;
-	customLevelCounter = Levels.length - baseLevels.length + 1;
+		baseLevels = [Tutorial, Level1, Level2, Level3, Level4],
+		Levels = (window.localStorage && window.localStorage.Levels && JSON.parse(window.localStorage.Levels)) || baseLevels,
+		customLevelCounter = Levels.length - baseLevels.length + 1,
+		selectedLevel = 0;
+
+
+
+	/*////////////////////////////////////////
+	 *
+	 * Game helper functions
+	 *
+	 */ ///////////////////////////////////////
+
+	//
+	// GRAPHICS
+	//
+
+	function drawAnim(name, x, y, frameRate, isFlipped, t) {
+		// if t is not specified, frameRate is the number of the frame to display
+		var source = IMAGE_MAP_DATA[name].frame,
+			destinationOffset = IMAGE_MAP_DATA[name].spriteSourceSize,
+			frames = IMAGE_MAP_DATA[name].frames,
+			/*
+				time/frame = 1000/60
+				frame = framerate/1000 * time
+			*/
+			currentFrame = t ? frames[Math.floor(t * frameRate / 1000) % frames.length] : frames[frameRate];
+		if (isFlipped) {
+			ctx.drawImage(FlippedImageMap, imageMapWidth - (source.x + currentFrame.x) - currentFrame.w, source.y + currentFrame.y, currentFrame.w, currentFrame.h, x + destinationOffset.x, y + destinationOffset.y, currentFrame.w, currentFrame.h);
+		} else {
+			ctx.drawImage(ImageMap, source.x + currentFrame.x, source.y + currentFrame.y, currentFrame.w, currentFrame.h, x + destinationOffset.x, y + destinationOffset.y, currentFrame.w, currentFrame.h);
+		}
+	}
+
+	function drawImage(name, x, y, w, h) {
+		var source = IMAGE_MAP_DATA[name].frame,
+			destinationOffset = IMAGE_MAP_DATA[name].spriteSourceSize;
+		ctx.drawImage(ImageMap, source.x, source.y, w || source.w, h || source.h, x + destinationOffset.x, y + destinationOffset.y, destinationOffset.w, destinationOffset.h);
+	}
+
+	function getCanvasRelativeCoords(evt) {
+		var x = evt.clientX - Game.canvasBoundingRect.left,
+			y = evt.clientY - Game.canvasBoundingRect.top;
+		x = Math.max(0, Math.min(x, CANVAS_WIDTH - 1));
+		y = Math.max(0, Math.min(y, CANVAS_HEIGHT - 1));
+		return [x, y];
+	}
+
+	function printText(context, textArray, x, y, yIncrement, color, align) {
+		var previousFillColor = context.fillColor;
+		var previousTextAlign = context.textAlign;
+		if (color) {
+			context.fillStyle = color;
+		}
+		if (align) {
+			context.textAlign = align;
+		}
+		var textArrayCopy = textArray.slice(),
+			tempY = y;
+		while (textArrayCopy.length > 0) {
+			context.fillText(textArrayCopy.shift(), x, tempY);
+			tempY += yIncrement;
+		}
+		context.fillStyle = previousFillColor;
+		context.textAlign = previousTextAlign;
+	}
+
+	//
+	// AUDIO
+	//
+
+	function loadSound(name, data) {
+		if (!IS_AUDIO_SUPPORTED) {
+			return;
+		}
+		try {
+			Sounds[name] = jsfxlib.createWave(data);
+		} catch (e) {}
+	}
+
+	function playNextNote() {
+		if (!IS_AUDIO_SUPPORTED) {
+			return;
+		}
+		try {
+			if (Game.state === GAME_STATE.PLAYING && introThemeString.length > 0) {
+				introTheme[introThemeString.shift()]['play']();
+				setTimeout(playNextNote, 200);
+			}
+		} catch (e) {}
+	}
+
+	function playSound(soundName) {
+		if (!IS_AUDIO_SUPPORTED) {
+			return;
+		}
+		try {
+			if (Sounds[soundName]) {
+				Sounds[soundName]['pause']();
+				Sounds[soundName]['currentTime'] = 0;
+				Sounds[soundName]['play']();
+			}
+		} catch (e) {}
+	}
+
+	//
+	// LEVELS
+	//
 
 	function createCustomLevel(level) {
 		var currentLevel = level || Levels[selectedLevel];
@@ -731,124 +925,16 @@
 		Levels.push(CustomLevel);
 		if (Game.state === GAME_STATE.MENU) {
 			selectedLevel = Levels.length - 1;
-			reset(selectedLevel);
+			resetGame(selectedLevel);
 		}
 	}
 
-	/*
-	 *
-	 * Input initialization
-	 *
-	 */
-	// Key Handling
-	var KeyHandler = {
-		k: {},
+	//
+	// GAME
+	//
 
-		onKeyUp: function (event) {
-			KeyHandler.k[event['keyCode']] = undefined;
-		},
-
-		onKeyDown: function (event) {
-			KeyHandler.k[event['keyCode']] = currentT;
-		}
-	};
-	window.addEventListener('keyup', KeyHandler.onKeyUp, false);
-	window.addEventListener('keydown', KeyHandler.onKeyDown, false);
-
-	/*
-	 *
-	 * Audio
-	 *
-	 */
-	var _NOTES_CDEFGABC = [
-        523.25,
-        587.33,
-        659.26,
-        698.46,
-        783.99,
-        880.00,
-        987.77,
-        1046.50,
-        1108.73
-    ];
-
-	var introTheme = {};
-	for (var s = 0; s < _NOTES_CDEFGABC.length; s++) {
-		introTheme[s] = jsfxlib.createWave(["synth", 0.0000, 0.4000, 0.0000, 0.2080, 0.0000, 0.1200, 20.0000, _NOTES_CDEFGABC[s], 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.1000, 0.0000]);
-	}
-	var introThemeString = INTRO_THEME.slice();
-
-	function playNextNote() {
-		if (!IS_AUDIO_SUPPORTED) {
-			return;
-		}
-		try {
-			if (Game.state === GAME_STATE.PLAYING && introThemeString.length > 0) {
-				introTheme[introThemeString.shift()]['play']();
-				setTimeout(playNextNote, 200);
-			}
-		} catch (e) {}
-	}
-
-	var Sounds = {};
-
-	function loadSound(name, data) {
-		if (!IS_AUDIO_SUPPORTED) {
-			return;
-		}
-		try {
-			Sounds[name] = jsfxlib.createWave(data);
-		} catch (e) {}
-	}
-	loadSound(SOUND_TYPE.JUMP, ["square", 0.0000, 0.4000, 0.0000, 0.1740, 0.0000, 0.2800, 20.0000, 497.0000, 2400.0000, 0.2200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0665, 0.0000, 0.0000, 0.0000, 0.0000, 0.7830, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.PLAYER_CRASH, ["noise", 0.0000, 0.4000, 0.0000, 0.1400, 0.4050, 0.1160, 20.0000, 479.0000, 2400.0000, -0.0700, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, -0.0860, -0.1220, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CRATE_DELIVERY, ["square", 0.0000, 0.4000, 0.0000, 0.0980, 0.5040, 0.2820, 20.0000, 1582.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.SPEED_BOOST, ["saw", 0.0000, 0.4000, 0.0000, 0.3240, 0.0000, 0.2840, 20.0000, 631.0000, 2400.0000, 0.1720, 0.0000, 0.4980, 19.3500, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CROW_SHOT, ["saw", 0.0000, 0.4000, 0.0000, 0.2120, 0.0000, 0.0280, 20.0000, 1169.0000, 2400.0000, -0.5200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.5000, -0.5920, 0.0000, 0.0940, 0.0660, 1.0000, 0.0000, 0.0000, 0.2800, 0.0000]);
-	loadSound(SOUND_TYPE.FAILURE, ["synth", 0.0000, 0.4000, 0.0000, 0.3200, 0.3480, 0.4400, 20.0000, 372.0000, 417.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.3740, 0.2640, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.SUCCESS, ["synth", 0.0000, 0.4000, 0.0000, 0.1300, 0.3450, 0.4100, 253.0000, 1168.0000, 1407.0000, -0.0060, -0.0820, 0.0000, 0.0100, 0.0003, 0.0000, 0.2060, 0.1660, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CRATE_PICKUP, ["noise", 0.0000, 0.4000, 0.0000, 0.0020, 0.0240, 0.0900, 20.0000, 372.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3420, 0.8090, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CROW_CRASH, ["noise", 0.0000, 0.4000, 0.0000, 0.1520, 0.3930, 0.2740, 20.0000, 839.0000, 2400.0000, -0.3100, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3400, 0.7830, 0.0000, 0.0000, 0.6096, 0.5260, -0.0080, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CROW_EAT, ["square", 0.0000, 0.4000, 0.0000, 0.0400, 0.0000, 0.0480, 20.0000, 578.0000, 2400.0000, 0.1040, 0.0000, 0.6830, 19.1580, 0.0003, 0.0000, 0.0000, 0.0000, 0.3850, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.DISPENSER, ["square", 0.0000, 0.4000, 0.0000, 0.0460, 0.4770, 0.2400, 20.0000, 1197.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.4980, 0.2040, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.GRANNY_SHOT, ["noise", 0.0000, 0.4000, 0.0000, 0.1080, 0.3360, 0.1240, 20.0000, 462.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-
-	function playSound(soundName) {
-		if (!IS_AUDIO_SUPPORTED) {
-			return;
-		}
-		try {
-			if (Sounds[soundName]) {
-				Sounds[soundName]['pause']();
-				Sounds[soundName]['currentTime'] = 0;
-				Sounds[soundName]['play']();
-			}
-		} catch (e) {}
-	}
-
-	/*
-	 *
-	 * Initialization
-	 *
-	 */
-
-	function printText(context, textArray, x, y, yIncrement, color, align) {
-		var previousFillColor = context.fillColor;
-		var previousTextAlign = context.textAlign;
-		if (color) {
-			context.fillStyle = color;
-		}
-		if (align) {
-			context.textAlign = align;
-		}
-		var textArrayCopy = textArray.slice(),
-			tempY = y;
-		while (textArrayCopy.length > 0) {
-			context.fillText(textArrayCopy.shift(), x, tempY);
-			tempY += yIncrement;
-		}
-		context.fillStyle = previousFillColor;
-		context.textAlign = previousTextAlign;
+	function getPlayerSpeed() {
+		return Math.max(1, Player.speed + Player.speedBoost - (Player.crateCarried !== undefined ? CratesArray[Player.crateCarried].size : 0));
 	}
 
 	function resetCrates(lvl) {
@@ -888,7 +974,7 @@
 		}
 	}
 
-	function reset(levelId) {
+	function resetGame(levelId) {
 		var lvl = Game.currentLevel = Levels[levelId] || Levels[selectedLevel];
 
 		setGameState(GAME_STATE.MENU);
@@ -917,7 +1003,7 @@
 		if (lvl[LEVEL_PARAMS.GRANNY_POSITION]) {
 			Granny.position = lvl[LEVEL_PARAMS.GRANNY_POSITION].slice();
 			Granny.startingLaserPosition = [lvl[LEVEL_PARAMS.GRANNY_POSITION][0] + 15, lvl[LEVEL_PARAMS.GRANNY_POSITION][1] + 23];
-			Laser.position = Granny.startingLaserPosition.slice();
+			Granny.laserPosition = Granny.startingLaserPosition.slice();
 		} else {
 			Granny.position = null;
 			Granny.startingLaserPosition = null;
@@ -932,9 +1018,9 @@
 		CrumbsArray.length = 0;
 		ShotsArray.length = 0;
 
-		InstructionCanvas.width = CANVAS_WIDTH;
-		InstructionCanvas.height = CANVAS_HEIGHT;
-		var icCtx = InstructionCanvas.getContext('2d');
+		MenuCanvas.width = CANVAS_WIDTH;
+		MenuCanvas.height = CANVAS_HEIGHT;
+		var icCtx = MenuCanvas.getContext('2d');
 		icCtx.fillStyle = 'rgba(0,0,0,0.7)';
 		icCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 		icCtx.fillStyle = '#fff';
@@ -946,7 +1032,7 @@
 		icCtx.font = '15px courier';
 		icCtx.fillText("Click the " + (isMobileDevice ? "screen" : "crow") + " to start!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
 		icCtx.fillText("< >: Select level", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
-		var str = lvl[LEVEL_PARAMS.IS_CUSTOM] ? "E: edit   " + (isMobileDevice ? "1" : "D") + ": delete   " + (isMobileDevice ? "2" : "J") + ": insert/copy JSON   S: share" : "E: edit";
+		var str = lvl[LEVEL_PARAMS.IS_CUSTOM] ? "E: EDIT   " + (isMobileDevice ? "1" : "D") + ": DELETE   " + (isMobileDevice ? "2" : "J") + ": EXPORT   I: IMPORT" : "E: EDIT   I: IMPORT";
 		icCtx.fillText(str, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 120);
 
 		icCtx['beginPath']();
@@ -962,36 +1048,6 @@
 		}
 	}
 
-	reset(selectedLevel);
-
-	function winBoy() {
-		Game.boyPoints += 1;
-		canvas['style']['cursor'] = 'auto';
-		playSound(SOUND_TYPE.SUCCESS);
-		reset(selectedLevel);
-	}
-
-	function winCrow() {
-		Game.crowPoints += 1;
-		canvas['style']['cursor'] = 'auto';
-		playSound(SOUND_TYPE.FAILURE);
-		reset(selectedLevel);
-	}
-
-	// Helper functions
-
-	function getCanvasRelativeCoords(evt) {
-		var x = evt.clientX - Game.canvasBoundingRect.left,
-			y = evt.clientY - Game.canvasBoundingRect.top;
-		x = Math.max(0, Math.min(x, CANVAS_WIDTH - 1));
-		y = Math.max(0, Math.min(y, CANVAS_HEIGHT - 1));
-		return [x, y];
-	}
-
-	function getPlayerSpeed() {
-		return Math.max(1, Player.speed + Player.speedBoost - (Player.crateCarried !== undefined ? CratesArray[Player.crateCarried].size : 0));
-	}
-
 	function startGame() {
 		setGameState(GAME_STATE.PLAYING);
 		Game.time = currentT + Game.currentLevel[LEVEL_PARAMS.TIME];
@@ -1000,63 +1056,47 @@
 		canvas['style']['cursor'] = 'none';
 	}
 
-	// Add Mouse Event Listener
+	function winBoy() {
+		Game.boyPoints += 1;
+		canvas['style']['cursor'] = 'auto';
+		playSound(SOUND_TYPE.SUCCESS);
+		resetGame(selectedLevel);
+	}
 
-	function shoot(evt) {
-		if (Game.state === GAME_STATE.EDIT) {
-			if (selectedBlock < NUM_BLOCKS) {
-				setMapAt('' + selectedBlock, Math.floor(currentMousePosition[0] / BLOCK_SIZE), Math.floor(currentMousePosition[1] / BLOCK_SIZE));
-			} else if (selectedBlock === GAME_ELEMENTS.PLAYER) {
-				Player.position = currentMousePosition.slice();
-			} else if (selectedBlock === GAME_ELEMENTS.CROW) {
-				Crow.position = currentMousePosition.slice();
-			} else if (selectedBlock === GAME_ELEMENTS.GRANNY && Granny.position) {
-				Granny.position = currentMousePosition.slice();
-				Granny.startingLaserPosition = [Granny.position[0] + 15, Granny.position[1] + 23];
-				Laser.position = Granny.startingLaserPosition.slice();
-			} else if (selectedBlock === GAME_ELEMENTS.CRATES) {
-				Crate.startPosition = currentMousePosition.slice();
-				for (var cr = 0; cr < CratesArray.length; cr++) {
-					var crate = CratesArray[cr];
-					crate.position[0] = currentMousePosition[0] + cr * 16;
-					crate.position[1] = currentMousePosition[1] - crate.size;
-				}
+	function winCrow() {
+		Game.crowPoints += 1;
+		canvas['style']['cursor'] = 'auto';
+		playSound(SOUND_TYPE.FAILURE);
+		resetGame(selectedLevel);
+	}
+
+	function setGameState(state) {
+		Game.state = state;
+		if (isMobileDevice) {
+			var editButtons = document['getElementsByClassName']('edit'),
+				className = 'btn edit' + (state === GAME_STATE.EDIT ? '' : ' h');
+			for (var eb = 0; eb < editButtons.length; eb++) {
+				editButtons[eb].setAttribute('class', className);
 			}
-		} else if (Game.state === GAME_STATE.MENU && !isMobileDevice) {
-			if (currentMousePosition[0] > Crow.position[0] - 16 && currentMousePosition[0] < Crow.position[0] + 16 && currentMousePosition[1] > Crow.position[1] - 16 && currentMousePosition[1] < Crow.position[1] + 16) {
-				startGame();
-			}
-		} else if (Crow.shots > 0 && Crow.stunnedTimeout < currentT) {
-			Crow.shots--;
-			playSound(SOUND_TYPE.CROW_SHOT);
-			var newShot = Object.create(Shot);
-			newShot.position = Crow.position.slice();
-			ShotsArray.push(newShot);
 		}
 	}
-	addEvent(canvas, 'click', shoot);
 
-	addEvent(canvas, 'mousedown', function (evt) {
-		if (evt.which === 1) leftButtonDown = true;
-		if ((Game.state === GAME_STATE.EDIT) && leftButtonDown) {
-			shoot();
+
+	function exitFromEditModeAndSave() {
+		canvas['style']['cursor'] = 'auto';
+		if (Game.state === GAME_STATE.EDIT) {
+			Levels[selectedLevel][LEVEL_PARAMS.MAP] = Map.join('').substring(I, I * J - I);
+			Levels[selectedLevel][LEVEL_PARAMS.PLAYER_STARTING_POSITION] = Player.position.slice();
+			Levels[selectedLevel][LEVEL_PARAMS.CROW_STARTING_POSITION] = Crow.position.slice();
+			Levels[selectedLevel][LEVEL_PARAMS.GRANNY_POSITION] = Granny.position ? Granny.position.slice() : undefined;
+			Levels[selectedLevel][LEVEL_PARAMS.CRATES_STARTING_POSITION] = Crate.startPosition.slice();
 		}
-	});
+		resetGame(selectedLevel);
+	}
 
-	addEvent(canvas, 'mouseup', function (evt) {
-		if (evt.which === 1) leftButtonDown = false;
-	});
-
-	addEvent(canvas, 'mousemove', function (evt) {
-		var tempCurMousePos = getCanvasRelativeCoords(evt);
-		currentMousePosition = [tempCurMousePos[0], tempCurMousePos[1]];
-		if (Game.state === GAME_STATE.PLAYING) { // Update the crow's position
-			var newCrowPosition = getCanvasRelativeCoords(evt);
-			Crow.nextPosition = newCrowPosition.slice();
-		} else if ((Game.state === GAME_STATE.EDIT) && leftButtonDown) {
-			shoot();
-		}
-	});
+	//
+	// CROW ACTIONS
+	//
 
 	function crowEat(evt) {
 		evt.preventDefault();
@@ -1080,150 +1120,99 @@
 			}
 		}
 	}
-	addEvent(canvas, 'contextmenu', crowEat);
 
-	/*
-	 *
-	 * Mobile touch callbacks
-	 *
-	 */
-
-	if (isMobileDevice) {
-		function bindButtonToKeyCode(buttonId, keyCode) {
-			var btn = document.getElementById(buttonId);
-			addEvent(btn, 'touchstart', function () {
-				KeyHandler.onKeyDown({
-					'keyCode': keyCode
-				});
-			});
-			addEvent(btn, 'touchend', function () {
-				KeyHandler.onKeyUp({
-					'keyCode': keyCode
-				});
-			});
-		}
-
-		function bindButtonToCustomFunction(buttonId, touchStartCallback, touchEndCallback) {
-			var btn = document.getElementById(buttonId);
-			addEvent(btn, 'touchstart', touchStartCallback);
-			addEvent(btn, 'touchend', touchEndCallback);
-		}
-
-		addEvent(canvas, 'touchstart', function () {
-			if (Game.state === GAME_STATE.MENU) {
+	function crowShoot(evt) {
+		if (Game.state === GAME_STATE.EDIT) {
+			if (selectedBlock < NUM_BLOCKS) {
+				setMapAtXY('' + selectedBlock, currentMousePosition[0], currentMousePosition[1]);
+			} else if (selectedBlock === GAME_ELEMENTS.PLAYER) {
+				Player.position = currentMousePosition.slice();
+			} else if (selectedBlock === GAME_ELEMENTS.CROW) {
+				Crow.position = currentMousePosition.slice();
+			} else if (selectedBlock === GAME_ELEMENTS.GRANNY && Granny.position) {
+				Granny.position = currentMousePosition.slice();
+				Granny.startingLaserPosition = [Granny.position[0] + 15, Granny.position[1] + 23];
+				Granny.laserPosition = Granny.startingLaserPosition.slice();
+			} else if (selectedBlock === GAME_ELEMENTS.CRATES) {
+				Crate.startPosition = currentMousePosition.slice();
+				for (var cr = 0; cr < CratesArray.length; cr++) {
+					var crate = CratesArray[cr];
+					crate.position[0] = currentMousePosition[0] + cr * 16;
+					crate.position[1] = currentMousePosition[1] - crate.size;
+				}
+			}
+		} else if (Game.state === GAME_STATE.MENU && !isMobileDevice) {
+			if (currentMousePosition[0] > Crow.position[0] - 16 && currentMousePosition[0] < Crow.position[0] + 16 && currentMousePosition[1] > Crow.position[1] - 16 && currentMousePosition[1] < Crow.position[1] + 16) {
 				startGame();
 			}
-		});
-
-		bindButtonToCustomFunction('s', function () {
-			if (Game.state === GAME_STATE.MENU) {
-				KeyHandler.onKeyDown({
-					'keyCode': KEYCODES.DELETE
-				});
-			} else {
-				shoot();
-			}
-		}, function () {
-			KeyHandler.onKeyUp({
-				'keyCode': KEYCODES.DELETE
-			});
-		});
-
-		bindButtonToCustomFunction('e', function (evt) {
-			if (Game.state === GAME_STATE.MENU) {
-				KeyHandler.onKeyDown({
-					'keyCode': KEYCODES.JSONIZE_LEVEL
-				});
-			} else {
-				crowEat(evt);
-			}
-		}, function () {
-			KeyHandler.onKeyUp({
-				'keyCode': KEYCODES.JSONIZE_LEVEL
-			});
-		});
-
-		var dPad = document.getElementById('o'),
-			dPadDivPosition = dPad.getBoundingClientRect(),
-			dPadCenter = [100, 100],
-			isTouchingDPad = false,
-			touchPositions,
-			dPadHandler = function (evt) {
-				evt.preventDefault();
-				touchPositions = evt.changedTouches;
-				// TODO move this line to onResize
-				dPadDivPosition = dPad.getBoundingClientRect(),
-				isTouchingDPad = true;
-			};
-		addEvent(dPad, 'touchstart', dPadHandler);
-		addEvent(dPad, 'touchmove', dPadHandler);
-		addEvent(dPad, 'touchend', function (evt) {
-			evt.preventDefault();
-			isTouchingDPad = false;
-		});
-
-		bindButtonToCustomFunction('p', function () {
-			KeyHandler.onKeyDown({
-				'keyCode': (Game.state !== GAME_STATE.MENU) ? KEYCODES.INTERACT : KEYCODES.JSONIZE_LEVEL
-			});
-		}, function () {
-			KeyHandler.onKeyUp({
-				'keyCode': (Game.state !== GAME_STATE.MENU) ? KEYCODES.INTERACT : KEYCODES.JSONIZE_LEVEL
-			});
-		});
-
-		bindButtonToKeyCode('a', KEYCODES.EAT);
-		bindButtonToKeyCode('l', KEYCODES.LEFT);
-		bindButtonToKeyCode('u', KEYCODES.UP);
-		bindButtonToKeyCode('r', KEYCODES.RIGHT);
-		bindButtonToKeyCode('d', KEYCODES.DOWN);
-
-		bindButtonToKeyCode('g', KEYCODES.GRANNY);
-		bindButtonToKeyCode('c', KEYCODES.CRATES);
-		bindButtonToKeyCode('t', KEYCODES.TIME);
-		bindButtonToKeyCode('n', KEYCODES.NAME);
-
-	}
-
-	/*
-	 *
-	 * Main Functions
-	 *
-	 */
-
-	function setGameState(state) {
-		Game.state = state;
-		if (isMobileDevice) {
-			if (state === GAME_STATE.EDIT) {
-				var editButtons = document['getElementsByClassName']('edit');
-				for (var eb = 0; eb < editButtons.length; eb++) {
-					editButtons[eb].setAttribute('class', 'btn edit');
-				}
-			} else {
-				var editButtons = document['getElementsByClassName']('edit');
-				for (var eb = 0; eb < editButtons.length; eb++) {
-					editButtons[eb].setAttribute('class', 'btn h edit');
-				}
-			}
+		} else if (Crow.shots > 0 && Crow.stunnedTimeout < currentT) {
+			Crow.shots--;
+			playSound(SOUND_TYPE.CROW_SHOT);
+			var newShot = Object.create(Shot);
+			newShot.position = Crow.position.slice();
+			ShotsArray.push(newShot);
 		}
 	}
 
-	function getMapAt(i, j) {
-		return Map[I * j + i];
+	function getWarningRadius() {
+		return getPlayerSpeed() * PLAYER_RADIUS_MULTIPLIER + PLAYER_WARNING_RADIUS;
 	}
 
-	function getMapAtXY(x, y) {
-		return Map[I * Math.floor(y / BLOCK_SIZE) + Math.floor(x / BLOCK_SIZE)];
+	function getDamageRadius() {
+		return getPlayerSpeed() * PLAYER_RADIUS_MULTIPLIER + PLAYER_DAMAGE_RADIUS;
 	}
 
-	function setMapAt(value, i, j) {
-		if (j > 0 && j < J - 1) {
-			Map[I * j + i] = value;
+	function isCrowInPlayerWarningZone() {
+		return getWarningRadius(), 2 >= distance(Crow.position, Player.position);
+	}
+
+	function isCrowInPlayerDamageZone() {
+		return getDamageRadius(), 2 >= distance(Crow.position, Player.position);
+	}
+
+	function stunCrow(t) {
+		Crow.stunnedTimeout = t + CROW_STUN_TIME;
+		playSound(SOUND_TYPE.GRANNY_SHOT);
+		Crow.shots = 0;
+		Crow.health--;
+		if (Crow.health <= 0) {
+			winBoy();
 		}
 	}
 
-	function arePositionsInSameBlock(pos1, pos2) {
-		return (Math.round(pos1[0] / BLOCK_SIZE) === Math.round(pos2[0] / BLOCK_SIZE)) && (Math.round(pos1[1] / BLOCK_SIZE) === Math.round(pos2[1] / BLOCK_SIZE));
+	//
+	// PLAYER ACTIONS
+	//
+
+	function breakCurrentCrate(currentCrate) {
+		playSound(SOUND_TYPE.PLAYER_CRASH);
+		Player.crateCarried = undefined;
+		currentCrate.position = currentCrate.startPosition.slice();
+		Player.crates--;
+		if (Player.crates <= 0) {
+			winCrow();
+		}
+	}
+
+	function calculateLeftRightSpeed(t) {
+		var currentSpeed = Player.currentSpeed,
+			speed = getPlayerSpeed();
+		if (!Player.isMoving) {
+			currentSpeed = 0;
+		}
+		currentSpeed = Math.min(speed, currentSpeed + speed / 7);
+		Player.currentSpeed = currentSpeed;
+		return (isPlayerOnBlock(BLOCK_TYPE.LADDER) ? speed / 2 : currentSpeed);
+	}
+
+	function checkIfCurrentCrateBreaks() {
+		var currentCrate = getCurrentCrate();
+		if (currentCrate) {
+			var verticalSpeedThreshold = MIN_VERTICAL_SPEED_TO_CRASH - currentCrate.size;
+			if (Player.verticalSpeed > verticalSpeedThreshold && currentCrate) {
+				breakCrate(currentCrate);
+			}
+		}
 	}
 
 	function interact() {
@@ -1258,43 +1247,109 @@
 		}
 	}
 
-	function calculateLeftRightSpeed(t) {
-		var currentSpeed = Player.currentSpeed,
-			speed = getPlayerSpeed();
-		if (!Player.isMoving) {
-			currentSpeed = 0;
-		}
-		currentSpeed = Math.min(speed, currentSpeed + speed / 7);
-		Player.currentSpeed = currentSpeed;
-		return (isPlayerOnBlock(BLOCK_TYPE.LADDER) ? speed / 2 : currentSpeed);
+	function getCurrentCrate() {
+		return Player.crateCarried !== undefined ? CratesArray[Player.crateCarried] : undefined;
 	}
 
-	function validateJsonLevel(jsonLevel) {
-		try {
-			var level = JSON.parse(jsonLevel);
-			// TODO Validate the json
-			return true;
-		} catch (e) {
-			alert('Error!');
-		}
-		return false;
+	//
+	// MAP
+	//
+
+	function arePositionsInSameBlock(pos1, pos2) {
+		return (Math.round(pos1[0] / BLOCK_SIZE) === Math.round(pos2[0] / BLOCK_SIZE)) && (Math.round(pos1[1] / BLOCK_SIZE) === Math.round(pos2[1] / BLOCK_SIZE));
 	}
 
-	function exitFromEditModeAndSave() {
-		canvas['style']['cursor'] = 'auto';
-		if (Game.state === GAME_STATE.EDIT) {
-			Levels[selectedLevel][LEVEL_PARAMS.MAP] = Map.join('').substring(I, I * J - I);
-			Levels[selectedLevel][LEVEL_PARAMS.PLAYER_STARTING_POSITION] = Player.position.slice();
-			Levels[selectedLevel][LEVEL_PARAMS.CROW_STARTING_POSITION] = Crow.position.slice();
-			if (Granny.position instanceof Array) {
-				Levels[selectedLevel][LEVEL_PARAMS.GRANNY_POSITION] = Granny.position.slice();
-			} else {
-				Levels[selectedLevel][LEVEL_PARAMS.GRANNY_POSITION] = undefined;
-			}
-			Levels[selectedLevel][LEVEL_PARAMS.CRATES_STARTING_POSITION] = Crate.startPosition.slice();
-		}
-		reset(selectedLevel);
+	function distance(pos1, pos2) {
+		return Math.sqrt(Math.pow(pos1[0] - pos2[0], 2) + Math.pow(pos1[1] - pos2[1], 2));
 	}
+
+	function getDirectionAngle(origin, destination) {
+		return Math.atan((destination[1] - origin[1]) / (destination[0] - origin[0]));
+	}
+
+	function getMapAt(i, j) {
+		return Map[I * j + i];
+	}
+
+	function getMapAtXY(x, y) {
+		return Map[I * Math.floor(y / BLOCK_SIZE) + Math.floor(x / BLOCK_SIZE)];
+	}
+
+	function isAABBCollidingWithBlock(x1, y1, w1, h1, blockType) {
+		var x = x1,
+			y = y1,
+			topLeft = getMapAtXY(x, y);
+		x = x1 + w1;
+		topRight = getMapAtXY(x, y);
+		y = y1 + h1;
+		bottomRight = getMapAtXY(x, y);
+		x = x1, y = y1,
+		bottomLeft = getMapAtXY(x, y);
+
+		return (topLeft === blockType) || (topRight === blockType) || (bottomRight === blockType) || (bottomLeft === blockType);
+	}
+
+	function isAABBOverBlock(x1, y1, w1, h1, blockType) {
+		var x = x1,
+			y = y1 + h1,
+			bottomRight = getMapAtXY(x, y);
+		x = x1 + w1,
+		bottomLeft = getMapAtXY(x, y);
+
+		return (bottomRight === blockType) || (bottomLeft === blockType);
+	}
+
+	function isCrowOnBlock(blockType) {
+		return isAABBOverBlock(Crow.position[0] - 8, Crow.position[1] - 8, 16, 16, blockType) ||
+			isAABBCollidingWithBlock(Crow.position[0], Crow.position[1], 0, 0, blockType);
+	}
+
+	function isPlayerOnBlock(blockType) {
+		return isAABBCollidingWithBlock(Player.position[0] - 8, Player.position[1] - 32, 16, 32, blockType) ||
+			isAABBCollidingWithBlock(Player.position[0], Player.position[1] - 8, 0, 0, blockType);
+	}
+
+	function isPositionOnBlock(position, blockType) {
+		return isAABBOverBlock(position[0], position[1], 0, 0, blockType);
+	}
+
+	function setMapAtXY(value, x, y) {
+		if (y > 0 && y < J - 1) {
+			Map[I * Math.floor(y / BLOCK_SIZE) + Math.floor(x / BLOCK_SIZE)] = value;
+		}
+	}
+
+	//
+	// INPUT
+	//
+
+	function bindButtonToKeyCode(buttonId, keyCode) {
+		var btn = document.getElementById(buttonId);
+		addEvent(btn, 'touchstart', function () {
+			KeyHandler.onKeyDown({
+				'keyCode': keyCode
+			});
+		});
+		addEvent(btn, 'touchend', function () {
+			KeyHandler.onKeyUp({
+				'keyCode': keyCode
+			});
+		});
+	}
+
+	function bindButtonToCustomFunction(buttonId, touchStartCallback, touchEndCallback) {
+		var btn = document.getElementById(buttonId);
+		addEvent(btn, 'touchstart', touchStartCallback);
+		addEvent(btn, 'touchend', touchEndCallback);
+	}
+
+
+
+	/*////////////////////////////////////////
+	 *
+	 * Game loop specific functions
+	 *
+	 */ ///////////////////////////////////////
 
 	// var inputHandlers = [];
 	// for (var gs = 0; gs < GAME_STATE.length; gs++) {
@@ -1307,8 +1362,12 @@
 	// var state = GAME_STATE.MENU;
 	// assignInput(state, KEYCODES.LEFT, function () {
 	// 	selectedLevel = (selectedLevel + Levels.length - 1) % Levels.length;
-	// 	reset(selectedLevel);
+	// 	resetGame(selectedLevel);
 	// });
+
+	//
+	// INPUT
+	//
 
 	function processInput(t) {
 		// var k = KeyHandler.k;
@@ -1321,7 +1380,6 @@
 		// 	}
 		// }
 
-
 		var speed = getPlayerSpeed(),
 			ladderSpeed = Player.ladderSpeed,
 			x = Player.position[0],
@@ -1331,11 +1389,11 @@
 		if (Game.state === GAME_STATE.MENU) { // MENU
 			if (k[KEYCODES.LEFT] && !Player.isMoving) {
 				selectedLevel = (selectedLevel + Levels.length - 1) % Levels.length;
-				reset(selectedLevel);
+				resetGame(selectedLevel);
 				Player.isMoving = true;
 			} else if (k[KEYCODES.RIGHT] && !Player.isMoving) {
 				selectedLevel = (selectedLevel + 1) % Levels.length;
-				reset(selectedLevel);
+				resetGame(selectedLevel);
 				Player.isMoving = true;
 			} else if (k[KEYCODES.EAT] && !Player.isMoving) {
 				Player.isMoving = true;
@@ -1349,29 +1407,35 @@
 				if (Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM]) {
 					Levels.splice(selectedLevel, 1);
 					selectedLevel--;
-					reset(selectedLevel);
+					resetGame(selectedLevel);
 				}
 				k[KEYCODES.DELETE] = undefined;
-			} else if (k[KEYCODES.JSONIZE_LEVEL] && Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM] && !Player.isMoving) {
-				var jsonLevel = prompt('Level JSON', JSON.stringify(Levels[selectedLevel]));
-				if (jsonLevel && validateJsonLevel(jsonLevel)) {
-					Levels[selectedLevel] = JSON.parse(jsonLevel);
-					reset(selectedLevel);
+			} else if (k[KEYCODES.EXPORT_LEVEL] && Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM] && !Player.isMoving) {
+				var compressedLevel = LZW.compress(JSON.stringify(Levels[selectedLevel]));
+				var compressedString = '',
+					ch = 0;
+				for (ch = 0; ch < compressedLevel.length; ch++) {
+					compressedString += String.fromCharCode(compressedLevel[ch]);
+				}
+				var jsonLevel = prompt('Level JSON', compressedString);
+				// Need to do this because the prompt hangs the keycode pressed
+				k[KEYCODES.EXPORT_LEVEL] = undefined;
+			} else if (k[KEYCODES.IMPORT_LEVEL]) {
+				var jsonLevel = prompt('Level JSON');
+				if (jsonLevel) {
+					try {
+						var arrayOfChars = [];
+						for (ch = 0; ch < jsonLevel.length; ch++) {
+							arrayOfChars.push(jsonLevel.charCodeAt(ch));
+						}
+						createCustomLevel(JSON.parse(LZW.decompress(arrayOfChars)));
+					} catch (e) {
+						alert('Error!');
+					}
 				}
 				// Need to do this because the prompt hangs the keycode pressed
-				k[KEYCODES.JSONIZE_LEVEL] = undefined;
-			} else if (k[KEYCODES.SHARE] && !Player.isMoving) {
-				Player.isMoving = true;
-				var request = createCORSRequest('post', SERVER_URL + '/addLevel');
-				request.onload = function () {
-					prompt('Share URL', request.responseText);
-				}
-				request.onerror = function () {
-					alert('Not available now');
-				}
-				request.send(JSON.stringify(Levels[selectedLevel]));
-				k[KEYCODES.SHARE] = undefined;
-			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.DELETE] && !k[KEYCODES.EAT] && !k[KEYCODES.JSONIZE_LEVEL] && !k[KEYCODES.SHARE]) {
+				k[KEYCODES.IMPORT_LEVEL] = undefined;
+			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.DELETE] && !k[KEYCODES.EAT] && !k[KEYCODES.EXPORT_LEVEL] && !k[KEYCODES.IMPORT_LEVEL] /*&& !k[KEYCODES.SHARE]*/ ) {
 				Player.isMoving = false;
 			}
 			return;
@@ -1384,11 +1448,11 @@
 				Player.isMoving = true;
 			} else if (k[KEYCODES.GRANNY] && !Player.isMoving) {
 				if (Granny.position instanceof Array) {
-					Granny.position = Granny.startingLaserPosition = Laser.position = null;
+					Granny.position = Granny.startingLaserPosition = Granny.laserPosition = null;
 				} else {
 					Granny.position = [32, 32];
 					Granny.startingLaserPosition = [Granny.position[0] + 15, Granny.position[1] + 23];
-					Laser.position = Granny.startingLaserPosition.slice();
+					Granny.laserPosition = Granny.startingLaserPosition.slice();
 				}
 				Player.isMoving = true;
 			} else if (k[KEYCODES.CRATES] && !Player.isMoving) {
@@ -1486,104 +1550,9 @@
 		}
 	}
 
-	function isAABBCollidingWithBlock(x1, y1, w1, h1, blockType) {
-		var x = x1,
-			y = y1,
-			topLeft = getMapAtXY(x, y);
-		x = x1 + w1;
-		topRight = getMapAtXY(x, y);
-		y = y1 + h1;
-		bottomRight = getMapAtXY(x, y);
-		x = x1, y = y1,
-		bottomLeft = getMapAtXY(x, y);
-
-		return (topLeft === blockType) || (topRight === blockType) || (bottomRight === blockType) || (bottomLeft === blockType);
-	}
-
-	function isAABBOverBlock(x1, y1, w1, h1, blockType) {
-		var x = x1,
-			y = y1 + h1,
-			bottomRight = getMapAtXY(x, y);
-		x = x1 + w1,
-		bottomLeft = getMapAtXY(x, y);
-
-		return (bottomRight === blockType) || (bottomLeft === blockType);
-	}
-
-	function isCrowOnBlock(blockType) {
-		return isAABBOverBlock(Crow.position[0] - 8, Crow.position[1] - 8, 16, 16, blockType) ||
-			isAABBCollidingWithBlock(Crow.position[0], Crow.position[1], 0, 0, blockType);
-	}
-
-	function isPositionOnBlock(position, blockType) {
-		return isAABBOverBlock(position[0], position[1], 0, 0, blockType);
-	}
-
-	function isPlayerOnBlock(blockType) {
-		return isAABBCollidingWithBlock(Player.position[0] - 8, Player.position[1] - 32, 16, 32, blockType) ||
-			isAABBCollidingWithBlock(Player.position[0], Player.position[1] - 8, 0, 0, blockType);
-	}
-
-	function squareDistance(pos1, pos2) {
-		return Math.pow(pos1[0] - pos2[0], 2) + Math.pow(pos1[1] - pos2[1], 2);
-	}
-
-	function getWarningRadius() {
-		return getPlayerSpeed() * PLAYER_RADIUS_MULTIPLIER + PLAYER_WARNING_RADIUS;
-	}
-
-	function getDamageRadius() {
-		return getPlayerSpeed() * PLAYER_RADIUS_MULTIPLIER + PLAYER_DAMAGE_RADIUS;
-	}
-
-	function isCrowInPlayerWarningZone() {
-		return Math.pow(getWarningRadius(), 2) >= squareDistance(Crow.position, Player.position);
-	}
-
-	function isCrowInPlayerDamageZone() {
-		return Math.pow(getDamageRadius(), 2) >= squareDistance(Crow.position, Player.position);
-	}
-
-	function getCurrentCrate() {
-		return Player.crateCarried !== undefined ? CratesArray[Player.crateCarried] : undefined;
-	}
-
-	function getDirectionAngle(origin, destination) {
-		return Math.atan((destination[1] - origin[1]) / (destination[0] - origin[0]));
-	}
-
-	function breakCurrentCrate() {
-		var currentCrate = getCurrentCrate();
-		if (currentCrate) {
-			playSound(SOUND_TYPE.PLAYER_CRASH);
-			Player.crateCarried = undefined;
-			currentCrate.position = currentCrate.startPosition.slice();
-			Player.crates--;
-			if (Player.crates <= 0) {
-				winCrow();
-			}
-		}
-	}
-
-	function checkIfCurrentCrateBreaks() {
-		var currentCrate = getCurrentCrate();
-		if (currentCrate) {
-			var verticalSpeedThreshold = MIN_VERTICAL_SPEED_TO_CRASH - currentCrate.size;
-			if (Player.verticalSpeed > verticalSpeedThreshold) {
-				breakCurrentCrate();
-			}
-		}
-	}
-
-	function stunCrow(t) {
-		Crow.stunnedTimeout = t + CROW_STUN_TIME;
-		playSound(SOUND_TYPE.GRANNY_SHOT);
-		Crow.shots = 0;
-		Crow.health--;
-		if (Crow.health <= 0) {
-			winBoy();
-		}
-	}
+	//
+	// GAME
+	//
 
 	function update(t) {
 
@@ -1603,7 +1572,7 @@
 			if (touchPosition) {
 				var dPadClickPosition = [touchPosition.clientX - dPadDivPosition.left, touchPosition.clientY - dPadDivPosition.top],
 					angle = getDirectionAngle(dPadCenter, dPadClickPosition),
-					module = Math.sqrt(squareDistance(dPadCenter, dPadClickPosition)) / 12.5;
+					module = distance(dPadCenter, dPadClickPosition) / 12.5;
 				var pos;
 				if (Game.state === GAME_STATE.PLAYING) {
 					pos = Crow.position;
@@ -1617,7 +1586,7 @@
 					pos[1] = Math.max(0, Math.min(pos[1], CANVAS_HEIGHT - 1));
 				}
 				if (toggleEditDraw) {
-					shoot();
+					crowShoot();
 				}
 			}
 		}
@@ -1716,20 +1685,22 @@
 		// Update Laser's position
 		if (Granny.position) {
 			var laserTargetPosition = isPositionOnBlock(Crow.position, BLOCK_TYPE.NEST) ? Granny.startingLaserPosition : Crow.position,
-				laserToCrowAngle = getDirectionAngle(Laser.position, laserTargetPosition),
-				tangentSide = Laser.position[0] > laserTargetPosition[0] ? -1 : 1;
-			if (Math.abs(laserTargetPosition[0] - Laser.position[0]) > LASER_MOVEMENT_THRESHOLD || Math.abs(laserTargetPosition[1] - Laser.position[1]) > LASER_MOVEMENT_THRESHOLD) {
-				Laser.position[0] += Math.cos(laserToCrowAngle) * tangentSide * LASER_SPEED;
-				Laser.position[1] += Math.sin(laserToCrowAngle) * tangentSide * LASER_SPEED;
+				laserToCrowAngle = getDirectionAngle(Granny.laserPosition, laserTargetPosition),
+				tangentSide = Granny.laserPosition[0] > laserTargetPosition[0] ? -1 : 1;
+			if (Math.abs(laserTargetPosition[0] - Granny.laserPosition[0]) > LASER_MOVEMENT_THRESHOLD || Math.abs(laserTargetPosition[1] - Granny.laserPosition[1]) > LASER_MOVEMENT_THRESHOLD) {
+				Granny.laserPosition[0] += Math.cos(laserToCrowAngle) * tangentSide * LASER_SPEED;
+				Granny.laserPosition[1] += Math.sin(laserToCrowAngle) * tangentSide * LASER_SPEED;
 			}
 		}
 
-		if ((isCrowInPlayerDamageZone() || isAABBCollidingWithBlock(Crow.position[0], Crow.position[1], 0, 0, BLOCK_TYPE.ROOF) || (Granny.position && (Math.sqrt(squareDistance(Laser.position, Crow.position)) < LASER_MOVEMENT_THRESHOLD))) && Crow.stunnedTimeout < t) {
+		if ((isCrowInPlayerDamageZone() || isAABBCollidingWithBlock(Crow.position[0], Crow.position[1], 0, 0, BLOCK_TYPE.ROOF) || (Granny.position && (distance(Granny.laserPosition, Crow.position) < LASER_MOVEMENT_THRESHOLD))) && Crow.stunnedTimeout < t) {
 			stunCrow(t);
 		}
 	}
 
-	// Drawing functions
+	//
+	// GRAPHICS
+	//
 
 	function clearColor(color) {
 		ctx.fillStyle = color || 'black';
@@ -1761,12 +1732,13 @@
 		}
 	}
 
-	function drawMap() {
-		var i, j;
-		for (i = 0; i < I; i++) {
-			for (j = 0; j < J; j++) {
-				drawBlockTypeAt(getMapAt(i, j), i * BLOCK_SIZE, j * BLOCK_SIZE);
+	function drawCrow(t) {
+		if (Game.state === GAME_STATE.PLAYING) {
+			if (!(Crow.stunnedTimeout > t && Math.floor(t / 100) % 2 === 0)) {
+				drawAnim(IMAGE_MAP_DATA_NAMES.CROW, Crow.position[0] - 8, Crow.position[1] - 8, 2, false, t);
 			}
+		} else {
+			drawAnim(IMAGE_MAP_DATA_NAMES.CROW, Crow.position[0] - 8, Crow.position[1] - 8, 0);
 		}
 	}
 
@@ -1798,6 +1770,27 @@
 		}
 	}
 
+	function drawLaser() {
+		if (Granny.position) {
+			ctx.fillStyle = 'red';
+			ctx.fillRect(Granny.laserPosition[0] - 1, Granny.laserPosition[1] - 1, 2, 2);
+			ctx['beginPath']();
+			ctx['arc'](Granny.laserPosition[0], Granny.laserPosition[1], 5, 0, 360);
+			ctx['lineWidth'] = 2;
+			ctx['strokeStyle'] = 'red';
+			ctx['stroke']();
+		}
+	}
+
+	function drawMap() {
+		var i, j;
+		for (i = 0; i < I; i++) {
+			for (j = 0; j < J; j++) {
+				drawBlockTypeAt(getMapAt(i, j), i * BLOCK_SIZE, j * BLOCK_SIZE);
+			}
+		}
+	}
+
 	function drawPlayer(t) {
 		if (Game.state === GAME_STATE.PLAYING) {
 			if (Player.isInAir) {
@@ -1820,28 +1813,6 @@
 			ctx['arc'](Player.position[0], Player.position[1], getDamageRadius(), 0, 360);
 			ctx['lineWidth'] = 2;
 			ctx['strokeStyle'] = '#f09';
-			ctx['stroke']();
-		}
-	}
-
-	function drawCrow(t) {
-		if (Game.state === GAME_STATE.PLAYING) {
-			if (!(Crow.stunnedTimeout > t && Math.floor(t / 100) % 2 === 0)) {
-				drawAnim(IMAGE_MAP_DATA_NAMES.CROW, Crow.position[0] - 8, Crow.position[1] - 8, 2, false, t);
-			}
-		} else {
-			drawAnim(IMAGE_MAP_DATA_NAMES.CROW, Crow.position[0] - 8, Crow.position[1] - 8, 0);
-		}
-	}
-
-	function drawLaser() {
-		if (Granny.position) {
-			ctx.fillStyle = 'red';
-			ctx.fillRect(Laser.position[0] - 1, Laser.position[1] - 1, 2, 2);
-			ctx['beginPath']();
-			ctx['arc'](Laser.position[0], Laser.position[1], 5, 0, 360);
-			ctx['lineWidth'] = 2;
-			ctx['strokeStyle'] = 'red';
 			ctx['stroke']();
 		}
 	}
@@ -1886,7 +1857,7 @@
 		drawLaser();
 		drawStatus(t);
 		if (Game.state === GAME_STATE.MENU) {
-			ctx.drawImage(InstructionCanvas, 0, 0);
+			ctx.drawImage(MenuCanvas, 0, 0);
 		}
 		if (Game.state === GAME_STATE.EDIT) {
 			ctx.globalAlpha = 0.6;
@@ -1910,6 +1881,168 @@
 		}
 	}
 
+
+
+	/*////////////////////////////////////////
+	 *
+	 * Initialization
+	 *
+	 */ ///////////////////////////////////////
+
+	//
+	// GRAPHICS
+	//
+	ImageMap.onload = function () {
+		FlippedImageMap.width = imageMapWidth = ImageMap.naturalWidth;
+		FlippedImageMap.height = ImageMap.naturalHeight;
+		var imCtx = FlippedImageMap.getContext('2d');
+		imCtx.translate(ImageMap.naturalWidth, 0);
+		imCtx.scale(-1, 1);
+		imCtx.drawImage(ImageMap, 0, 0);
+	};
+	ImageMap.src = 'img/imgmap.png';
+
+	//
+	// INPUT
+	//
+	window.addEventListener('keyup', KeyHandler.onKeyUp, false);
+	window.addEventListener('keydown', KeyHandler.onKeyDown, false);
+
+	if (isMobileDevice) {
+		addEvent(canvas, 'touchstart', function () {
+			if (Game.state === GAME_STATE.MENU) {
+				startGame();
+			}
+		});
+
+		bindButtonToCustomFunction('s', function () {
+			if (Game.state === GAME_STATE.MENU) {
+				KeyHandler.onKeyDown({
+					'keyCode': KEYCODES.DELETE
+				});
+			} else {
+				crowShoot();
+			}
+		}, function () {
+			KeyHandler.onKeyUp({
+				'keyCode': KEYCODES.DELETE
+			});
+		});
+
+		bindButtonToCustomFunction('e', function (evt) {
+			if (Game.state === GAME_STATE.MENU) {
+				KeyHandler.onKeyDown({
+					'keyCode': KEYCODES.EXPORT_LEVEL
+				});
+			} else {
+				crowEat(evt);
+			}
+		}, function () {
+			KeyHandler.onKeyUp({
+				'keyCode': KEYCODES.EXPORT_LEVEL
+			});
+		});
+
+		var dPad = document.getElementById('o'),
+			dPadDivPosition = dPad.getBoundingClientRect(),
+			dPadCenter = [100, 100],
+			isTouchingDPad = false,
+			touchPositions,
+			dPadHandler = function (evt) {
+				evt.preventDefault();
+				touchPositions = evt.changedTouches;
+				// TODO move this line to onResize
+				dPadDivPosition = dPad.getBoundingClientRect(),
+				isTouchingDPad = true;
+			};
+		addEvent(dPad, 'touchstart', dPadHandler);
+		addEvent(dPad, 'touchmove', dPadHandler);
+		addEvent(dPad, 'touchend', function (evt) {
+			evt.preventDefault();
+			isTouchingDPad = false;
+		});
+
+		bindButtonToCustomFunction('p', function () {
+			KeyHandler.onKeyDown({
+				'keyCode': (Game.state !== GAME_STATE.MENU) ? KEYCODES.INTERACT : KEYCODES.EXPORT_LEVEL
+			});
+		}, function () {
+			KeyHandler.onKeyUp({
+				'keyCode': (Game.state !== GAME_STATE.MENU) ? KEYCODES.INTERACT : KEYCODES.EXPORT_LEVEL
+			});
+		});
+
+		bindButtonToKeyCode('a', KEYCODES.EAT);
+		bindButtonToKeyCode('l', KEYCODES.LEFT);
+		bindButtonToKeyCode('u', KEYCODES.UP);
+		bindButtonToKeyCode('r', KEYCODES.RIGHT);
+		bindButtonToKeyCode('d', KEYCODES.DOWN);
+
+		bindButtonToKeyCode('g', KEYCODES.GRANNY);
+		bindButtonToKeyCode('c', KEYCODES.CRATES);
+		bindButtonToKeyCode('t', KEYCODES.TIME);
+		bindButtonToKeyCode('n', KEYCODES.NAME);
+
+	} else {
+		addEvent(canvas, 'click', crowShoot);
+		addEvent(canvas, 'contextmenu', crowEat);
+
+		addEvent(canvas, 'mousedown', function (evt) {
+			if (evt.which === 1) isLeftMouseButtonDown = true;
+			if ((Game.state === GAME_STATE.EDIT) && isLeftMouseButtonDown) {
+				crowShoot();
+			}
+		});
+
+		addEvent(canvas, 'mouseup', function (evt) {
+			if (evt.which === 1) isLeftMouseButtonDown = false;
+		});
+
+		addEvent(canvas, 'mousemove', function (evt) {
+			var tempCurMousePos = getCanvasRelativeCoords(evt);
+			currentMousePosition = [tempCurMousePos[0], tempCurMousePos[1]];
+			if (Game.state === GAME_STATE.PLAYING) { // Update the crow's position
+				var newCrowPosition = getCanvasRelativeCoords(evt);
+				Crow.nextPosition = newCrowPosition.slice();
+			} else if ((Game.state === GAME_STATE.EDIT) && isLeftMouseButtonDown) {
+				crowShoot();
+			}
+		});
+	}
+
+	//
+	// AUDIO
+	//
+	for (var s = 0; s < NOTES_CDEFGABC.length; s++) {
+		introTheme[s] = jsfxlib.createWave(["synth", 0.0000, 0.4000, 0.0000, 0.2080, 0.0000, 0.1200, 20.0000, NOTES_CDEFGABC[s], 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.1000, 0.0000]);
+	}
+	introThemeString = INTRO_THEME.slice();
+
+	loadSound(SOUND_TYPE.JUMP, ["square", 0.0000, 0.4000, 0.0000, 0.1740, 0.0000, 0.2800, 20.0000, 497.0000, 2400.0000, 0.2200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0665, 0.0000, 0.0000, 0.0000, 0.0000, 0.7830, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.PLAYER_CRASH, ["noise", 0.0000, 0.4000, 0.0000, 0.1400, 0.4050, 0.1160, 20.0000, 479.0000, 2400.0000, -0.0700, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, -0.0860, -0.1220, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CRATE_DELIVERY, ["square", 0.0000, 0.4000, 0.0000, 0.0980, 0.5040, 0.2820, 20.0000, 1582.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.SPEED_BOOST, ["saw", 0.0000, 0.4000, 0.0000, 0.3240, 0.0000, 0.2840, 20.0000, 631.0000, 2400.0000, 0.1720, 0.0000, 0.4980, 19.3500, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CROW_SHOT, ["saw", 0.0000, 0.4000, 0.0000, 0.2120, 0.0000, 0.0280, 20.0000, 1169.0000, 2400.0000, -0.5200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.5000, -0.5920, 0.0000, 0.0940, 0.0660, 1.0000, 0.0000, 0.0000, 0.2800, 0.0000]);
+	loadSound(SOUND_TYPE.FAILURE, ["synth", 0.0000, 0.4000, 0.0000, 0.3200, 0.3480, 0.4400, 20.0000, 372.0000, 417.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.3740, 0.2640, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.SUCCESS, ["synth", 0.0000, 0.4000, 0.0000, 0.1300, 0.3450, 0.4100, 253.0000, 1168.0000, 1407.0000, -0.0060, -0.0820, 0.0000, 0.0100, 0.0003, 0.0000, 0.2060, 0.1660, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CRATE_PICKUP, ["noise", 0.0000, 0.4000, 0.0000, 0.0020, 0.0240, 0.0900, 20.0000, 372.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3420, 0.8090, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CROW_CRASH, ["noise", 0.0000, 0.4000, 0.0000, 0.1520, 0.3930, 0.2740, 20.0000, 839.0000, 2400.0000, -0.3100, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3400, 0.7830, 0.0000, 0.0000, 0.6096, 0.5260, -0.0080, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CROW_EAT, ["square", 0.0000, 0.4000, 0.0000, 0.0400, 0.0000, 0.0480, 20.0000, 578.0000, 2400.0000, 0.1040, 0.0000, 0.6830, 19.1580, 0.0003, 0.0000, 0.0000, 0.0000, 0.3850, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.DISPENSER, ["square", 0.0000, 0.4000, 0.0000, 0.0460, 0.4770, 0.2400, 20.0000, 1197.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.4980, 0.2040, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.GRANNY_SHOT, ["noise", 0.0000, 0.4000, 0.0000, 0.1080, 0.3360, 0.1240, 20.0000, 462.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+
+	//
+	// LOAD THE FIRST LEVEL
+	//
+	resetGame(selectedLevel);
+
+
+
+	/*////////////////////////////////////////
+	 *
+	 * Start the game loop
+	 *
+	 */ ///////////////////////////////////////
 	(function gameLoop(t) {
 		processInput(t);
 		update(t);

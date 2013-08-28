@@ -1,6 +1,5 @@
 // CONSTANTS
-var PORT = 3000,
-	HOST = '127.0.0.1',
+var PORT = process['env']['PORT'] || 3000,
 	FILENAME = 'levels.json';
 
 var http = require('http'),
@@ -29,11 +28,11 @@ fs['exists']('levels.json', function (exists) {
 
 	// console.log(levels);
 	var server = http['createServer'](function (req, res) {
-		console.log(req.method, req.url);
+		console.log(req['method'], req['url']);
 		if (req['method'] == 'OPTIONS') {
 			res['writeHead'](200, OK_REQUEST_HEADERS);
 			res['end']('options received');
-		} else if (req['method'] == 'POST' && req.url === '/addLevel') {
+		} else if (req['method'] == 'POST' && req['url'] === '/addLevel') {
 			var body = '';
 
 			req['on']('data', function (data) {
@@ -43,7 +42,7 @@ fs['exists']('levels.json', function (exists) {
 				try {
 					var levelInfo = JSON.parse(body);
 
-					var md5sum = crypto.createHash('md5');
+					var md5sum = crypto['createHash']('md5');
 					md5sum['update'](body);
 					var levelHash = md5sum['digest']('hex');
 					console.log("Added level with hash: " + levelHash);
@@ -58,9 +57,9 @@ fs['exists']('levels.json', function (exists) {
 					fs['writeFileSync'](FILENAME, JSON.stringify(levels));
 
 					res['writeHead'](200, OK_REQUEST_HEADERS);
-					res['end'](HOST + '/getLevel/' + levelHash);
+					res['end']('#' + levelHash);
 				} catch (e) {
-					console.log("Tried to add an invalid level: " + e.message);
+					console.log("Tried to add an invalid level: " + e['message']);
 					res['writeHead'](400, {
 						'Content-Type': 'text/html'
 					});
@@ -68,8 +67,8 @@ fs['exists']('levels.json', function (exists) {
 				}
 			});
 
-		} else if (req['method'] == 'GET' && req.url.indexOf('/getLevel') === 0) {
-			var levelHash = req.url.substr(req.url.indexOf('/getLevel') + 10),
+		} else if (req['method'] == 'GET' && req['url'].indexOf('/getLevel') === 0) {
+			var levelHash = req['url'].substr(req['url'].indexOf('/getLevel') + 10),
 				level;
 			console.log('Requested level with hash ' + levelHash, !! levels[levelHash]);
 			res['writeHead'](200, OK_REQUEST_HEADERS);
@@ -77,9 +76,6 @@ fs['exists']('levels.json', function (exists) {
 				level = levels[levelHash].lvl;
 			}
 			res['end'](level);
-		} else if (req['method'] == 'GET' && req.url.indexOf('/getServerCode') === 0) {
-			res['writeHead'](200, OK_REQUEST_HEADERS);
-			res['end']('Ok');
 		} else {
 			res['writeHead'](400, {
 				'Content-Type': 'text/html'
@@ -89,6 +85,6 @@ fs['exists']('levels.json', function (exists) {
 
 	});
 
-	server['listen'](PORT, HOST);
-	console.log('Listening at http://' + HOST + ':' + PORT);
+	server['listen'](PORT);
+	console.log('Listening on port ' + PORT);
 });
