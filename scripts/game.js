@@ -430,9 +430,10 @@
 	//
 	// Detect touch device ()
 	// http://stackoverflow.com/questions/3974827/detecting-touch-screen-devices-with-javascript
+	// http://blog.stevelydford.com/2012/03/detecting-touch-hardware-in-ie-10/
 	//
 	var isMobileDevice = false;
-	if ('ontouchstart' in document['documentElement']) {
+	if (('ontouchstart' in document['documentElement']) || window['navigator']['msMaxTouchPoints']) {
 		isMobileDevice = true;
 
 		var hiddenButtons = document.getElementsByClassName('btn');
@@ -445,83 +446,83 @@
 
 	// LZW Compression/Decompression for Strings
 	// http://rosettacode.org/wiki/LZW_compression#JavaScript
-	var LZW = {
-		compress: function (uncompressed) {
-			"use strict";
-			// Build the dictionary.
-			var i,
-				dictionary = {},
-				c,
-				wc,
-				w = "",
-				result = [],
-				dictSize = 256;
-			for (i = 0; i < 256; i += 1) {
-				dictionary[String.fromCharCode(i)] = i;
-			}
+	// var LZW = {
+	// 	compress: function (uncompressed) {
+	// 		"use strict";
+	// 		// Build the dictionary.
+	// 		var i,
+	// 			dictionary = {},
+	// 			c,
+	// 			wc,
+	// 			w = "",
+	// 			result = [],
+	// 			dictSize = 256;
+	// 		for (i = 0; i < 256; i += 1) {
+	// 			dictionary[String.fromCharCode(i)] = i;
+	// 		}
 
-			for (i = 0; i < uncompressed.length; i += 1) {
-				c = uncompressed.charAt(i);
-				wc = w + c;
-				//Do not use dictionary[wc] because javascript arrays 
-				//will return values for array['pop'], array['push'] etc
-				// if (dictionary[wc]) {
-				if (dictionary.hasOwnProperty(wc)) {
-					w = wc;
-				} else {
-					result.push(dictionary[w]);
-					// Add wc to the dictionary.
-					dictionary[wc] = dictSize++;
-					w = String(c);
-				}
-			}
+	// 		for (i = 0; i < uncompressed.length; i += 1) {
+	// 			c = uncompressed.charAt(i);
+	// 			wc = w + c;
+	// 			//Do not use dictionary[wc] because javascript arrays 
+	// 			//will return values for array['pop'], array['push'] etc
+	// 			// if (dictionary[wc]) {
+	// 			if (dictionary.hasOwnProperty(wc)) {
+	// 				w = wc;
+	// 			} else {
+	// 				result.push(dictionary[w]);
+	// 				// Add wc to the dictionary.
+	// 				dictionary[wc] = dictSize++;
+	// 				w = String(c);
+	// 			}
+	// 		}
 
-			// Output the code for w.
-			if (w !== "") {
-				result.push(dictionary[w]);
-			}
-			return result;
-		},
+	// 		// Output the code for w.
+	// 		if (w !== "") {
+	// 			result.push(dictionary[w]);
+	// 		}
+	// 		return result;
+	// 	},
 
 
-		decompress: function (compressed) {
-			"use strict";
-			// Build the dictionary.
-			var i,
-				dictionary = [],
-				w,
-				result,
-				k,
-				entry = "",
-				dictSize = 256;
-			for (i = 0; i < 256; i += 1) {
-				dictionary[i] = String.fromCharCode(i);
-			}
+	// 	decompress: function (compressed) {
+	// 		"use strict";
+	// 		// Build the dictionary.
+	// 		var i,
+	// 			dictionary = [],
+	// 			w,
+	// 			result,
+	// 			k,
+	// 			entry = "",
+	// 			dictSize = 256;
+	// 		for (i = 0; i < 256; i += 1) {
+	// 			dictionary[i] = String.fromCharCode(i);
+	// 		}
 
-			w = String.fromCharCode(compressed[0]);
-			result = w;
-			for (i = 1; i < compressed.length; i += 1) {
-				k = compressed[i];
-				if (dictionary[k]) {
-					entry = dictionary[k];
-				} else {
-					if (k === dictSize) {
-						entry = w + w.charAt(0);
-					} else {
-						return null;
-					}
-				}
+	// 		w = String.fromCharCode(compressed[0]);
+	// 		result = w;
+	// 		for (i = 1; i < compressed.length; i += 1) {
+	// 			k = compressed[i];
+	// 			if (dictionary[k]) {
+	// 				entry = dictionary[k];
+	// 			} else {
+	// 				if (k === dictSize) {
+	// 					entry = w + w.charAt(0);
+	// 				} else {
+	// 					return null;
+	// 				}
+	// 			}
 
-				result += entry;
+	// 			result += entry;
 
-				// Add w+entry[0] to the dictionary.
-				dictionary[dictSize++] = w + entry.charAt(0);
+	// 			// Add w+entry[0] to the dictionary.
+	// 			dictionary[dictSize++] = w + entry.charAt(0);
 
-				w = entry;
-			}
-			return result;
-		}
-	};
+	// 			w = entry;
+	// 		}
+	// 		return result;
+	// 	}
+	// };
 
 
 
@@ -1313,8 +1314,9 @@
 	}
 
 	function setMapAtXY(value, x, y) {
-		if (y > 0 && y < J - 1) {
-			Map[I * Math.floor(y / BLOCK_SIZE) + Math.floor(x / BLOCK_SIZE)] = value;
+		var idx = (I * Math.floor(y / BLOCK_SIZE) + Math.floor(x / BLOCK_SIZE));
+		if (idx < Map.length) {
+			Map[idx] = value;
 		}
 	}
 
@@ -1324,22 +1326,30 @@
 
 	function bindButtonToKeyCode(buttonId, keyCode) {
 		var btn = document.getElementById(buttonId);
-		addEvent(btn, 'touchstart', function () {
+
+		function touchstart() {
 			KeyHandler.onKeyDown({
 				'keyCode': keyCode
 			});
-		});
-		addEvent(btn, 'touchend', function () {
+		}
+
+		function touchend() {
 			KeyHandler.onKeyUp({
 				'keyCode': keyCode
 			});
-		});
+		}
+		addEvent(btn, 'touchstart', touchstart);
+		addEvent(btn, 'touchend', touchend);
+		addEvent(btn, 'MSPointerDown', touchstart);
+		addEvent(btn, 'MSPointerUp', touchend);
 	}
 
 	function bindButtonToCustomFunction(buttonId, touchStartCallback, touchEndCallback) {
 		var btn = document.getElementById(buttonId);
 		addEvent(btn, 'touchstart', touchStartCallback);
 		addEvent(btn, 'touchend', touchEndCallback);
+		addEvent(btn, 'MSPointerDown', touchStartCallback);
+		addEvent(btn, 'MSPointerUp', touchEndCallback);
 	}
 
 
@@ -1410,24 +1420,26 @@
 				}
 				k[KEYCODES.DELETE] = undefined;
 			} else if (k[KEYCODES.EXPORT_LEVEL] && Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM] && !Player.isMoving) {
-				var compressedLevel = LZW.compress(JSON.stringify(Levels[selectedLevel]));
-				var compressedString = '',
-					ch = 0;
-				for (ch = 0; ch < compressedLevel.length; ch++) {
-					compressedString += String.fromCharCode(compressedLevel[ch]);
-				}
-				var jsonLevel = prompt('Level JSON', compressedString);
+				// var compressedLevel = LZW.compress(JSON.stringify(Levels[selectedLevel]));
+				// var compressedString = '',
+				// 	ch = 0;
+				// for (ch = 0; ch < compressedLevel.length; ch++) {
+				// 	compressedString += String.fromCharCode(compressedLevel[ch]);
+				// }
+				// var jsonLevel = prompt('Level data', compressedString);
+				var jsonLevel = prompt('Level data', JSON.stringify(Levels[selectedLevel]));
 				// Need to do this because the prompt hangs the keycode pressed
 				k[KEYCODES.EXPORT_LEVEL] = undefined;
 			} else if (k[KEYCODES.IMPORT_LEVEL]) {
-				var jsonLevel = prompt('Level JSON');
+				var jsonLevel = prompt('Level data');
 				if (jsonLevel) {
 					try {
-						var arrayOfChars = [];
-						for (ch = 0; ch < jsonLevel.length; ch++) {
-							arrayOfChars.push(jsonLevel.charCodeAt(ch));
-						}
-						createCustomLevel(JSON.parse(LZW.decompress(arrayOfChars)));
+						// var arrayOfChars = [];
+						// for (ch = 0; ch < jsonLevel.length; ch++) {
+						// 	arrayOfChars.push(jsonLevel.charCodeAt(ch));
+						// }
+						// createCustomLevel(JSON.parse(LZW.decompress(arrayOfChars)));
+						createCustomLevel(JSON.parse(jsonLevel));
 					} catch (e) {
 						alert('Error!');
 					}
@@ -1560,12 +1572,16 @@
 		// Mobile controls
 		if (isTouchingDPad && touchPositions) {
 			var touchPosition, tempTp;
-			for (var tp = 0; tp < touchPositions.length; tp++) {
-				tempTp = touchPositions[tp];
-				if (tempTp.clientX >= dPadDivPosition.left && tempTp.clientX < (dPadDivPosition.left + dPadDivPosition.width) &&
-					tempTp.clientY >= dPadDivPosition.top && tempTp.clientY < (dPadDivPosition.top + dPadDivPosition.height)) {
-					touchPosition = touchPositions[tp];
-					break;
+			if (touchPositions['clientX']) {
+				touchPosition = touchPositions
+			} else if (touchPositions instanceof Array) {
+				for (var tp = 0; tp < touchPositions.length; tp++) {
+					tempTp = touchPositions[tp];
+					if (tempTp.clientX >= dPadDivPosition.left && tempTp.clientX < (dPadDivPosition.left + dPadDivPosition.width) &&
+						tempTp.clientY >= dPadDivPosition.top && tempTp.clientY < (dPadDivPosition.top + dPadDivPosition.height)) {
+						touchPosition = touchPositions[tp];
+						break;
+					}
 				}
 			}
 			if (touchPosition) {
@@ -1908,11 +1924,14 @@
 	window.addEventListener('keydown', KeyHandler.onKeyDown, false);
 
 	if (isMobileDevice) {
-		addEvent(canvas, 'touchstart', function () {
+		function touchstart() {
 			if (Game.state === GAME_STATE.MENU) {
 				startGame();
 			}
-		});
+		}
+		addEvent(canvas, 'touchstart', touchstart);
+		addEvent(canvas, 'MSPointerDown', touchstart);
+
 
 		bindButtonToCustomFunction('s', function () {
 			if (Game.state === GAME_STATE.MENU) {
@@ -1955,19 +1974,25 @@
 				isTouchingDPad = true;
 			};
 		addEvent(dPad, 'touchstart', dPadHandler);
+		addEvent(dPad, 'MSPointerDown', dPadHandler);
 		addEvent(dPad, 'touchmove', dPadHandler);
+		addEvent(dPad, 'MSPointerMove', dPadHandler);
 		addEvent(dPad, 'touchend', function (evt) {
+			evt.preventDefault();
+			isTouchingDPad = false;
+		});
+		addEvent(dPad, 'MSPointerUp', function (evt) {
 			evt.preventDefault();
 			isTouchingDPad = false;
 		});
 
 		bindButtonToCustomFunction('p', function () {
 			KeyHandler.onKeyDown({
-				'keyCode': (Game.state !== GAME_STATE.MENU) ? KEYCODES.INTERACT : KEYCODES.EXPORT_LEVEL
+				'keyCode': (Game.state === GAME_STATE.MENU) ? KEYCODES.EXPORT_LEVEL : KEYCODES.INTERACT
 			});
 		}, function () {
 			KeyHandler.onKeyUp({
-				'keyCode': (Game.state !== GAME_STATE.MENU) ? KEYCODES.INTERACT : KEYCODES.EXPORT_LEVEL
+				'keyCode': (Game.state === GAME_STATE.MENU) ? KEYCODES.EXPORT_LEVEL : KEYCODES.INTERACT
 			});
 		});
 
@@ -1981,6 +2006,10 @@
 		bindButtonToKeyCode('c', KEYCODES.CRATES);
 		bindButtonToKeyCode('t', KEYCODES.TIME);
 		bindButtonToKeyCode('n', KEYCODES.NAME);
+
+		addEvent(document.body, 'contextmenu', function (evt) {
+			evt.preventDefault();
+		}, false);
 
 	} else {
 		addEvent(canvas, 'click', crowShoot);
