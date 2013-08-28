@@ -23,7 +23,8 @@
 			NEST: 6,
 			ROOF: 7,
 			SHOT: 8,
-			WALL: 9
+			WALL: 9,
+			CAT: 10
 		},
 		IMAGE_MAP_DATA = [
 			/* CROW */
@@ -202,6 +203,21 @@
 					y: 0,
 					w: 16,
 					h: 16
+				}
+			},
+			/* CAT */
+			{
+				frame: {
+					x: 36,
+					y: 32,
+					w: 11,
+					h: 13
+				},
+				spriteSourceSize: {
+					x: 0,
+					y: 0,
+					w: 12,
+					h: 13
 				}
 			}
 		],
@@ -608,7 +624,12 @@
 			health: MAX_CROW_HEALTH
 		},
 
+		Cat = {
+			position: null
+		},
+
 		Map = [],
+		solidBlockMap = null,
 
 		Crate = {
 			image: null,
@@ -996,6 +1017,8 @@
 		Crow.shots = 0;
 		Crow.stunnedTimeout = 0;
 
+		Cat.position = null;
+
 		Game.time = 0;
 		setGameState(GAME_STATE.MENU);
 
@@ -1012,6 +1035,7 @@
 
 		Map = '4444444444444444444444444444444444444444' + lvl[LEVEL_PARAMS.MAP] + '4444444444444444444444444444444444444444';
 		Map = Map.split('');
+		solidBlockMap = null;
 
 		// Build Crates
 		resetCrates(lvl);
@@ -1178,6 +1202,7 @@
 		if (Crow.health <= 0) {
 			winBoy();
 		}
+		showCat();
 	}
 
 	//
@@ -1249,6 +1274,31 @@
 
 	function getCurrentCrate() {
 		return Player.crateCarried !== undefined ? CratesArray[Player.crateCarried] : undefined;
+	}
+
+	//
+	// CAT
+	//
+
+	function getCatNextPosition() {
+		if (!solidBlockMap) {
+			solidBlockMap = [];
+			for (var i = 0; i < Map.length; i++) {
+				if (Map[i] === BLOCK_TYPE.SOLID) {
+					solidBlockMap.push(i);
+				}
+			}
+		}
+		var rndPos = solidBlockMap[Math.floor(Math.random() * solidBlockMap.length)],
+			x = rndPos % I,
+			y = Math.floor(rndPos / I);
+
+		return [x * BLOCK_SIZE, y * BLOCK_SIZE];
+	}
+
+	function showCat() {
+		var nextPosition = getCatNextPosition();
+		Cat.position = [nextPosition[0] - 6, nextPosition[1] - 10];
 	}
 
 	//
@@ -1747,6 +1797,12 @@
 		}
 	}
 
+	function drawCat() {
+		if (Cat.position) {
+			drawImage(IMAGE_MAP_DATA_NAMES.CAT, Cat.position[0] - 8, Cat.position[1]);
+		}
+	}
+
 	function drawCrow(t) {
 		if (Game.state === GAME_STATE.PLAYING) {
 			if (!(Crow.stunnedTimeout > t && Math.floor(t / 100) % 2 === 0)) {
@@ -1867,6 +1923,7 @@
 		clearColor();
 		drawMap();
 		drawEnvironment();
+		drawCat();
 		drawPlayer(t);
 		drawCrow(t);
 		drawLaser();
@@ -1968,7 +2025,7 @@
 			touchPositions,
 			dPadHandler = function (evt) {
 				evt.preventDefault();
-				touchPositions = evt.changedTouches;
+				touchPositions = evt.changedTouches || evt;
 				// TODO move this line to onResize
 				dPadDivPosition = dPad.getBoundingClientRect(),
 				isTouchingDPad = true;
@@ -1988,11 +2045,11 @@
 
 		bindButtonToCustomFunction('p', function () {
 			KeyHandler.onKeyDown({
-				'keyCode': (Game.state === GAME_STATE.MENU) ? KEYCODES.EXPORT_LEVEL : KEYCODES.INTERACT
+				'keyCode': (Game.state === GAME_STATE.MENU) ? KEYCODES.IMPORT_LEVEL : KEYCODES.INTERACT
 			});
 		}, function () {
 			KeyHandler.onKeyUp({
-				'keyCode': (Game.state === GAME_STATE.MENU) ? KEYCODES.EXPORT_LEVEL : KEYCODES.INTERACT
+				'keyCode': (Game.state === GAME_STATE.MENU) ? KEYCODES.IMPORT_LEVEL : KEYCODES.INTERACT
 			});
 		});
 
