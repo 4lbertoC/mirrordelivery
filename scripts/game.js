@@ -47,7 +47,7 @@
 						x: 1,
 						y: 1,
 						w: 15,
-						h: 13
+						h: 11
 				},
 					{
 						x: 17,
@@ -139,9 +139,9 @@
 						h: 24
 				},
 					{
-						x: 15,
+						x: 16,
 						y: 0,
-						w: 15,
+						w: 13,
 						h: 24
 					}
 				]
@@ -180,7 +180,7 @@
 			{
 				frame: {
 					x: 31,
-					y: 30,
+					y: 32,
 					w: 6,
 					h: 14
 				},
@@ -252,7 +252,7 @@
 	        1046.50,
 	        1108.73
    		],
-		IS_AUDIO_SUPPORTED = window['btoa'] && window['atob'],
+		IS_AUDIO_SUPPORTED = !! (window['btoa'] && window['atob']),
 		INTRO_THEME = '023123467'.split(''),
 		SOUND_TYPE = {
 			JUMP: 0,
@@ -341,7 +341,6 @@
 		//
 		// GRANNY
 		//
-		LASER_SPEED = 1,
 		LASER_MOVEMENT_THRESHOLD = 3,
 		CROW_MOVEMENT_THRESHOLD = 3,
 
@@ -358,7 +357,6 @@
 			MENU: 27,
 			DELETE: 68,
 			EXPORT_LEVEL: 74,
-			GRANNY: 71,
 			CRATES: 67,
 			NAME: 78,
 			TIME: 84,
@@ -409,8 +407,6 @@
 		var vendors = ['webkit', 'moz'];
 		for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
 			window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
-			window.cancelAnimationFrame =
-				window[vendors[x] + 'CancelAnimationFrame'] || window[vendors[x] + 'CancelRequestAnimationFrame'];
 		}
 
 		if (!window.requestAnimationFrame)
@@ -424,11 +420,6 @@
 				lastTime = currTime + timeToCall;
 				return id;
 			};
-
-		if (!window.cancelAnimationFrame)
-			window.cancelAnimationFrame = function (id) {
-				clearTimeout(id);
-			};
 	}());
 
 	//
@@ -438,9 +429,9 @@
 
 	// function createCORSRequest(method, url) {
 	// 	var xhr = new XMLHttpRequest();
-	// 	if ("withCredentials" in xhr) {
+	// 	if ('withCredentials' in xhr) {
 	// 		xhr.open(method, url, true);
-	// 	} else if (typeof XDomainRequest != "undefined") {
+	// 	} else if (typeof XDomainRequest != 'undefined') {
 	// 		xhr = new XDomainRequest();
 	// 		xhr.open(method, url);
 	// 	} else {
@@ -470,9 +461,16 @@
 	// http://stackoverflow.com/questions/3974827/detecting-touch-screen-devices-with-javascript
 	// http://blog.stevelydford.com/2012/03/detecting-touch-hardware-in-ie-10/
 	//
-	var isMobileDevice = false;
+	var isMobileDevice = false,
+		touchStartEvent, touchEndEvent, touchMoveEvent;
+
 	if (('ontouchstart' in document['documentElement']) || window['navigator']['msMaxTouchPoints']) {
 		isMobileDevice = true;
+
+		touchStartEvent = window['navigator']['msMaxTouchPoints'] ? 'MSPointerDown' : 'touchstart';
+		touchEndEvent = window['navigator']['msMaxTouchPoints'] ? 'MSPointerUp' : 'touchend';
+		touchMoveEvent = window['navigator']['msMaxTouchPoints'] ? 'MSPointerMove' : 'touchmove';
+
 
 		var hiddenButtons = document.getElementsByClassName('btn');
 		for (var b = 0; b < hiddenButtons.length; b++) {
@@ -481,86 +479,6 @@
 			}
 		}
 	}
-
-	// LZW Compression/Decompression for Strings
-	// http://rosettacode.org/wiki/LZW_compression#JavaScript
-	// var LZW = {
-	// 	compress: function (uncompressed) {
-	// 		"use strict";
-	// 		// Build the dictionary.
-	// 		var i,
-	// 			dictionary = {},
-	// 			c,
-	// 			wc,
-	// 			w = "",
-	// 			result = [],
-	// 			dictSize = 256;
-	// 		for (i = 0; i < 256; i += 1) {
-	// 			dictionary[String.fromCharCode(i)] = i;
-	// 		}
-
-	// 		for (i = 0; i < uncompressed.length; i += 1) {
-	// 			c = uncompressed.charAt(i);
-	// 			wc = w + c;
-	// 			//Do not use dictionary[wc] because javascript arrays 
-	// 			//will return values for array['pop'], array['push'] etc
-	// 			// if (dictionary[wc]) {
-	// 			if (dictionary.hasOwnProperty(wc)) {
-	// 				w = wc;
-	// 			} else {
-	// 				result.push(dictionary[w]);
-	// 				// Add wc to the dictionary.
-	// 				dictionary[wc] = dictSize++;
-	// 				w = String(c);
-	// 			}
-	// 		}
-
-	// 		// Output the code for w.
-	// 		if (w !== "") {
-	// 			result.push(dictionary[w]);
-	// 		}
-	// 		return result;
-	// 	},
-
-
-	// 	decompress: function (compressed) {
-	// 		"use strict";
-	// 		// Build the dictionary.
-	// 		var i,
-	// 			dictionary = [],
-	// 			w,
-	// 			result,
-	// 			k,
-	// 			entry = "",
-	// 			dictSize = 256;
-	// 		for (i = 0; i < 256; i += 1) {
-	// 			dictionary[i] = String.fromCharCode(i);
-	// 		}
-
-	// 		w = String.fromCharCode(compressed[0]);
-	// 		result = w;
-	// 		for (i = 1; i < compressed.length; i += 1) {
-	// 			k = compressed[i];
-	// 			if (dictionary[k]) {
-	// 				entry = dictionary[k];
-	// 			} else {
-	// 				if (k === dictSize) {
-	// 					entry = w + w.charAt(0);
-	// 				} else {
-	// 					return null;
-	// 				}
-	// 			}
-
-	// 			result += entry;
-
-	// 			// Add w+entry[0] to the dictionary.
-	// 			dictionary[dictSize++] = w + entry.charAt(0);
-
-	// 			w = entry;
-	// 		}
-	// 		return result;
-	// 	}
-	// };
 
 
 
@@ -641,7 +559,6 @@
 			position: null,
 			nextPosition: null,
 			shots: 0,
-			isInWarningZone: false,
 			stunnedTimeout: 0,
 			health: MAX_CROW_HEALTH
 		},
@@ -677,7 +594,8 @@
 		Granny = {
 			position: null,
 			startingLaserPosition: null,
-			laserPosition: null
+			laserPosition: null,
+			laserSpeed: 1
 		},
 
 		// THE CURRENT GAME THAT IS BEING PLAYED
@@ -719,9 +637,9 @@
 			'0000000000000000000000000000000000000000' +
 			'0000000000000000000000000000000000000000' +
 			'0000000000000000000000000000000000000000' +
-			'5555000000000000000000000000000000000000' +
-			'5555000000000000000000000000000000000000' +
-			'5555000000000007000000000000002000000000' +
+			'0000000000000000000000000000000000000000' +
+			'0550000000000000000000000000000000000000' +
+			'0550000000000007000000000000002000000000' +
 			'1111111111111111111111111111112000000000' +
 			'0000000000000000000000000000002000000000' +
 			'0000000000000000000000000000002000000000' +
@@ -731,11 +649,11 @@
 			/* CRATES */
 			[1],
 			/* INSTRUCTIONS */
-			[[20, 340, ['PLAYER 1']], [100, 340, ['ARROWS: move/jump']], [250, 340, ['SPACEBAR: grab/release crate']],
-				[500, 340, ['UP/DOWN: Climb ladder']], [450, 250, ['Crates break if you fall from too high']],
-				[160, 250, [(isMobileDevice ? 'S' : 'SPACEBAR') + ': buy candies when not holding crate', 'E: Use candy to gain speed']],
-				[10, 230, ['Deliver crate to green area']], [560, 30, ['PLAYER 2', (isMobileDevice ? 'DPad' : 'Mouse') + ': move']], [410, 70, ['Don\'t get shot', 'Hide in the nest']], [410, 130, [(isMobileDevice ? '2' : 'RClick') + ': eat from nest or candy crumbs', (isMobileDevice ? '1' : 'LClick') + ': shoot!']],
-				[140, 60, ['Don\'t touch roofs or the boy']]]],
+			[[20, 340, ['PLAYER 1']], [100, 340, ['ARROWS: move/jump']], [250, 340, [(isMobileDevice ? 'I' : 'SPACEBAR') + ': grab/release crate']],
+				[500, 340, ['UP/DOWN: Climb']], [450, 250, ['Crates break if you fall from too high']],
+				[160, 250, [(isMobileDevice ? 'I' : 'SPACEBAR') + ': buy candies when not holding crate', 'E: Use candy to gain speed']],
+				[10, 230, ['Deliver crate to green area']], [560, 30, ['PLAYER 2', (isMobileDevice ? 'DPad' : 'Mouse') + ': move']], [390, 80, ['Hide from granny in nest']], [390, 130, [(isMobileDevice ? 'A' : 'RClick') + ': eat from nest or crumbs', (isMobileDevice ? 'S' : 'LClick') + ': shoot!']],
+				[150, 70, ['Don\'t touch roofs or Luke']]]],
 
 		Level1 = [
 			/* NAME */
@@ -751,7 +669,7 @@
 			/* TIME */
 			60000,
 			/* MAP */
-			'00000000000000000000000000000000000000600000000000000000000000000000000000000011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000003330000000000000000000000000000000000003333300000000000000000000000000000000000055500000000000000000000000000000000000005550000020000000000000200000000000000000555020002000111111111120000333000000000111112000200133333330002000000000000000000000200021130000000000200000000000000000000020002000000000000020000000000000000000002000200020000000002111111100111001101111100111112000000000200000000000000000000000033333200000000020000000000000000000000000000020000000000000000000000000000000000000002000000000000000000000000000000000000000200000000000000000000000000000000001111111111111111111111111111111111111111',
+			'00000000000000000000000000000000000000600000000000000000000000000000000000000011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000003330000000000000000000000000000000000003333300000000000000000000000000000000000000000000000000000000000000000000000000000550000020000000000000200000000000000000055020002000111111111120000333000000000111112000200133333330002000000000000000000000200021130000000000200000000000000000000020002000000000000020000000000000000000002000200020000000002111111100111001101111100111112000000000200000000000000000000000033333200000000020000000000000000000000000000020000000000000000000000000000000000000002000000000000000000000000000000000000000200000000000000000000000000000000001111111111111111111111111111111111111111',
 			/* CRATES */
 			[1, 2]
 		],
@@ -770,7 +688,7 @@
 			/* TIME */
 			120000,
 			/* MAP */
-			'33330000000000000000000000000000000000005550000000000033000000000330000000000000555000000000000000000000000000000000000055500000000000000003030000000000000000001111111000000000000030000000000000110010000000010000000000000000000000000100301000000000000200000200000200000200000000100000000011120111102000201111021113002010111100000002000000020200000002000000211100000000000100000000200000000100000020000000000000000000000000000000000002002000000000000000000000000000000000030211100000001110000000000000000000000030020000000000000000000000003333300000000002000000000000000000000000000000000003020200000000000001100000000000000000000002110000000000000000000000000020700000020200000000000000000000000000112110000002020000060000000000010000000000200000000201000011100000000000000000000020000000020000000000000000000000000000002000000002000000000000000000000000000000200000000200000000001111111111111111111111111111111111111111',
+			'33330000000000000000000000000000000000000000000000000033000000000330000000000000055000000000000000000000000000000000000005500000000000000003030000000000000000001111111000000000000030000000000000110010000000010000000000000000000000000100301000000000000200000200000200000200000000100000000011120111102000201111021113002010111100000002000000020200000002000000211100000000000100000000200000000100000020000000000000000000000000000000000002002000000000000000000000000000000000030211100000001110000000000000000000000030020000000000000000000000003333300000000002000000000000000000000000000000000003020200000000000001100000000000000000000002110000000000000000000000000020700000020200000000000000000000000000112110000002020000060000000000010000000000200000000201000011100000000000000000000020000000020000000000000000000000000000002000000002000000000000000000000000000000200000000200000000001111111111111111111111111111111111111111',
 			/* CRATES */
 			[1, 2]
 		],
@@ -789,7 +707,7 @@
 			/* TIME */
 			240000,
 			/* MAP */
-			"00000000000000010001000000000000000000000000000000300001666100003000000000000020000000000003000111110003000000000007002000000000000030000000003000000000001110203000000000000000000000000000000000000020332200000000000000000000000000000000002033202000000000000000000000000000000000203320320000000000222000000000000000000020332033111001111100011111000110011001102055200000000000000000000000000110011000205520000000000000000000000000000000000020111100000000000000000000000000000000002000000000000000030003000000000220022000200000000000000030000030000200000000000020000000000000000300030000020000000000002000003030300000000200000002011001100110200003030303030303020000000200011001100020000000000030303032111111000000000000000000000000000000000203030303030000000000000000011100070000023030303030300000000000000000000011100002000000000000000000000011110000000000000200000000000000000000001111111111111111111111111111111111111111",
+			'00000000000000010001000000000000000000000000000000300001666100003000000000000020000000000003000111110003000000000007002000000000000030000000003000000000001110203000000000000000000000000000000000000020332200000000000000000000000000000000002033202000000000000000000000000000000000203320320000000000222000000000000000000020332033111001111100011111000110011001102055200000000000000000000000000110011000205520000000000000000000000000000000000020111100000000000000000000000000000000002000000000000000030003000000000220022000200000000000000030000030000200000000000020000000000000000300030000020000000000002000003030300000000200000002011001100110200003030303030303020000000200011001100020000000000030303032111111000000000000000000000000000000000203030303030000000000000000011100070000023030303030300000000000000000000011100002000000000000000000000011110000000000000200000000000000000000001111111111111111111111111111111111111111',
 			/* CRATES */
 			[1, 2]
 		],
@@ -809,9 +727,9 @@
 			300000,
 			/* MAP */
 			'3333330000000000000000000000000000000060' +
-			'5555530000000000000000000000000000000011' +
-			'5555500000000000000000000033330000000000' +
-			'5555500000000000000200000000000000000000' +
+			'0000000000000000000000000000000000000011' +
+			'0550000000000000000000000033330000000000' +
+			'0550000000000000000200000000000000000000' +
 			'1111110010011001111201110011110000000000' +
 			'0000000000033000000200000000001000000000' +
 			'0000000000000000070200000000000100000000' +
@@ -883,15 +801,10 @@
 		return [x, y];
 	}
 
-	function printText(context, textArray, x, y, yIncrement, color, align) {
-		var previousFillColor = context.fillColor;
-		var previousTextAlign = context.textAlign;
-		if (color) {
-			context.fillStyle = color;
-		}
-		if (align) {
-			context.textAlign = align;
-		}
+	function printText(context, textArray, x, y, yIncrement, color) {
+		var previousFillColor = context.fillColor,
+			previousTextAlign = context.textAlign;
+		context.fillStyle = color;
 		var textArrayCopy = textArray.slice(),
 			tempY = y;
 		while (textArrayCopy.length > 0) {
@@ -907,37 +820,34 @@
 	//
 
 	function loadSound(name, data) {
-		if (!IS_AUDIO_SUPPORTED) {
-			return;
+		if (IS_AUDIO_SUPPORTED) {
+			try {
+				Sounds[name] = jsfxlib.createWave(data);
+			} catch (e) {}
 		}
-		try {
-			Sounds[name] = jsfxlib.createWave(data);
-		} catch (e) {}
 	}
 
 	function playNextNote() {
-		if (!IS_AUDIO_SUPPORTED) {
-			return;
+		if (IS_AUDIO_SUPPORTED) {
+			try {
+				if (Game.state === GAME_STATE.PLAYING && introThemeString.length > 0) {
+					introTheme[introThemeString.shift()]['play']();
+					setTimeout(playNextNote, 200);
+				}
+			} catch (e) {}
 		}
-		try {
-			if (Game.state === GAME_STATE.PLAYING && introThemeString.length > 0) {
-				introTheme[introThemeString.shift()]['play']();
-				setTimeout(playNextNote, 200);
-			}
-		} catch (e) {}
 	}
 
 	function playSound(soundName) {
-		if (!IS_AUDIO_SUPPORTED) {
-			return;
+		if (IS_AUDIO_SUPPORTED) {
+			try {
+				if (Sounds[soundName]) {
+					Sounds[soundName]['pause']();
+					Sounds[soundName]['currentTime'] = 0;
+					Sounds[soundName]['play']();
+				}
+			} catch (e) {}
 		}
-		try {
-			if (Sounds[soundName]) {
-				Sounds[soundName]['pause']();
-				Sounds[soundName]['currentTime'] = 0;
-				Sounds[soundName]['play']();
-			}
-		} catch (e) {}
 	}
 
 	//
@@ -956,7 +866,7 @@
 			/* CRATES STARTING POSITION */
 			currentLevel[LEVEL_PARAMS.CRATES_STARTING_POSITION].slice(),
 			/* GRANNY POSITION */
-			currentLevel[LEVEL_PARAMS.GRANNY_POSITION] && currentLevel[LEVEL_PARAMS.GRANNY_POSITION].slice(),
+			currentLevel[LEVEL_PARAMS.GRANNY_POSITION].slice(),
 			/* TIME */
 			currentLevel[LEVEL_PARAMS.TIME],
 			/* MAP */
@@ -1048,14 +958,10 @@
 
 		selectedBlock = 0;
 
-		if (lvl[LEVEL_PARAMS.GRANNY_POSITION]) {
-			Granny.position = lvl[LEVEL_PARAMS.GRANNY_POSITION].slice();
-			Granny.startingLaserPosition = [lvl[LEVEL_PARAMS.GRANNY_POSITION][0] + 15, lvl[LEVEL_PARAMS.GRANNY_POSITION][1] + 23];
-			Granny.laserPosition = Granny.startingLaserPosition.slice();
-		} else {
-			Granny.position = null;
-			Granny.startingLaserPosition = null;
-		}
+		Granny.position = lvl[LEVEL_PARAMS.GRANNY_POSITION].slice();
+		Granny.startingLaserPosition = [lvl[LEVEL_PARAMS.GRANNY_POSITION][0] + 15, lvl[LEVEL_PARAMS.GRANNY_POSITION][1] + 23];
+		Granny.laserPosition = Granny.startingLaserPosition.slice();
+		Granny.laserSpeed = 1;
 
 		Map = '4444444444444444444444444444444444444444' + lvl[LEVEL_PARAMS.MAP] + '4444444444444444444444444444444444444444';
 		Map = Map.split('');
@@ -1073,20 +979,22 @@
 		icCtx.fillStyle = 'rgba(0,0,0,0.7)';
 		icCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 		icCtx.fillStyle = '#fff';
-		icCtx.font = '20px courier';
 		icCtx['textAlign'] = 'center';
+		icCtx.fillText('A 13kB game by Alberto Congiu', CANVAS_WIDTH / 2, 12);
+		icCtx.font = '20px courier';
+
 		icCtx.fillText(Game.currentLevel[LEVEL_PARAMS.NAME], CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
 
-		icCtx.fillText('Delivery Boy ' + Game.boyPoints + ' - ' + Game.crowPoints + ' Crow', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+		icCtx.fillText('Luke ' + Game.boyPoints + ' - ' + Game.crowPoints + ' Crow', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
 		icCtx.font = '15px courier';
-		icCtx.fillText("Click the " + (isMobileDevice ? "screen" : "crow") + " to start!", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
-		icCtx.fillText("< >: Select level", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
-		var str = lvl[LEVEL_PARAMS.IS_CUSTOM] ? "E: EDIT   " + (isMobileDevice ? "1" : "D") + ": DELETE   " + (isMobileDevice ? "2" : "J") + ": EXPORT   I: IMPORT" : "E: EDIT   I: IMPORT";
+		icCtx.fillText('Click the ' + (isMobileDevice ? 'screen' : 'crow') + ' to start', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
+		icCtx.fillText('< >: Select level', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
+		var str = lvl[LEVEL_PARAMS.IS_CUSTOM] ? 'E: EDIT   ' + (isMobileDevice ? 'S' : 'D') + ': DELETE   ' + (isMobileDevice ? 'A' : 'J') + ': EXPORT   I: IMPORT' : 'E: EDIT   I: IMPORT';
 		icCtx.fillText(str, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 120);
 
 		icCtx['beginPath']();
 		icCtx['arc'](Crow.position[0], Crow.position[1], 16, 0, 360);
-		icCtx['lineWidth'] = 1;
+		icCtx['lineWidth'] = 2;
 		icCtx['strokeStyle'] = '#fff';
 		icCtx['stroke']();
 
@@ -1136,7 +1044,7 @@
 			Levels[selectedLevel][LEVEL_PARAMS.MAP] = Map.join('').substring(I, I * J - I);
 			Levels[selectedLevel][LEVEL_PARAMS.PLAYER_STARTING_POSITION] = Player.position.slice();
 			Levels[selectedLevel][LEVEL_PARAMS.CROW_STARTING_POSITION] = Crow.position.slice();
-			Levels[selectedLevel][LEVEL_PARAMS.GRANNY_POSITION] = Granny.position ? Granny.position.slice() : undefined;
+			Levels[selectedLevel][LEVEL_PARAMS.GRANNY_POSITION] = Granny.position.slice();
 			Levels[selectedLevel][LEVEL_PARAMS.CRATES_STARTING_POSITION] = Crate.startPosition.slice();
 		}
 		resetGame(selectedLevel);
@@ -1177,7 +1085,7 @@
 				Player.position = currentMousePosition.slice();
 			} else if (selectedBlock === GAME_ELEMENTS.CROW) {
 				Crow.position = currentMousePosition.slice();
-			} else if (selectedBlock === GAME_ELEMENTS.GRANNY && Granny.position) {
+			} else if (selectedBlock === GAME_ELEMENTS.GRANNY) {
 				Granny.position = currentMousePosition.slice();
 				Granny.startingLaserPosition = [Granny.position[0] + 15, Granny.position[1] + 23];
 				Granny.laserPosition = Granny.startingLaserPosition.slice();
@@ -1202,20 +1110,13 @@
 		}
 	}
 
-	function getWarningRadius() {
-		return getPlayerSpeed() * PLAYER_RADIUS_MULTIPLIER + PLAYER_WARNING_RADIUS;
-	}
 
 	function getDamageRadius() {
 		return getPlayerSpeed() * PLAYER_RADIUS_MULTIPLIER + PLAYER_DAMAGE_RADIUS;
 	}
 
-	function isCrowInPlayerWarningZone() {
-		return getWarningRadius(), 2 >= distance(Crow.position, Player.position);
-	}
-
 	function isCrowInPlayerDamageZone() {
-		return getDamageRadius(), 2 >= distance(Crow.position, Player.position);
+		return getDamageRadius() >= distance(Crow.position, Player.position);
 	}
 
 	function stunCrow(t) {
@@ -1234,7 +1135,7 @@
 	// PLAYER ACTIONS
 	//
 
-	function breakCurrentCrate(currentCrate, t) {
+	function breakCrate(currentCrate, t) {
 		playSound(SOUND_TYPE.PLAYER_CRASH);
 		Player.crateCarried = undefined;
 		currentCrate.position = currentCrate.startPosition.slice();
@@ -1255,16 +1156,6 @@
 		currentSpeed = Math.min(speed, currentSpeed + speed / 7);
 		Player.currentSpeed = currentSpeed;
 		return (isPlayerOnBlock(BLOCK_TYPE.LADDER) ? speed / 2 : currentSpeed);
-	}
-
-	function checkIfCurrentCrateBreaks(t) {
-		var currentCrate = getCurrentCrate();
-		if (currentCrate) {
-			var verticalSpeedThreshold = MIN_VERTICAL_SPEED_TO_CRASH - currentCrate.size;
-			if (Player.verticalSpeed > verticalSpeedThreshold && currentCrate) {
-				breakCrate(currentCrate, t);
-			}
-		}
 	}
 
 	function interact() {
@@ -1299,15 +1190,11 @@
 		}
 	}
 
-	function getCurrentCrate() {
-		return Player.crateCarried !== undefined ? CratesArray[Player.crateCarried] : undefined;
-	}
-
 	//
 	// CAT
 	//
 
-	function getCatNextPosition() {
+	function showCat(t) {
 		if (!solidBlockMap) {
 			solidBlockMap = [];
 			for (var i = 0; i < Map.length; i++) {
@@ -1316,20 +1203,15 @@
 				}
 			}
 		}
-		var rndPos = solidBlockMap[Math.floor(Math.random() * solidBlockMap.length)],
-			x = rndPos % I,
-			y = Math.floor(rndPos / I);
+		var rndPos = solidBlockMap[Math.floor(Math.random() * solidBlockMap.length)] + 1,
+			nextPosition = [(rndPos % I) * BLOCK_SIZE, Math.floor(rndPos / I) * BLOCK_SIZE];
 
-		return [x * BLOCK_SIZE, y * BLOCK_SIZE];
-	}
-
-	function showCat(t) {
-		var nextPosition = getCatNextPosition();
 		Cat.nextPosition = [nextPosition[0] - 6, nextPosition[1] - 10];
 		if (!Cat.position) {
 			Cat.position = Cat.nextPosition.slice();
 		}
 		Cat.nextCatMovement = t + NEXT_CAT_MOVEMENT_TIMEOUT;
+		Granny.laserSpeed += 0.05;
 	}
 
 	//
@@ -1341,7 +1223,7 @@
 	}
 
 	function distance(pos1, pos2) {
-		return Math.sqrt(Math.pow(pos1[0] - pos2[0], 2) + Math.pow(pos1[1] - pos2[1], 2));
+		return pos1 && pos2 && Math.sqrt(Math.pow(pos1[0] - pos2[0], 2) + Math.pow(pos1[1] - pos2[1], 2));
 	}
 
 	function getDirectionAngle(origin, destination) {
@@ -1419,18 +1301,14 @@
 				'keyCode': keyCode
 			});
 		}
-		addEvent(btn, 'touchstart', touchstart);
-		addEvent(btn, 'touchend', touchend);
-		addEvent(btn, 'MSPointerDown', touchstart);
-		addEvent(btn, 'MSPointerUp', touchend);
+		addEvent(btn, touchStartEvent, touchstart);
+		addEvent(btn, touchEndEvent, touchend);
 	}
 
 	function bindButtonToCustomFunction(buttonId, touchStartCallback, touchEndCallback) {
 		var btn = document.getElementById(buttonId);
-		addEvent(btn, 'touchstart', touchStartCallback);
-		addEvent(btn, 'touchend', touchEndCallback);
-		addEvent(btn, 'MSPointerDown', touchStartCallback);
-		addEvent(btn, 'MSPointerUp', touchEndCallback);
+		addEvent(btn, touchStartEvent, touchStartCallback);
+		addEvent(btn, touchEndEvent, touchEndCallback);
 	}
 
 
@@ -1441,35 +1319,11 @@
 	 *
 	 */ ///////////////////////////////////////
 
-	// var inputHandlers = [];
-	// for (var gs = 0; gs < GAME_STATE.length; gs++) {
-	// 	inputHandlers[gs] = {};
-	// }
-
-	// function assignInput(gameState, keyCode, callback) {
-	// 	inputHandlers[gameState][keyCode] = callback;
-	// }
-	// var state = GAME_STATE.MENU;
-	// assignInput(state, KEYCODES.LEFT, function () {
-	// 	selectedLevel = (selectedLevel + Levels.length - 1) % Levels.length;
-	// 	resetGame(selectedLevel);
-	// });
-
 	//
 	// INPUT
 	//
 
 	function processInput(t) {
-		// var k = KeyHandler.k;
-		// if (!Player.isMoving) {
-		// 	for (var key in k) {
-		// 		if (k[key] && inputHandlers[k[key]]) {
-		// 			inputHandlers[k[key]]();
-		// 			Player.isMoving 
-		// 		}
-		// 	}
-		// }
-
 		var speed = getPlayerSpeed(),
 			ladderSpeed = Player.ladderSpeed,
 			x = Player.position[0],
@@ -1501,25 +1355,13 @@
 				}
 				k[KEYCODES.DELETE] = undefined;
 			} else if (k[KEYCODES.EXPORT_LEVEL] && Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM] && !Player.isMoving) {
-				// var compressedLevel = LZW.compress(JSON.stringify(Levels[selectedLevel]));
-				// var compressedString = '',
-				// 	ch = 0;
-				// for (ch = 0; ch < compressedLevel.length; ch++) {
-				// 	compressedString += String.fromCharCode(compressedLevel[ch]);
-				// }
-				// var jsonLevel = prompt('Level data', compressedString);
-				var jsonLevel = prompt('Level data', JSON.stringify(Levels[selectedLevel]));
+				var jsonLevel = prompt('Data', JSON.stringify(Levels[selectedLevel]));
 				// Need to do this because the prompt hangs the keycode pressed
 				k[KEYCODES.EXPORT_LEVEL] = undefined;
 			} else if (k[KEYCODES.IMPORT_LEVEL]) {
-				var jsonLevel = prompt('Level data');
+				var jsonLevel = prompt('Data');
 				if (jsonLevel) {
 					try {
-						// var arrayOfChars = [];
-						// for (ch = 0; ch < jsonLevel.length; ch++) {
-						// 	arrayOfChars.push(jsonLevel.charCodeAt(ch));
-						// }
-						// createCustomLevel(JSON.parse(LZW.decompress(arrayOfChars)));
 						createCustomLevel(JSON.parse(jsonLevel));
 					} catch (e) {
 						alert('Error!');
@@ -1527,7 +1369,7 @@
 				}
 				// Need to do this because the prompt hangs the keycode pressed
 				k[KEYCODES.IMPORT_LEVEL] = undefined;
-			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.DELETE] && !k[KEYCODES.EAT] && !k[KEYCODES.EXPORT_LEVEL] && !k[KEYCODES.IMPORT_LEVEL] /*&& !k[KEYCODES.SHARE]*/ ) {
+			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.DELETE] && !k[KEYCODES.EAT] && !k[KEYCODES.EXPORT_LEVEL] && !k[KEYCODES.IMPORT_LEVEL]) {
 				Player.isMoving = false;
 			}
 			return;
@@ -1537,15 +1379,6 @@
 				Player.isMoving = true;
 			} else if (k[KEYCODES.RIGHT] && !Player.isMoving) {
 				selectedBlock = (selectedBlock + 1) % NUM_EDIT_OPTIONS;
-				Player.isMoving = true;
-			} else if (k[KEYCODES.GRANNY] && !Player.isMoving) {
-				if (Granny.position instanceof Array) {
-					Granny.position = Granny.startingLaserPosition = Granny.laserPosition = null;
-				} else {
-					Granny.position = [32, 32];
-					Granny.startingLaserPosition = [Granny.position[0] + 15, Granny.position[1] + 23];
-					Granny.laserPosition = Granny.startingLaserPosition.slice();
-				}
 				Player.isMoving = true;
 			} else if (k[KEYCODES.CRATES] && !Player.isMoving) {
 				Player.isMoving = true;
@@ -1583,7 +1416,7 @@
 				Player.isMoving = true;
 				exitFromEditModeAndSave();
 				k[KEYCODES.EAT] = undefined;
-			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.GRANNY] && !k[KEYCODES.CRATES] && !k[KEYCODES.NAME] && !k[KEYCODES.TIME] && !k[KEYCODES.EAT]) {
+			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.CRATES] && !k[KEYCODES.NAME] && !k[KEYCODES.TIME] && !k[KEYCODES.EAT]) {
 				Player.isMoving = false;
 			}
 		} else if (Game.state === GAME_STATE.PLAYING) {
@@ -1668,15 +1501,14 @@
 	}
 
 	function update(t) {
-
 		currentT = t;
 
 		// Mobile controls
 		if (isTouchingDPad && touchPositions) {
 			var touchPosition, tempTp;
 			if (touchPositions['clientX']) {
-				touchPosition = touchPositions
-			} else if (touchPositions instanceof Array) {
+				touchPosition = touchPositions;
+			} else if (touchPositions instanceof TouchList) {
 				for (var tp = 0; tp < touchPositions.length; tp++) {
 					tempTp = touchPositions[tp];
 					if (tempTp.clientX >= dPadDivPosition.left && tempTp.clientX < (dPadDivPosition.left + dPadDivPosition.width) &&
@@ -1732,11 +1564,17 @@
 			Player.position[1] = stoppingY;
 			if (Player.isInAir) {
 				Player.currentSpeed = 0;
-				checkIfCurrentCrateBreaks(t);
+				var currentCrate = (Player.crateCarried !== undefined) && CratesArray[Player.crateCarried];
+				if (currentCrate) {
+					var verticalSpeedThreshold = MIN_VERTICAL_SPEED_TO_CRASH - currentCrate.size;
+					if (Player.verticalSpeed > verticalSpeedThreshold) {
+						breakCrate(currentCrate, t);
+					}
+				}
 			}
 			Player.isInAir = false;
 			Player.verticalSpeed = 0;
-		} else if (!isAABBOverBlock(Player.position[0] - 16, Player.position[1] - 32, 16, 32, BLOCK_TYPE.LADDER)) {
+		} else if (!isAABBCollidingWithBlock(Player.position[0] - 16, Player.position[1] - 32, 16, 32, BLOCK_TYPE.LADDER)) {
 			Player.verticalSpeed += 1;
 			Player.isInAir = true;
 			Player.position[1] += Player.verticalSpeed;
@@ -1760,8 +1598,8 @@
 		for (s = 0; s < ShotsArray.length; s++) {
 			var curShot = ShotsArray[s];
 			curShot.position[1] += curShot.speed;
-			if (arePositionsInSameBlock(Player.position, curShot.position)) {
-				breakCurrentCrate();
+			if (arePositionsInSameBlock(Player.position, curShot.position) && Player.crateCarried !== undefined) {
+				breakCrate(CratesArray[Player.crateCarried], t);
 				ShotsArray.splice(s, 1);
 				s--;
 			} else if (curShot.position[1] > CANVAS_HEIGHT || isPositionOnBlock(curShot.position, BLOCK_TYPE.ROOF)) {
@@ -1781,8 +1619,8 @@
 
 		// Update Cat's position
 		if (Cat.position) {
-			if (distance(Player.position, Cat.position) < 15) {
-				getCurrentCrate() && breakCurrentCrate(getCurrentCrate(), t);
+			if (Player.crateCarried !== undefined && distance(Player.position, Cat.position) < 15) {
+				breakCrate(CratesArray[Player.crateCarried], t);
 			}
 			if (distance(Crow.position, Cat.position) < 15) {
 				stunCrow(t);
@@ -1793,22 +1631,16 @@
 			updateMovingPosition(Cat, CROW_MOVEMENT_THRESHOLD);
 		}
 
-
-		// Check if Crow is inside player's radius
-		Crow.isInWarningZone = isCrowInPlayerWarningZone();
-
 		// Update Laser's position
-		if (Granny.position) {
-			var laserTargetPosition = isPositionOnBlock(Crow.position, BLOCK_TYPE.NEST) ? Granny.startingLaserPosition : Crow.position,
-				laserToCrowAngle = getDirectionAngle(Granny.laserPosition, laserTargetPosition),
-				tangentSide = Granny.laserPosition[0] > laserTargetPosition[0] ? -1 : 1;
-			if (Math.abs(laserTargetPosition[0] - Granny.laserPosition[0]) > LASER_MOVEMENT_THRESHOLD || Math.abs(laserTargetPosition[1] - Granny.laserPosition[1]) > LASER_MOVEMENT_THRESHOLD) {
-				Granny.laserPosition[0] += Math.cos(laserToCrowAngle) * tangentSide * LASER_SPEED;
-				Granny.laserPosition[1] += Math.sin(laserToCrowAngle) * tangentSide * LASER_SPEED;
-			}
+		var laserTargetPosition = isPositionOnBlock(Crow.position, BLOCK_TYPE.NEST) ? Granny.startingLaserPosition : Crow.position,
+			laserToCrowAngle = getDirectionAngle(Granny.laserPosition, laserTargetPosition),
+			tangentSide = Granny.laserPosition[0] > laserTargetPosition[0] ? -1 : 1;
+		if (Math.abs(laserTargetPosition[0] - Granny.laserPosition[0]) > LASER_MOVEMENT_THRESHOLD || Math.abs(laserTargetPosition[1] - Granny.laserPosition[1]) > LASER_MOVEMENT_THRESHOLD) {
+			Granny.laserPosition[0] += Math.cos(laserToCrowAngle) * tangentSide * Granny.laserSpeed;
+			Granny.laserPosition[1] += Math.sin(laserToCrowAngle) * tangentSide * Granny.laserSpeed;
 		}
 
-		if ((isCrowInPlayerDamageZone() || isAABBCollidingWithBlock(Crow.position[0], Crow.position[1], 0, 0, BLOCK_TYPE.ROOF) || (Granny.position && (distance(Granny.laserPosition, Crow.position) < LASER_MOVEMENT_THRESHOLD))) && Crow.stunnedTimeout < t) {
+		if ((isCrowInPlayerDamageZone() || isAABBCollidingWithBlock(Crow.position[0], Crow.position[1], 0, 0, BLOCK_TYPE.ROOF) || (distance(Granny.laserPosition, Crow.position) < LASER_MOVEMENT_THRESHOLD)) && Crow.stunnedTimeout < t) {
 			stunCrow(t);
 		}
 	}
@@ -1824,7 +1656,7 @@
 
 	function drawBlockTypeAt(blockType, x, y) {
 		var image = null,
-			color = '#00deff'; // As default, use sky color, also as background for images that have transparency
+			color = (Cat.position) ? '#c29' : '#00deff'; // As default, use sky color, also as background for images that have transparency
 		if (blockType === BLOCK_TYPE.SOLID) {
 			image = IMAGE_MAP_DATA_NAMES.WALL;
 		} else if (blockType === BLOCK_TYPE.ROOF) {
@@ -1880,9 +1712,7 @@
 			drawImage(IMAGE_MAP_DATA_NAMES.SHOT, cur.position[0] - 8, cur.position[1] - 8);
 		}
 
-		if (Granny.position) {
-			drawImage(IMAGE_MAP_DATA_NAMES.GRANNY, Granny.position[0], Granny.position[1]);
-		}
+		drawImage(IMAGE_MAP_DATA_NAMES.GRANNY, Granny.position[0], Granny.position[1]);
 
 		if (Game.currentLevel[LEVEL_PARAMS.INSTRUCTIONS]) {
 			for (var instr = 0; instr < Game.currentLevel[LEVEL_PARAMS.INSTRUCTIONS].length; instr++) {
@@ -1892,15 +1722,13 @@
 	}
 
 	function drawLaser() {
-		if (Granny.position) {
-			ctx.fillStyle = 'red';
-			ctx.fillRect(Granny.laserPosition[0] - 1, Granny.laserPosition[1] - 1, 2, 2);
-			ctx['beginPath']();
-			ctx['arc'](Granny.laserPosition[0], Granny.laserPosition[1], 5, 0, 360);
-			ctx['lineWidth'] = 2;
-			ctx['strokeStyle'] = 'red';
-			ctx['stroke']();
-		}
+		ctx.fillStyle = 'red';
+		ctx.fillRect(Granny.laserPosition[0] - 1, Granny.laserPosition[1] - 1, 2, 2);
+		ctx['beginPath']();
+		ctx['arc'](Granny.laserPosition[0], Granny.laserPosition[1], 5, 0, 360);
+		ctx['lineWidth'] = 2;
+		ctx['strokeStyle'] = 'red';
+		ctx['stroke']();
 	}
 
 	function drawMap() {
@@ -1929,7 +1757,7 @@
 			ctx.drawImage(cur.image, Player.facingLeft ? cur.position[0] + 2 : cur.position[0] - 15 - cur.size, cur.position[1] - 10);
 		}
 
-		if (Crow.isInWarningZone) {
+		if ((getPlayerSpeed() * PLAYER_RADIUS_MULTIPLIER + PLAYER_WARNING_RADIUS) >= distance(Crow.position, Player.position)) {
 			ctx['beginPath']();
 			ctx['arc'](Player.position[0], Player.position[1], getDamageRadius(), 0, 360);
 			ctx['lineWidth'] = 2;
@@ -1939,31 +1767,22 @@
 	}
 
 	function drawStatus(t) {
+		ctx.fillStyle = 'white';
 		if (Game.state === GAME_STATE.PLAYING) {
-			ctx.fillStyle = '#00deff';
-			ctx.fillText("BOY", 10, 396);
-			ctx.fillStyle = 'red';
-			ctx.fillText("CROW", 600, 12);
-			ctx.fillStyle = 'white';
-
 			// Boy's status
-			ctx.fillText("SPEED: " + getPlayerSpeed() + "   BOOST: " + Math.max(0, Math.ceil((Player.speedBoostTimeout - t) / 1000)) + "   TIME: " + Math.max(0, Math.ceil((Game.time - t) / 1000)) + "   CANDIES: " + Player.candies + "   CRATES: " + Player.crates, 50, 396);
+			ctx.fillText('⚙ ' + Math.max(0, Math.ceil((Game.time - t) / 1000)) + '   § ' + Player.candies + '   ◼ ' + Player.crates, 50, 396);
 
 			// Crow's status
-			ctx.fillText("SHOTS: " + Crow.shots + "   STUN: " + Math.max(0, Math.ceil((Crow.stunnedTimeout - t) / 1000)) + "   HEALTH: " + Crow.health, 410, 12);
+			ctx.fillText('↡ ' + Crow.shots + '   ♥ ' + Crow.health, 530, 12);
+
+			ctx.fillStyle = '#00deff';
+			ctx.fillText('LUKE', 10, 396);
+			ctx.fillStyle = 'red';
+			ctx.fillText('CROW', 600, 12);
 		} else if (Game.state === GAME_STATE.EDIT) {
-			ctx.fillStyle = 'white';
-			ctx.fillText("< > CHANGE BLOCK   G: GRANNY   C: CRATES   T: TIME (" + Levels[selectedLevel][LEVEL_PARAMS.TIME] + ")   N: NAME (" + Levels[selectedLevel][LEVEL_PARAMS.NAME] + ")" + (isMobileDevice ? '   1: PAINT   2: TOGGLE PAINT' : ''), 12, 12);
+			// Edit commands
+			ctx.fillText('< > CHANGE BLOCK   C: CRATES   T: TIME (' + Levels[selectedLevel][LEVEL_PARAMS.TIME] + ')   N: NAME (' + Levels[selectedLevel][LEVEL_PARAMS.NAME] + ')' + (isMobileDevice ? '   S: PAINT   A: TOGGLE PAINT   DPAD: MOVE' : ''), 12, 12);
 		}
-		// Logs to be removed
-		// ctx.fillStyle = 'red';
-		// ctx.fillText(Player.nearestSolidBlockY, 10, 10);
-		// ctx.fillText("Dist: " + squareDistance(Crow.position, Player.position) + ', Warn: ' + getWarningRadius(), 10, 10);
-		// ctx.fillText("(" + Player.position[0] + ', ' + Player.position[1] + ')', 10, 20);
-		// ctx.fillText("Vert speed: " + Player.verticalSpeed, 10, 10);
-		// ctx.fillText(I * Math.round(Player.position[1] / BLOCK_SIZE) + Math.round(Player.position[0] / BLOCK_SIZE), 10, 30);
-		// ctx.fillText(getMapAt(Math.round(Player.position[0, Math.round(Player.position[1] / BLOCK_SIZE)) / BLOCK_SIZE)], 10, 40);
-		// ctx.fillText("Crow Position: (" + Crow.position[0] + ', ' + Crow.position[1] + ")", 10, 50);
 	}
 
 	function render(t) {
@@ -2036,8 +1855,7 @@
 				startGame();
 			}
 		}
-		addEvent(canvas, 'touchstart', touchstart);
-		addEvent(canvas, 'MSPointerDown', touchstart);
+		addEvent(canvas, touchStartEvent, touchstart);
 
 
 		bindButtonToCustomFunction('s', function () {
@@ -2054,7 +1872,7 @@
 			});
 		});
 
-		bindButtonToCustomFunction('e', function (evt) {
+		bindButtonToCustomFunction('a', function (evt) {
 			if (Game.state === GAME_STATE.MENU) {
 				KeyHandler.onKeyDown({
 					'keyCode': KEYCODES.EXPORT_LEVEL
@@ -2080,15 +1898,9 @@
 				dPadDivPosition = dPad.getBoundingClientRect(),
 				isTouchingDPad = true;
 			};
-		addEvent(dPad, 'touchstart', dPadHandler);
-		addEvent(dPad, 'MSPointerDown', dPadHandler);
-		addEvent(dPad, 'touchmove', dPadHandler);
-		addEvent(dPad, 'MSPointerMove', dPadHandler);
-		addEvent(dPad, 'touchend', function (evt) {
-			evt.preventDefault();
-			isTouchingDPad = false;
-		});
-		addEvent(dPad, 'MSPointerUp', function (evt) {
+		addEvent(dPad, touchStartEvent, dPadHandler);
+		addEvent(dPad, touchMoveEvent, dPadHandler);
+		addEvent(dPad, touchEndEvent, function (evt) {
 			evt.preventDefault();
 			isTouchingDPad = false;
 		});
@@ -2103,13 +1915,13 @@
 			});
 		});
 
-		bindButtonToKeyCode('a', KEYCODES.EAT);
+		bindButtonToKeyCode('x', KEYCODES.MENU);
+		bindButtonToKeyCode('e', KEYCODES.EAT);
 		bindButtonToKeyCode('l', KEYCODES.LEFT);
 		bindButtonToKeyCode('u', KEYCODES.UP);
 		bindButtonToKeyCode('r', KEYCODES.RIGHT);
 		bindButtonToKeyCode('d', KEYCODES.DOWN);
 
-		bindButtonToKeyCode('g', KEYCODES.GRANNY);
 		bindButtonToKeyCode('c', KEYCODES.CRATES);
 		bindButtonToKeyCode('t', KEYCODES.TIME);
 		bindButtonToKeyCode('n', KEYCODES.NAME);
@@ -2149,22 +1961,22 @@
 	// AUDIO
 	//
 	for (var s = 0; s < NOTES_CDEFGABC.length; s++) {
-		introTheme[s] = jsfxlib.createWave(["synth", 0.0000, 0.4000, 0.0000, 0.2080, 0.0000, 0.1200, 20.0000, NOTES_CDEFGABC[s], 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.1000, 0.0000]);
+		introTheme[s] = jsfxlib.createWave(['synth', 0.0000, 0.4000, 0.0000, 0.2080, 0.0000, 0.1200, 20.0000, NOTES_CDEFGABC[s], 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.1000, 0.0000]);
 	}
 	introThemeString = INTRO_THEME.slice();
 
-	loadSound(SOUND_TYPE.JUMP, ["square", 0.0000, 0.4000, 0.0000, 0.1740, 0.0000, 0.2800, 20.0000, 497.0000, 2400.0000, 0.2200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0665, 0.0000, 0.0000, 0.0000, 0.0000, 0.7830, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.PLAYER_CRASH, ["noise", 0.0000, 0.4000, 0.0000, 0.1400, 0.4050, 0.1160, 20.0000, 479.0000, 2400.0000, -0.0700, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, -0.0860, -0.1220, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CRATE_DELIVERY, ["square", 0.0000, 0.4000, 0.0000, 0.0980, 0.5040, 0.2820, 20.0000, 1582.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.SPEED_BOOST, ["saw", 0.0000, 0.4000, 0.0000, 0.3240, 0.0000, 0.2840, 20.0000, 631.0000, 2400.0000, 0.1720, 0.0000, 0.4980, 19.3500, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CROW_SHOT, ["saw", 0.0000, 0.4000, 0.0000, 0.2120, 0.0000, 0.0280, 20.0000, 1169.0000, 2400.0000, -0.5200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.5000, -0.5920, 0.0000, 0.0940, 0.0660, 1.0000, 0.0000, 0.0000, 0.2800, 0.0000]);
-	loadSound(SOUND_TYPE.FAILURE, ["synth", 0.0000, 0.4000, 0.0000, 0.3200, 0.3480, 0.4400, 20.0000, 372.0000, 417.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.3740, 0.2640, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.SUCCESS, ["synth", 0.0000, 0.4000, 0.0000, 0.1300, 0.3450, 0.4100, 253.0000, 1168.0000, 1407.0000, -0.0060, -0.0820, 0.0000, 0.0100, 0.0003, 0.0000, 0.2060, 0.1660, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CRATE_PICKUP, ["noise", 0.0000, 0.4000, 0.0000, 0.0020, 0.0240, 0.0900, 20.0000, 372.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3420, 0.8090, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CROW_CRASH, ["noise", 0.0000, 0.4000, 0.0000, 0.1520, 0.3930, 0.2740, 20.0000, 839.0000, 2400.0000, -0.3100, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3400, 0.7830, 0.0000, 0.0000, 0.6096, 0.5260, -0.0080, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CROW_EAT, ["square", 0.0000, 0.4000, 0.0000, 0.0400, 0.0000, 0.0480, 20.0000, 578.0000, 2400.0000, 0.1040, 0.0000, 0.6830, 19.1580, 0.0003, 0.0000, 0.0000, 0.0000, 0.3850, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.DISPENSER, ["square", 0.0000, 0.4000, 0.0000, 0.0460, 0.4770, 0.2400, 20.0000, 1197.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.4980, 0.2040, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.GRANNY_SHOT, ["noise", 0.0000, 0.4000, 0.0000, 0.1080, 0.3360, 0.1240, 20.0000, 462.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.JUMP, ['square', 0.0000, 0.4000, 0.0000, 0.1740, 0.0000, 0.2800, 20.0000, 497.0000, 2400.0000, 0.2200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0665, 0.0000, 0.0000, 0.0000, 0.0000, 0.7830, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.PLAYER_CRASH, ['noise', 0.0000, 0.4000, 0.0000, 0.1400, 0.4050, 0.1160, 20.0000, 479.0000, 2400.0000, -0.0700, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, -0.0860, -0.1220, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CRATE_DELIVERY, ['square', 0.0000, 0.4000, 0.0000, 0.0980, 0.5040, 0.2820, 20.0000, 1582.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.SPEED_BOOST, ['saw', 0.0000, 0.4000, 0.0000, 0.3240, 0.0000, 0.2840, 20.0000, 631.0000, 2400.0000, 0.1720, 0.0000, 0.4980, 19.3500, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CROW_SHOT, ['saw', 0.0000, 0.4000, 0.0000, 0.2120, 0.0000, 0.0280, 20.0000, 1169.0000, 2400.0000, -0.5200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.5000, -0.5920, 0.0000, 0.0940, 0.0660, 1.0000, 0.0000, 0.0000, 0.2800, 0.0000]);
+	loadSound(SOUND_TYPE.FAILURE, ['synth', 0.0000, 0.4000, 0.0000, 0.3200, 0.3480, 0.4400, 20.0000, 372.0000, 417.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.3740, 0.2640, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.SUCCESS, ['synth', 0.0000, 0.4000, 0.0000, 0.1300, 0.3450, 0.4100, 253.0000, 1168.0000, 1407.0000, -0.0060, -0.0820, 0.0000, 0.0100, 0.0003, 0.0000, 0.2060, 0.1660, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CRATE_PICKUP, ['noise', 0.0000, 0.4000, 0.0000, 0.0020, 0.0240, 0.0900, 20.0000, 372.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3420, 0.8090, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CROW_CRASH, ['noise', 0.0000, 0.4000, 0.0000, 0.1520, 0.3930, 0.2740, 20.0000, 839.0000, 2400.0000, -0.3100, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3400, 0.7830, 0.0000, 0.0000, 0.6096, 0.5260, -0.0080, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CROW_EAT, ['square', 0.0000, 0.4000, 0.0000, 0.0400, 0.0000, 0.0480, 20.0000, 578.0000, 2400.0000, 0.1040, 0.0000, 0.6830, 19.1580, 0.0003, 0.0000, 0.0000, 0.0000, 0.3850, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.DISPENSER, ['square', 0.0000, 0.4000, 0.0000, 0.0460, 0.4770, 0.2400, 20.0000, 1197.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.4980, 0.2040, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.GRANNY_SHOT, ['noise', 0.0000, 0.4000, 0.0000, 0.1080, 0.3360, 0.1240, 20.0000, 462.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 
 	//
 	// LOAD THE FIRST LEVEL

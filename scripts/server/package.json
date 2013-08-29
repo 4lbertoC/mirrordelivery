@@ -1,8 +1,0 @@
-{
-	"name": "mirror-delivery-server",
-	"version": "0.5.1",
-	"dependencies": {},
-	"engines": {
-		"node": "0.10.x"
-	}
-}
