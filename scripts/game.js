@@ -1,3 +1,177 @@
+//////////////////////////////////////////////////////////////////////////////////
+//
+// Mirror Delivery
+//
+// A 13kB game by Alberto Congiu
+//
+//
+//
+// *** LICENSE ***
+//
+// Copyright (c) 2013 Alberto Congiu
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
+//
+//
+// *** DESCRIPTION ***
+//
+// Mirror Delivery is a competitive HTML5 game for 2 players.
+//
+// Player 1 interprets Luke, a delivery boy who has to deliver some crates full of
+// of mirrors to an old lady (from now on called "Granny").
+// Player 2 plays the Crow, an animal that enjoys annoying the delivery boys
+// that pass nearby. Unfortunately for him, Granny hates crows. Her shotgun is
+// ready to knock down any bird whose feather color is darker than #1f261c.
+//
+// There are some known facts:
+// - Breaking a mirror brings seven years of bad luck, and you have to deliver a
+//   crate full of them (forewarned is forearmed).
+// - Crows are strong, but killing a bird is generally not advisable.
+// - Black cats (do I need to say anything else?).
+// 
+// 
+// *** CONTROLS ***
+//
+// Player 1 (Luke, the delivery boy)
+//
+//   Desktop | Mobile |
+//  ---------+--------|------------------------------------------------------
+//	  Arrows | Arrows |  Move and jump, climb ladders
+//  ---------+--------|------------------------------------------------------
+//	Space bar|   I    |  Grab/release crates, buy candies from dispensers
+//  ---------+--------|------------------------------------------------------
+//	    E    |   E    |  Eat candy
+//  ---------+--------|------------------------------------------------------
+//	   Esc   |   X    |  Quit level
+//  ---------+--------|------------------------------------------------------
+//
+// Player 2
+//
+//   Desktop | Mobile |
+//  ---------+--------|------------------------------------------------------
+//	  Mouse  |  DPad  |  Move and jump, climb ladders
+//  ---------+--------|------------------------------------------------------
+//	Left btn |   S    |  Shoot
+//  ---------+--------|------------------------------------------------------
+//	Right btn|   A    |  Eat from the nest or the candy crumbs
+//  ---------+--------|------------------------------------------------------
+//
+// Edit Mode
+//
+//   Desktop | Mobile |
+//  ---------+--------|------------------------------------------------------
+//	  Mouse  |  DPad  |  Move cursor
+//  ---------+--------|------------------------------------------------------
+//	<>arrows |<>arrows|  Select element to draw
+//  ---------+--------|------------------------------------------------------
+//	Left btn |   S    |  Draw
+//  ---------+--------|------------------------------------------------------
+//	    -    |   A    |  Toggle auto-draw when moving
+//  ---------+--------|------------------------------------------------------
+//	    C    |   C    |  Change the number and value of the crates
+//  ---------+--------|------------------------------------------------------
+//	    T    |   T    |  Change the time limit
+//  ---------+--------|------------------------------------------------------
+//	    N    |   N    |  Change the name of the level
+//  ---------+--------|------------------------------------------------------
+//	   Esc   |   X    |  Quit editing
+//  ---------+--------|------------------------------------------------------
+//
+// Menu
+//
+//   Desktop | Mobile |
+//  ---------+--------|------------------------------------------------------
+//	<>arrows |<>arrows|  Select the level
+//  ---------+--------|------------------------------------------------------
+//	    E    |   E    |  Edit the level (or create a new one from base level)
+//  ---------+--------|------------------------------------------------------
+//	    I    |   I    |  Imports a level by entering its JSON
+//  ---------+--------|------------------------------------------------------
+//	    J    |   A    |  Export the current level in JSON format
+//  ---------+--------|------------------------------------------------------
+//	    D    |   S    |  Delete current level
+//  ---------+--------|------------------------------------------------------
+//
+//
+//
+// *** PROJECT STRUCTURE ***
+//
+// I decided to sacrifice cleanliness and OO structure to have instead more features
+// on the game.
+// There are no classes, but instead a lot of function definitions.
+// Since the algorithm used by zip compression tends to optimize repetitive chunks
+// of data, some of the functions are not refactored to gain some (preciousss) bytes.
+// This has the disadvantage that the unpacked code is bigger, and the game slower to
+// load. And, obviously, it's a lot more painful to read and understand (sorry).
+//
+// On the final phases, I was going up and down the limit of 13312 bytes (in a range
+// of ~10bytes!), and sometimes cutting away pieces of code had the result of having
+// a bigger final package.
+//
+// - Libraries -
+// The only external library that I use is JSFX to dynamically create sounds.
+// I have modified and optimized it for advanced minification.
+//
+// - Minification -
+// To minify the code I use Closure Compiler
+// https://developers.google.com/closure/compiler/
+//
+// I use externs for jsfx, otherwise the Compiler would complain that it doesn't
+// find some symbols.
+//
+// - Graphics -
+// I used TexturePacker to create the texture atlas, then I modified and imported
+// the JSON map to include only the data that I need, plus adding information about
+// animation frames.
+//
+// To draw mirrored images, like Luke going left, I create during initialization
+// a new canvas in which I draw the mirrored map, and then use this map with also
+// mirrored coordinates.
+//
+// The game is tile-based, and everything is redrawn entirely at each cycle on the
+// canvas (I preferred to save bytes for something else).
+//
+// - Level Editor -
+// Each level of the game can be edited and shared.
+// 
+// - Server -
+// I made a test with some server APIs to push your custom levels on the cloud and
+// share them by appending a hash to the URL, but storing data on files is
+// problematic on some service providers, and using databases requires heavy
+// libraries.
+// I dropped this feature and now I just show the JSON inside a prompt dialog.
+//
+// - Compatibility -
+// I tested the game with Chrome (on Mac OS, Windows and Android), Firefox and
+// IE10 (on a Windows 7 desktop and a Windows 8 tablet).
+// In order to play the game on touch enabled devices, I draw an overlay with
+// the buttons to control both Luke and the Crow. This works as long as the device
+// has multitouch support.
+//
+// - Game loop -
+// The game loop uses requestAnimationFrame, and is divided in the three phases of
+// processing input, updating and rendering. You can find it at the bottom of the
+// file, and that's basically the entry point to the entire code.
+//
+////////////////////////////////////////////////////////////////////////////////////
+
 (function () {
 	/*////////////////////////////////////////
 	 *
