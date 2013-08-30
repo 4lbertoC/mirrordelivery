@@ -73,7 +73,7 @@ Arrows  |  Arrows   |  Move and jump, climb ladders
 
   Desktop  |  Mobile   |  Action
 :-----------|------------:|:------------:
-	  Mouse   | analogPad |  Move and jump, climb ladders
+	  Mouse   | Analog Pad |  Move and jump, climb ladders
 	 Left btn |     S     |  Shoot
 	Right btn |     A     |  Eat from the nest or the candy crumbs
 
@@ -81,8 +81,8 @@ Arrows  |  Arrows   |  Move and jump, climb ladders
 
   Desktop  |  Mobile   |  Action
 :-----------|------------:|:------------:
-	  Mouse   | analogPad |  Move cursor
-	< > arrows| < > arrows|  Select element to draw
+	  Mouse   | Analog Pad |  Move cursor
+	<- -> arrows| <- -> arrows|  Select element to draw
 	 Left btn |     S     |  Draw
 	          |     A     |  Toggle auto-draw when moving
 	     C    |     C     |  Change the number and value of the crates
@@ -94,7 +94,7 @@ Arrows  |  Arrows   |  Move and jump, climb ladders
 
   Desktop  |  Mobile   |  Action
 :-----------|------------:|:------------:
-	< > arrows| < > arrows|  Select the level
+	<- -> arrows| <- -> arrows|  Select the level
 	     E    |     E     |  Edit the level (or create a new one from base level)
 	     I    |     I     |  Imports a level by entering its JSON
 	     J    |     A     |  Export the current level in JSON format
