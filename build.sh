@@ -3,7 +3,7 @@
 BUILDFOLDER=build
 PACKAGE_FILE_NAME=$BUILDFOLDER/package.zip
 MAXSIZE=13312
-OUTPUT_WRAPPER='/* github.com/4lbertoC/mirrordelivery */%output%'
+OUTPUT_WRAPPER='/* http://github.com/4lbertoC/mirrordelivery */%output%'
 
 echo "Building Client"
 rm -rf $BUILDFOLDER
