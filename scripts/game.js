@@ -970,6 +970,7 @@
 		shotArray.length = 0;
 
 		// Redraw the menu screen
+		menuCanvasContext.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 		menuCanvasContext.fillStyle = 'rgba(0,0,0,0.7)';
 		menuCanvasContext.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
