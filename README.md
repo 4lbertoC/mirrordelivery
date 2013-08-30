@@ -2,7 +2,7 @@ MIRROR DELIVERY
 ===============
 #### A 13kB game by Alberto Congiu for [js13kgames 2013](http://js13kgames.com/)
 
-[Play](http://albertocongiu.com/mirrordelivery)
+#### [Play](http://albertocongiu.com/mirrordelivery)
 
 ### DESCRIPTION
 
