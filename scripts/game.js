@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////
 //
-// MIRROR DELIVERY
+// MIRROR DELIVERY 1.0.0
 //
 // A 13kB game by Alberto Congiu
 //
@@ -508,7 +508,7 @@
 			laserSpeed: 1
 		},
 
-		// The black cat appears when Player's of Crow's health go below CAT_SPAWN_THRESHOLD.
+	// The black cat appears when Player's of Crow's health go below CAT_SPAWN_THRESHOLD.
 		// If touched by both player, it damages their health.
 		// When it appears, the laser also slowly increases its speed with time.
 		Cat = {
@@ -821,6 +821,10 @@
 		context.textAlign = previousTextAlign;
 	}
 
+	function showCursor(isShown) {
+		canvas['style']['cursor'] = isShown ? 'auto' : 'none';
+	}
+
 	//
 	// AUDIO
 	//
@@ -915,7 +919,7 @@
 			crateCtx = crateCanvas.getContext('2d');
 			crateCtx.fillStyle = 'yellow';
 			crateCtx.fillRect(0, 0, CRATE_IMAGE_WIDTH + currentCrateSize, CRATE_IMAGE_WIDTH + currentCrateSize);
-			crateCtx.fillStyle = 'black';
+			crateCtx.fillStyle = '#000';
 			crateCtx.fillText(currentCrateSize, 5, 10);
 			newCrate.image = crateCanvas;
 
@@ -1021,19 +1025,19 @@
 		Game.time = currentTime + Game.currentLevel[LEVEL_PARAMS.TIME];
 		playIntroSong();
 
-		canvas['style']['cursor'] = 'none';
+		showCursor();
 	}
 
 	function winBoy() {
 		Game.boyPoints += 1;
-		canvas['style']['cursor'] = 'auto';
+		showCursor(true);
 		playSound(SOUND_TYPE.SUCCESS);
 		resetGame(selectedLevel);
 	}
 
 	function winCrow() {
 		Game.crowPoints += 1;
-		canvas['style']['cursor'] = 'auto';
+		showCursor(true);
 		playSound(SOUND_TYPE.FAILURE);
 		resetGame(selectedLevel);
 	}
@@ -1102,7 +1106,7 @@
 	//
 
 	function exitAndSave() {
-		canvas['style']['cursor'] = 'auto';
+		showCursor(true);
 		if (Game.state === GAME_STATE.EDIT) {
 			Levels[selectedLevel][LEVEL_PARAMS.MAP] = Map.join('').substring(I, I * J - I);
 			Levels[selectedLevel][LEVEL_PARAMS.PLAYER_STARTING_POSITION] = Player.position.slice();
@@ -1306,7 +1310,7 @@
 		var currentLevel = level || Levels[selectedLevel],
 			CustomLevel = [
 			/* NAME */
-			'CustomLevel' + customLevelCounter++,
+			level ? currentLevel[LEVEL_PARAMS.NAME] : 'CustomLevel' + customLevelCounter++,
 			/* PLAYER STARTING POSITION */
 			currentLevel[LEVEL_PARAMS.PLAYER_STARTING_POSITION].slice(),
 			/* CROW STARTING POSITION */
@@ -1346,7 +1350,7 @@
 	//
 
 	function clearColor(color) {
-		ctx.fillStyle = color || 'black';
+		ctx.fillStyle = color || '#000';
 		ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 	}
 
@@ -1445,7 +1449,7 @@
 	function drawInstructions() {
 		if (Game.currentLevel[LEVEL_PARAMS.INSTRUCTIONS]) {
 			for (var instr = 0; instr < Game.currentLevel[LEVEL_PARAMS.INSTRUCTIONS].length; instr++) {
-				printTextLines(ctx, Game.currentLevel[LEVEL_PARAMS.INSTRUCTIONS][instr][2], Game.currentLevel[LEVEL_PARAMS.INSTRUCTIONS][instr][0], Game.currentLevel[LEVEL_PARAMS.INSTRUCTIONS][instr][1], 10, 'black');
+				printTextLines(ctx, Game.currentLevel[LEVEL_PARAMS.INSTRUCTIONS][instr][2], Game.currentLevel[LEVEL_PARAMS.INSTRUCTIONS][instr][0], Game.currentLevel[LEVEL_PARAMS.INSTRUCTIONS][instr][1], 10, '#000');
 			}
 		}
 	}
