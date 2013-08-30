@@ -62,7 +62,7 @@ aiming as the time passes.
 
 #### Player 1 (Luke, the delivery boy)
 
-  Desktop  |  Mobile   |
+  Desktop  |  Mobile   |  Action
 :-----------|------------:|:------------:
 Arrows  |  Arrows   |  Move and jump, climb ladders
 	 Spacebar |     I     |  Grab/release crates, buy candies from dispensers
@@ -71,7 +71,7 @@ Arrows  |  Arrows   |  Move and jump, climb ladders
 
 #### Player 2 (The Crow)
 
-  Desktop  |  Mobile   |
+  Desktop  |  Mobile   |  Action
 :-----------|------------:|:------------:
 	  Mouse   | analogPad |  Move and jump, climb ladders
 	 Left btn |     S     |  Shoot
@@ -79,7 +79,7 @@ Arrows  |  Arrows   |  Move and jump, climb ladders
 
 #### Edit Mode
 
-  Desktop  |  Mobile   |
+  Desktop  |  Mobile   |  Action
 :-----------|------------:|:------------:
 	  Mouse   | analogPad |  Move cursor
 	< > arrows| < > arrows|  Select element to draw
@@ -92,7 +92,7 @@ Arrows  |  Arrows   |  Move and jump, climb ladders
 
 #### Menu
 
-  Desktop  |  Mobile   |
+  Desktop  |  Mobile   |  Action
 :-----------|------------:|:------------:
 	< > arrows| < > arrows|  Select the level
 	     E    |     E     |  Edit the level (or create a new one from base level)
