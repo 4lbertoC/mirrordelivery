@@ -6,7 +6,9 @@ MIRROR DELIVERY
 
 ### DESCRIPTION
 
-Mirror Delivery is a competitive local HTML5 game for 2 players.
+Mirror Delivery is a competitive HTML5 game for 2 players. They use the
+same machine, but different controls (keyboard vs mouse on desktop or
+separate button groups on a touch enabled device)
 
 *Player 1* interprets **Luke**, a delivery boy who has to deliver some crates full of of mirrors to an old lady (from now on called "Granny").
 
@@ -140,7 +142,8 @@ The game is tile-based, and everything is redrawn entirely at each cycle on the
 canvas (I preferred to save bytes for something else).
 
 #### Level Editor
-Each level of the game can be edited and shared.
+Each level of the game can be edited and shared. Cusotm Levels are persisted to the
+local storage.
 
 #### Server
 I made a test with some server APIs to push your custom Levels on the cloud and
