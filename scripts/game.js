@@ -428,10 +428,16 @@
 
 			onKeyUp: function (event) {
 				KeyHandler.k[event['keyCode']] = undefined;
+
+				isAnyKeyPressed = false;
+				for (var kk in k) {
+					isAnyKeyPressed |= !! k[kk];
+				}
 			},
 
 			onKeyDown: function (event) {
 				KeyHandler.k[event['keyCode']] = currentTime;
+				isAnyKeyPressed = true;
 			}
 		},
 
@@ -944,7 +950,7 @@
 		Player.isJumping = false;
 		Player.isMoving = false;
 		Player.isInAir = false;
-		Player.facingLeft = false;
+		Player.isFacingLeft = false;
 
 		Crow.health = CROW_HEALTH;
 		Crow.shots = 0;
@@ -1127,7 +1133,7 @@
 		if (!Player.isMoving) {
 			currentSpeed = 0;
 		}
-		currentSpeed = Math.min(speed, currentSpeed + speed / 7);
+		currentSpeed = Math.min(speed, currentSpeed + speed / 50);
 		Player.currentSpeed = currentSpeed;
 		return (isPlayerOnBlock(BLOCK_TYPE.LADDER) ? speed / 2 : currentSpeed);
 	}
@@ -1480,18 +1486,18 @@
 	function drawPlayer(t) {
 		if (Game.state === GAME_STATE.PLAYING) {
 			if (Player.isInAir) {
-				drawAnim(IMAGE_MAP_DATA_NAMES.LUKE, Player.position[0] - 8, Player.position[1] - 24, 0, Player.facingLeft);
+				drawAnim(IMAGE_MAP_DATA_NAMES.LUKE, Player.position[0] - 8, Player.position[1] - 24, 0, Player.isFacingLeft);
 			} else if (Player.isMoving) {
-				drawAnim(IMAGE_MAP_DATA_NAMES.LUKE, Player.position[0] - 8, Player.position[1] - 24, 10, Player.facingLeft, t);
+				drawAnim(IMAGE_MAP_DATA_NAMES.LUKE, Player.position[0] - 8, Player.position[1] - 24, 10, Player.isFacingLeft, t);
 			} else {
-				drawAnim(IMAGE_MAP_DATA_NAMES.LUKE, Player.position[0] - 8, Player.position[1] - 24, 1, Player.facingLeft);
+				drawAnim(IMAGE_MAP_DATA_NAMES.LUKE, Player.position[0] - 8, Player.position[1] - 24, 1, Player.isFacingLeft);
 			}
 		} else {
 			drawAnim(IMAGE_MAP_DATA_NAMES.LUKE, Player.position[0] - 8, Player.position[1] - 24, 1);
 		}
 		if (Player.crateCarried !== undefined) {
 			var cur = crateArray[Player.crateCarried];
-			ctx.drawImage(cur.image, Player.facingLeft ? cur.position[0] + 2 : cur.position[0] - 15 - cur.size, cur.position[1] - 10);
+			ctx.drawImage(cur.image, Player.isFacingLeft ? cur.position[0] + 2 : cur.position[0] - 15 - cur.size, cur.position[1] - 10);
 		}
 
 		if ((calculatePlayerSpeed() * PLAYER_RADIUS_MULTIPLIER + PLAYER_WARNING_RADIUS) >= calculateEuclideanDistance(Crow.position, Player.position)) {
@@ -1568,30 +1574,26 @@
 			//
 			// Menu
 			//
-			if (k[KEYCODES.LEFT] && !Player.isMoving) { // Select previous level
+			if (k[KEYCODES.LEFT] && !isAnyKeyPressed) { // Select previous level
 				selectedLevel = (selectedLevel + Levels.length - 1) % Levels.length;
 				resetGame(selectedLevel);
-				Player.isMoving = true;
-			} else if (k[KEYCODES.RIGHT] && !Player.isMoving) { // Select next level
+			} else if (k[KEYCODES.RIGHT] && !isAnyKeyPressed) { // Select next level
 				selectedLevel = (selectedLevel + 1) % Levels.length;
 				resetGame(selectedLevel);
-				Player.isMoving = true;
-			} else if (k[KEYCODES.EAT] && !Player.isMoving) { // Create custom level from this one, or edit if it's already custom
-				Player.isMoving = true;
+			} else if (k[KEYCODES.EAT] && !isAnyKeyPressed) { // Create custom level from this one, or edit if it's already custom
 				if (!Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM]) {
 					createCustomLevel();
 				}
 				setGameState(GAME_STATE.EDIT);
 				k[KEYCODES.EAT] = undefined;
-			} else if (k[KEYCODES.DELETE] && !Player.isMoving) { // Delete current custom level
-				Player.isMoving = true;
+			} else if (k[KEYCODES.DELETE] && !isAnyKeyPressed) { // Delete current custom level
 				if (Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM]) {
 					Levels.splice(selectedLevel, 1);
 					selectedLevel--;
 					resetGame(selectedLevel);
 				}
 				k[KEYCODES.DELETE] = undefined;
-			} else if (k[KEYCODES.EXPORT_LEVEL] && Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM] && !Player.isMoving) { // Export current custom level
+			} else if (k[KEYCODES.EXPORT_LEVEL] && Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM] && !isAnyKeyPressed) { // Export current custom level
 				var jsonLevel = prompt('Data', JSON.stringify(Levels[selectedLevel]));
 				// Need to do this because the prompt hangs the keycode pressed
 				k[KEYCODES.EXPORT_LEVEL] = undefined;
@@ -1606,22 +1608,17 @@
 				}
 				// Need to do this because the prompt hangs the keycode pressed
 				k[KEYCODES.IMPORT_LEVEL] = undefined;
-			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.DELETE] && !k[KEYCODES.EAT] && !k[KEYCODES.EXPORT_LEVEL] && !k[KEYCODES.IMPORT_LEVEL]) {
-				Player.isMoving = false;
 			}
 			return;
 		} else if (Game.state === GAME_STATE.EDIT) {
 			//
 			// Edit Mode
 			//
-			if (k[KEYCODES.LEFT] && !Player.isMoving) { // Select previous block
+			if (k[KEYCODES.LEFT] && !isAnyKeyPressed) { // Select previous block
 				selectedBlock = (selectedBlock + NUM_EDIT_OPTIONS - 1) % NUM_EDIT_OPTIONS;
-				Player.isMoving = true;
-			} else if (k[KEYCODES.RIGHT] && !Player.isMoving) { // Select next block
+			} else if (k[KEYCODES.RIGHT] && !isAnyKeyPressed) { // Select next block
 				selectedBlock = (selectedBlock + 1) % NUM_EDIT_OPTIONS;
-				Player.isMoving = true;
-			} else if (k[KEYCODES.CRATES] && !Player.isMoving) { // Edit crates
-				Player.isMoving = true;
+			} else if (k[KEYCODES.CRATES] && !isAnyKeyPressed) { // Edit crates
 				try {
 					var crates = JSON.parse(prompt('Crates', JSON.stringify(Levels[selectedLevel][LEVEL_PARAMS.CRATES])));
 					if (crates instanceof Array) {
@@ -1638,26 +1635,21 @@
 					alert('Error!');
 				}
 				k[KEYCODES.CRATES] = undefined;
-			} else if (k[KEYCODES.NAME] && !Player.isMoving) { // Edit level
-				Player.isMoving = true;
+			} else if (k[KEYCODES.NAME] && !isAnyKeyPressed) { // Edit level
 				var n = prompt('Name', Levels[selectedLevel][LEVEL_PARAMS.NAME]);
 				if (n) {
 					Levels[selectedLevel][LEVEL_PARAMS.NAME] = n;
 				}
 				k[KEYCODES.NAME] = false;
-			} else if (k[KEYCODES.TIME] && !Player.isMoving) { // Edit game time
-				Player.isMoving = true;
+			} else if (k[KEYCODES.TIME] && !isAnyKeyPressed) { // Edit game time
 				var t = +prompt('Time', Levels[selectedLevel][LEVEL_PARAMS.TIME]);
 				if (!isNaN(t) && t > 0) {
 					Levels[selectedLevel][LEVEL_PARAMS.TIME] = t;
 				}
 				k[KEYCODES.TIME] = false;
-			} else if (k[KEYCODES.EAT] && !Player.isMoving) { // Exit from edit mode
-				Player.isMoving = true;
+			} else if (k[KEYCODES.EAT] && !isAnyKeyPressed) { // Exit from edit mode
 				exitAndSave();
 				k[KEYCODES.EAT] = undefined;
-			} else if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT] && !k[KEYCODES.CRATES] && !k[KEYCODES.NAME] && !k[KEYCODES.TIME] && !k[KEYCODES.EAT]) {
-				Player.isMoving = false;
 			}
 		} else if (Game.state === GAME_STATE.PLAYING) {
 			//
@@ -1698,18 +1690,17 @@
 			if (k[KEYCODES.LEFT]) { // LEFT (Move left)
 				Player.position[0] = Math.max(BLOCK_SIZE, x - calculateHorizontalSpeed(t));
 				Player.isMoving = true;
-				Player.facingLeft = true;
-			}
-			if (k[KEYCODES.RIGHT]) { // RIGHT (Move right)
+				Player.isFacingLeft = true;
+			} else if (k[KEYCODES.RIGHT]) { // RIGHT (Move right)
 				Player.position[0] = Math.min(CANVAS_WIDTH - 2 * BLOCK_SIZE, x + calculateHorizontalSpeed(t));
 				Player.isMoving = true;
-				Player.facingLeft = false;
+				Player.isFacingLeft = false;
 			}
 			if (k[KEYCODES.DOWN] && isPlayerOnBlock(BLOCK_TYPE.LADDER)) { // DOWN (Climb ladders)
 				Player.position[1] = Math.min(CANVAS_HEIGHT, y + ladderSpeed);
 				Player.isMoving = true;
 			}
-			if (!k[KEYCODES.LEFT] && !k[KEYCODES.UP] && !k[KEYCODES.RIGHT] && !k[KEYCODES.DOWN]) {
+			if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT]) {
 				Player.isMoving = false;
 			}
 		}
@@ -1806,11 +1797,11 @@
 		// block in the way is ignored. If a solid block is found, the player will stop there.
 		var currentVectorFraction = 2,
 			stoppingY;
-		if (!Player.isInAir && isAABBOverBlock(Player.position[0] - 8, Player.position[1], 16, 0, BLOCK_TYPE.PLATFORM)) {
+		if (!Player.isInAir && isAABBOverBlock(Player.position[0] - 4, Player.position[1], 8, 0, BLOCK_TYPE.PLATFORM)) {
 			stoppingY = Player.position[1] - (Player.position[1] % BLOCK_SIZE);
 		} else {
 			while (currentVectorFraction <= Player.verticalSpeed) {
-				if (isAABBOverBlock(Player.position[0] - 8, Player.position[1] + currentVectorFraction, 16, 0, BLOCK_TYPE.PLATFORM)) {
+				if (isAABBOverBlock(Player.position[0] - 4, Player.position[1] + currentVectorFraction, 8, 0, BLOCK_TYPE.PLATFORM)) {
 					stoppingY = (Player.position[1] + currentVectorFraction) - ((Player.position[1] + currentVectorFraction) % BLOCK_SIZE);
 					break;
 				}
@@ -1820,7 +1811,7 @@
 		if (stoppingY) {
 			Player.position[1] = stoppingY;
 			if (Player.isInAir) {
-				Player.currentSpeed = 0; // Slow down after jump
+				Player.currentSpeed = Player.currentSpeed / 2; // Slow down after jump
 				// Check if current crate breaks
 				var currentCrate = (Player.crateCarried !== undefined) && crateArray[Player.crateCarried];
 				if (currentCrate) {
@@ -1832,7 +1823,7 @@
 			}
 			Player.isInAir = false;
 			Player.verticalSpeed = 0;
-		} else if (!isAABBOverBlock(Player.position[0] - 16, Player.position[1] - 32, 16, 32, BLOCK_TYPE.LADDER)) {
+		} else if (!isAABBOverBlock(Player.position[0] - 4, Player.position[1] - 32, 8, 16, BLOCK_TYPE.LADDER)) {
 			Player.verticalSpeed += 0.6;
 			Player.isInAir = true;
 			Player.position[1] += Player.verticalSpeed;
