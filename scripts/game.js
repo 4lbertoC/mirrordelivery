@@ -280,6 +280,7 @@
 			CAT_APPEARS: 12,
 			CAT_MOVEMENT: 13
 		},
+		NEXT_NOTE_TIMEOUT = 200,
 
 		//
 		// INPUT
@@ -417,6 +418,8 @@
 		gameSoundArray = [],
 		noteSoundArray = {},
 		introThemeBuffer = null,
+		isPlayingTune = false,
+		nextNoteTime = 0,
 
 		//
 		// INPUT
@@ -485,6 +488,7 @@
 			speedBoostTimeout: 0,
 			ladderSpeed: 2,
 			jumpSpeed: -6.8,
+			isClimbing: false,
 			isJumping: false, // used to avoid player's continue jumping if keeping UP pressed
 			isInAir: false,
 			isMoving: false, // used to avoid repetition of commands when keeping a button pressed (also in other game states)
@@ -840,17 +844,22 @@
 		}
 	}
 
-	function playIntroSong() {
+	function playIntroSong(t) {
 		if (IS_AUDIO_SUPPORTED) {
-			playNextSongNote();
+			isPlayingTune = true;
+			nextNoteTime = t + NEXT_NOTE_TIMEOUT;
 		}
 	}
 
-	function playNextSongNote() {
+	function playNextSongNote(t) {
 		try {
-			if (Game.state === GAME_STATE.PLAYING && introThemeBuffer.length > 0) {
-				noteSoundArray[introThemeBuffer.shift()]['play']();
-				setTimeout(playNextSongNote, 200);
+			if (nextNoteTime < t && Game.state === GAME_STATE.PLAYING) {
+				if (introThemeBuffer.length > 0) {
+					noteSoundArray[introThemeBuffer.shift()]['play']();
+					nextNoteTime = nextNoteTime + NEXT_NOTE_TIMEOUT;
+				} else {
+					isPlayingTune = false;
+				}
 			}
 		} catch (e) {}
 	}
@@ -1023,10 +1032,10 @@
 		}
 	}
 
-	function startGame() {
+	function startGame(t) {
 		setGameState(GAME_STATE.PLAYING);
 		Game.time = currentTime + Game.currentLevel[LEVEL_PARAMS.TIME];
-		playIntroSong();
+		playIntroSong(t);
 
 		showCursor();
 	}
@@ -1233,7 +1242,7 @@
 			}
 		} else if (Game.state === GAME_STATE.MENU && !isMobileDevice) {
 			if (currentMousePosition[0] > Crow.position[0] - 16 && currentMousePosition[0] < Crow.position[0] + 16 && currentMousePosition[1] > Crow.position[1] - 16 && currentMousePosition[1] < Crow.position[1] + 16) {
-				startGame();
+				startGame(currentTime);
 			}
 		} else if (Crow.shots > 0 && Crow.stunnedTimeout < currentTime) {
 			Crow.shots--;
@@ -1487,7 +1496,7 @@
 		if (Game.state === GAME_STATE.PLAYING) {
 			if (Player.isInAir) {
 				drawAnim(IMAGE_MAP_DATA_NAMES.LUKE, Player.position[0] - 8, Player.position[1] - 24, 0, Player.isFacingLeft);
-			} else if (Player.isMoving) {
+			} else if (Player.isMoving || Player.isClimbing) {
 				drawAnim(IMAGE_MAP_DATA_NAMES.LUKE, Player.position[0] - 8, Player.position[1] - 24, 10, Player.isFacingLeft, t);
 			} else {
 				drawAnim(IMAGE_MAP_DATA_NAMES.LUKE, Player.position[0] - 8, Player.position[1] - 24, 1, Player.isFacingLeft);
@@ -1676,16 +1685,18 @@
 				if (k[KEYCODES.UP]) { // UP (Jump or climb ladders)
 					if (isPlayerOnBlock(BLOCK_TYPE.LADDER)) {
 						Player.position[1] = Math.min(CANVAS_HEIGHT - BLOCK_SIZE, y - ladderSpeed);
-						Player.isMoving = true;
+						Player.isClimbing = true;
 					} else if (!Player.isJumping && !Player.isInAir) {
 						Player.verticalSpeed = Player.jumpSpeed;
 						Player.currentSpeed = speed;
 						Player.isJumping = true;
 						Player.isInAir = true;
+						Player.isClimbing = false;
 						playSound(SOUND_TYPE.JUMP);
 					}
 				} else if (!k[KEYCODES.UP] && Player.isJumping) {
 					Player.isJumping = false;
+					Player.isClimbing = false;
 				}
 				if (k[KEYCODES.LEFT]) { // LEFT (Move left)
 					Player.position[0] = Math.max(BLOCK_SIZE, x - calculateHorizontalSpeed(t));
@@ -1695,13 +1706,14 @@
 					Player.position[0] = Math.min(CANVAS_WIDTH - 2 * BLOCK_SIZE, x + calculateHorizontalSpeed(t));
 					Player.isMoving = true;
 					Player.isFacingLeft = false;
+				} else {
+					Player.isMoving = false;
 				}
 				if (k[KEYCODES.DOWN] && isPlayerOnBlock(BLOCK_TYPE.LADDER)) { // DOWN (Climb ladders)
 					Player.position[1] = Math.min(CANVAS_HEIGHT, y + ladderSpeed);
-					Player.isMoving = true;
-				}
-				if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT]) {
-					Player.isMoving = false;
+					Player.isClimbing = true;
+				} else {
+					Player.isClimbing = false;
 				}
 			}
 			if (k[KEYCODES.MENU]) {
@@ -1747,6 +1759,10 @@
 	function update(t) {
 		// Used for functions that are called by event handlers (like mouse clicks)
 		currentTime = t;
+
+		// Play the next song's note.
+		// Doing it here to avoid bad audio glitches with setTimeout
+		playNextSongNote(t);
 
 		// Mobile controls handling
 		if (isTouchinganalogPad && touchPositions) {
