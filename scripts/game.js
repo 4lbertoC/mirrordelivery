@@ -277,7 +277,8 @@
 			CROW_EAT: 9,
 			DISPENSER: 10,
 			GRANNY_SHOT: 11,
-			CAT_APPEARS: 12
+			CAT_APPEARS: 12,
+			CAT_MOVEMENT: 13
 		},
 
 		//
@@ -373,7 +374,7 @@
 		MIN_CRATE_SIZE = 1,
 		CRATE_IMAGE_WIDTH = 12,
 		CRATE_POSITION_OFFSET = [1, -6],
-		MIN_VERTICAL_SPEED_TO_CRASH = 15,
+		MIN_VERTICAL_SPEED_TO_CRASH = 13,
 
 		//
 		// LEVELS
@@ -483,7 +484,7 @@
 			speedBoost: 0,
 			speedBoostTimeout: 0,
 			ladderSpeed: 2,
-			jumpSpeed: -7,
+			jumpSpeed: -6.8,
 			isJumping: false, // used to avoid player's continue jumping if keeping UP pressed
 			isInAir: false,
 			isMoving: false, // used to avoid repetition of commands when keeping a button pressed (also in other game states)
@@ -1284,6 +1285,8 @@
 		Cat.nextPosition = [nextPosition[0] - 6, nextPosition[1] - 10];
 		if (!Cat.position) {
 			Cat.position = Cat.nextPosition.slice();
+		} else {
+			playSound(SOUND_TYPE.CAT_MOVEMENT);
 		}
 		Cat.nextCatMovement = t + NEXT_CAT_MOVEMENT_TIMEOUT;
 		Granny.laserSpeed += 0.05;
@@ -1710,9 +1713,6 @@
 		for (var kk in KeyHandler.k) {
 			isAnyKeyPressed = isAnyKeyPressed || !! KeyHandler.k[kk];
 		}
-		if (isAnyKeyPressed) {
-			console.log('a key is pressed')
-		}
 
 	}
 
@@ -1952,6 +1952,7 @@
 	loadSound(SOUND_TYPE.DISPENSER, ['square', 0.0000, 0.4000, 0.0000, 0.0460, 0.4770, 0.2400, 20.0000, 1197.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.4980, 0.2040, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.GRANNY_SHOT, ['noise', 0.0000, 0.4000, 0.0000, 0.1080, 0.3360, 0.1240, 20.0000, 462.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.CAT_APPEARS, ["synth", 0.0000, 0.4000, 0.0000, 0.4400, 0.5790, 1.0040, 20.0000, 1793.0000, 2400.0000, -0.2020, 0.0000, 0.0000, 8.6962, 0.5346, 0.6660, -0.2980, 0.6710, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CAT_MOVEMENT, ["noise", 0.0000, 0.1270, 0.0430, 0.1240, 0.0000, 0.2820, 20.0000, 2400.0000, 20.0000, 1.0000, -1.0000, 0.0000, 0.0100, -0.3000, -1.0000, 0.9560, 0.2720, 0.0000, 0.6800, 0.0000, -0.9980, -1.0000, 1.0000, 1.0000, 0.0000, 0.0000, -0.9980]);
 
 	//
 	// INPUT
