@@ -1747,9 +1747,10 @@
 	}
 
 	function update(t) {
+		// Used for functions that are called by event handlers (like mouse clicks)
 		currentTime = t;
 
-		// Mobile controls
+		// Mobile controls handling
 		if (isTouchinganalogPad && touchPositions) {
 			var touchPosition, tempTp;
 			if (touchPositions['clientX']) {
@@ -1799,19 +1800,28 @@
 		// });
 
 		// Player collision
-		var currentVectorFraction = 0,
+		// The next vertical position when falling is calculates as the sum of the current Y and the current player's vertical speed.
+		// Since the vertical speed can become bigger than the tile size, it could happen that a solid block is skipped when falling.
+		// To avoid this, the vertical distance delta of the current cycle is divided into chunks of length BLOCK_SIZE, so that no
+		// block in the way is ignored. If a solid block is found, the player will stop there.
+		var currentVectorFraction = 2,
 			stoppingY;
-		while (currentVectorFraction <= Player.verticalSpeed) {
-			if (isAABBOverBlock(Player.position[0] - 8, Player.position[1] + currentVectorFraction, 16, 0, BLOCK_TYPE.PLATFORM)) {
-				stoppingY = (Player.position[1] + currentVectorFraction) - ((Player.position[1] + currentVectorFraction) % BLOCK_SIZE);
-				break;
+		if (!Player.isInAir && isAABBOverBlock(Player.position[0] - 8, Player.position[1], 16, 0, BLOCK_TYPE.PLATFORM)) {
+			stoppingY = Player.position[1] - (Player.position[1] % BLOCK_SIZE);
+		} else {
+			while (currentVectorFraction <= Player.verticalSpeed) {
+				if (isAABBOverBlock(Player.position[0] - 8, Player.position[1] + currentVectorFraction, 16, 0, BLOCK_TYPE.PLATFORM)) {
+					stoppingY = (Player.position[1] + currentVectorFraction) - ((Player.position[1] + currentVectorFraction) % BLOCK_SIZE);
+					break;
+				}
+				currentVectorFraction += BLOCK_SIZE;
 			}
-			currentVectorFraction += BLOCK_SIZE;
 		}
 		if (stoppingY) {
 			Player.position[1] = stoppingY;
 			if (Player.isInAir) {
-				Player.currentSpeed = 0;
+				Player.currentSpeed = 0; // Slow down after jump
+				// Check if current crate breaks
 				var currentCrate = (Player.crateCarried !== undefined) && crateArray[Player.crateCarried];
 				if (currentCrate) {
 					var verticalSpeedThreshold = MIN_VERTICAL_SPEED_TO_CRASH - currentCrate.size;
@@ -1822,15 +1832,15 @@
 			}
 			Player.isInAir = false;
 			Player.verticalSpeed = 0;
-		} else if (!isAABBCollidingWithBlock(Player.position[0] - 16, Player.position[1] - 32, 16, 32, BLOCK_TYPE.LADDER)) {
-			Player.verticalSpeed += 1;
+		} else if (!isAABBOverBlock(Player.position[0] - 16, Player.position[1] - 32, 16, 32, BLOCK_TYPE.LADDER)) {
+			Player.verticalSpeed += 0.6;
 			Player.isInAir = true;
 			Player.position[1] += Player.verticalSpeed;
 		} else {
 			Player.isInAir = false;
 		}
 
-		// Crate carried
+		// Change the position of the crate that is currently carried
 		if (Player.crateCarried !== undefined) {
 			crateArray[Player.crateCarried].position[0] = Player.position[0] + CRATE_POSITION_OFFSET[0];
 			crateArray[Player.crateCarried].position[1] = Player.position[1] + CRATE_POSITION_OFFSET[1];
@@ -1841,7 +1851,7 @@
 			Player.speedBoost = 0;
 		}
 
-		// Update shots position
+		// Update the position of the Crow's shots
 		var s;
 		for (s = 0; s < shotArray.length; s++) {
 			var curShot = shotArray[s];
@@ -1915,7 +1925,7 @@
 		imCtx.scale(-1, 1);
 		imCtx.drawImage(ImageMap, 0, 0);
 	};
-	ImageMap.src = 'img/imgmap.png';
+	ImageMap.src = 'imgmap.png';
 
 	MenuCanvas.width = CANVAS_WIDTH;
 	MenuCanvas.height = CANVAS_HEIGHT;
