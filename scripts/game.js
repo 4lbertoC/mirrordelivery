@@ -276,7 +276,8 @@
 			CANDY_SPEED_BOOST: 8,
 			CROW_EAT: 9,
 			DISPENSER: 10,
-			GRANNY_SHOT: 11
+			GRANNY_SHOT: 11,
+			CAT_APPEARS: 12
 		},
 
 		//
@@ -423,21 +424,16 @@
 		// Desktop
 		currentMousePosition = [0, 0],
 		isLeftMouseButtonDown = false,
+		isAnyKeyPressed = false,
 		KeyHandler = {
 			k: {},
 
 			onKeyUp: function (event) {
 				KeyHandler.k[event['keyCode']] = undefined;
-
-				isAnyKeyPressed = false;
-				for (var kk in k) {
-					isAnyKeyPressed |= !! k[kk];
-				}
 			},
 
 			onKeyDown: function (event) {
 				KeyHandler.k[event['keyCode']] = currentTime;
-				isAnyKeyPressed = true;
 			}
 		},
 
@@ -1133,7 +1129,7 @@
 		if (!Player.isMoving) {
 			currentSpeed = 0;
 		}
-		currentSpeed = Math.min(speed, currentSpeed + speed / 50);
+		currentSpeed = Math.min(speed, currentSpeed + speed / 25);
 		Player.currentSpeed = currentSpeed;
 		return (isPlayerOnBlock(BLOCK_TYPE.LADDER) ? speed / 2 : currentSpeed);
 	}
@@ -1280,6 +1276,7 @@
 					platformBlockMap.push(i);
 				}
 			}
+			playSound(SOUND_TYPE.CAT_APPEARS);
 		}
 		var rndPos = platformBlockMap[Math.floor(Math.random() * platformBlockMap.length)] + 1,
 			nextPosition = [(rndPos % I) * BLOCK_SIZE, Math.floor(rndPos / I) * BLOCK_SIZE];
@@ -1609,104 +1606,114 @@
 				// Need to do this because the prompt hangs the keycode pressed
 				k[KEYCODES.IMPORT_LEVEL] = undefined;
 			}
-			return;
-		} else if (Game.state === GAME_STATE.EDIT) {
-			//
-			// Edit Mode
-			//
-			if (k[KEYCODES.LEFT] && !isAnyKeyPressed) { // Select previous block
-				selectedBlock = (selectedBlock + NUM_EDIT_OPTIONS - 1) % NUM_EDIT_OPTIONS;
-			} else if (k[KEYCODES.RIGHT] && !isAnyKeyPressed) { // Select next block
-				selectedBlock = (selectedBlock + 1) % NUM_EDIT_OPTIONS;
-			} else if (k[KEYCODES.CRATES] && !isAnyKeyPressed) { // Edit crates
-				try {
-					var crates = JSON.parse(prompt('Crates', JSON.stringify(Levels[selectedLevel][LEVEL_PARAMS.CRATES])));
-					if (crates instanceof Array) {
-						for (var c = 0; c < crates.length; c++) {
-							if (!typeof c === 'number') {
-								alert('Error!');
+		} else {
+			if (Game.state === GAME_STATE.EDIT) {
+				//
+				// Edit Mode
+				//
+				if (k[KEYCODES.LEFT] && !isAnyKeyPressed) { // Select previous block
+					selectedBlock = (selectedBlock + NUM_EDIT_OPTIONS - 1) % NUM_EDIT_OPTIONS;
+				} else if (k[KEYCODES.RIGHT] && !isAnyKeyPressed) { // Select next block
+					selectedBlock = (selectedBlock + 1) % NUM_EDIT_OPTIONS;
+				} else if (k[KEYCODES.CRATES] && !isAnyKeyPressed) { // Edit crates
+					try {
+						var crates = JSON.parse(prompt('Crates', JSON.stringify(Levels[selectedLevel][LEVEL_PARAMS.CRATES])));
+						if (crates instanceof Array) {
+							for (var c = 0; c < crates.length; c++) {
+								if (!typeof c === 'number') {
+									alert('Error!');
+								}
+								crates[c] = Math.max(1, Math.min(5, crates[c]));
 							}
-							crates[c] = Math.max(1, Math.min(5, crates[c]));
+							Levels[selectedLevel][LEVEL_PARAMS.CRATES] = crates;
+							resetCrates(Levels[selectedLevel]);
 						}
-						Levels[selectedLevel][LEVEL_PARAMS.CRATES] = crates;
-						resetCrates(Levels[selectedLevel]);
+					} catch (e) {
+						alert('Error!');
 					}
-				} catch (e) {
-					alert('Error!');
+					k[KEYCODES.CRATES] = undefined;
+				} else if (k[KEYCODES.NAME] && !isAnyKeyPressed) { // Edit level
+					var n = prompt('Name', Levels[selectedLevel][LEVEL_PARAMS.NAME]);
+					if (n) {
+						Levels[selectedLevel][LEVEL_PARAMS.NAME] = n;
+					}
+					k[KEYCODES.NAME] = false;
+				} else if (k[KEYCODES.TIME] && !isAnyKeyPressed) { // Edit game time
+					var t = +prompt('Time', Levels[selectedLevel][LEVEL_PARAMS.TIME]);
+					if (!isNaN(t) && t > 0) {
+						Levels[selectedLevel][LEVEL_PARAMS.TIME] = t;
+					}
+					k[KEYCODES.TIME] = false;
+				} else if (k[KEYCODES.EAT] && !isAnyKeyPressed) { // Exit from edit mode
+					exitAndSave();
+					k[KEYCODES.EAT] = undefined;
 				}
-				k[KEYCODES.CRATES] = undefined;
-			} else if (k[KEYCODES.NAME] && !isAnyKeyPressed) { // Edit level
-				var n = prompt('Name', Levels[selectedLevel][LEVEL_PARAMS.NAME]);
-				if (n) {
-					Levels[selectedLevel][LEVEL_PARAMS.NAME] = n;
-				}
-				k[KEYCODES.NAME] = false;
-			} else if (k[KEYCODES.TIME] && !isAnyKeyPressed) { // Edit game time
-				var t = +prompt('Time', Levels[selectedLevel][LEVEL_PARAMS.TIME]);
-				if (!isNaN(t) && t > 0) {
-					Levels[selectedLevel][LEVEL_PARAMS.TIME] = t;
-				}
-				k[KEYCODES.TIME] = false;
-			} else if (k[KEYCODES.EAT] && !isAnyKeyPressed) { // Exit from edit mode
-				exitAndSave();
-				k[KEYCODES.EAT] = undefined;
-			}
-		} else if (Game.state === GAME_STATE.PLAYING) {
-			//
-			// Playing
-			//
-			if (k[KEYCODES.INTERACT] && !Player.isJumping && !Player.isInAir && !Player.isInteracting) { // SPACEBAR (interact)
-				Player.isInteracting = true;
-				interact();
-			} else if (k[KEYCODES.EAT] && !Player.isInteracting) { // E (eat candy)
-				Player.isInteracting = true;
-				if (Player.candies > 0) {
-					Player.candies--;
-					Player.speedBoost = CANDY_SPEED_BOOST;
-					Player.speedBoostTimeout = t + CANDY_SPEED_BOOST_TIMEOUT;
-					var newCrumbs = Object.create(Crumbs);
-					newCrumbs.position = [Player.position[0] + 4, Player.position[1] - 7];
-					crumbArray.push(newCrumbs);
+			} else if (Game.state === GAME_STATE.PLAYING) {
+				//
+				// Playing
+				//
+				if (k[KEYCODES.INTERACT] && !Player.isJumping && !Player.isInAir && !Player.isInteracting) { // SPACEBAR (interact)
+					Player.isInteracting = true;
+					interact();
+				} else if (k[KEYCODES.EAT] && !Player.isInteracting) { // E (eat candy)
+					Player.isInteracting = true;
+					if (Player.candies > 0) {
+						Player.candies--;
+						Player.speedBoost = CANDY_SPEED_BOOST;
+						Player.speedBoostTimeout = t + CANDY_SPEED_BOOST_TIMEOUT;
+						var newCrumbs = Object.create(Crumbs);
+						newCrumbs.position = [Player.position[0] + 4, Player.position[1] - 7];
+						crumbArray.push(newCrumbs);
 
-					playSound(SOUND_TYPE.CANDY_SPEED_BOOST);
+						playSound(SOUND_TYPE.CANDY_SPEED_BOOST);
+					}
+				} else if (!k[KEYCODES.INTERACT] && !k[KEYCODES.EAT] && Player.isInteracting) {
+					Player.isInteracting = false;
 				}
-			} else if (!k[KEYCODES.INTERACT] && !k[KEYCODES.EAT] && Player.isInteracting) {
-				Player.isInteracting = false;
-			}
-			if (k[KEYCODES.UP]) { // UP (Jump or climb ladders)
-				if (isPlayerOnBlock(BLOCK_TYPE.LADDER)) {
-					Player.position[1] = Math.min(CANVAS_HEIGHT - BLOCK_SIZE, y - ladderSpeed);
+				if (k[KEYCODES.UP]) { // UP (Jump or climb ladders)
+					if (isPlayerOnBlock(BLOCK_TYPE.LADDER)) {
+						Player.position[1] = Math.min(CANVAS_HEIGHT - BLOCK_SIZE, y - ladderSpeed);
+						Player.isMoving = true;
+					} else if (!Player.isJumping && !Player.isInAir) {
+						Player.verticalSpeed = Player.jumpSpeed;
+						Player.currentSpeed = speed;
+						Player.isJumping = true;
+						Player.isInAir = true;
+						playSound(SOUND_TYPE.JUMP);
+					}
+				} else if (!k[KEYCODES.UP] && Player.isJumping) {
+					Player.isJumping = false;
+				}
+				if (k[KEYCODES.LEFT]) { // LEFT (Move left)
+					Player.position[0] = Math.max(BLOCK_SIZE, x - calculateHorizontalSpeed(t));
 					Player.isMoving = true;
-				} else if (!Player.isJumping && !Player.isInAir) {
-					Player.verticalSpeed = Player.jumpSpeed;
-					Player.currentSpeed = speed;
-					Player.isJumping = true;
-					Player.isInAir = true;
-					playSound(SOUND_TYPE.JUMP);
+					Player.isFacingLeft = true;
+				} else if (k[KEYCODES.RIGHT]) { // RIGHT (Move right)
+					Player.position[0] = Math.min(CANVAS_WIDTH - 2 * BLOCK_SIZE, x + calculateHorizontalSpeed(t));
+					Player.isMoving = true;
+					Player.isFacingLeft = false;
 				}
-			} else if (!k[KEYCODES.UP] && Player.isJumping) {
-				Player.isJumping = false;
+				if (k[KEYCODES.DOWN] && isPlayerOnBlock(BLOCK_TYPE.LADDER)) { // DOWN (Climb ladders)
+					Player.position[1] = Math.min(CANVAS_HEIGHT, y + ladderSpeed);
+					Player.isMoving = true;
+				}
+				if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT]) {
+					Player.isMoving = false;
+				}
 			}
-			if (k[KEYCODES.LEFT]) { // LEFT (Move left)
-				Player.position[0] = Math.max(BLOCK_SIZE, x - calculateHorizontalSpeed(t));
-				Player.isMoving = true;
-				Player.isFacingLeft = true;
-			} else if (k[KEYCODES.RIGHT]) { // RIGHT (Move right)
-				Player.position[0] = Math.min(CANVAS_WIDTH - 2 * BLOCK_SIZE, x + calculateHorizontalSpeed(t));
-				Player.isMoving = true;
-				Player.isFacingLeft = false;
-			}
-			if (k[KEYCODES.DOWN] && isPlayerOnBlock(BLOCK_TYPE.LADDER)) { // DOWN (Climb ladders)
-				Player.position[1] = Math.min(CANVAS_HEIGHT, y + ladderSpeed);
-				Player.isMoving = true;
-			}
-			if (!k[KEYCODES.LEFT] && !k[KEYCODES.RIGHT]) {
-				Player.isMoving = false;
+			if (k[KEYCODES.MENU]) {
+				exitAndSave();
 			}
 		}
-		if (k[KEYCODES.MENU]) {
-			exitAndSave();
+		// Check if any key is pressed
+		isAnyKeyPressed = false;
+		for (var kk in KeyHandler.k) {
+			isAnyKeyPressed = isAnyKeyPressed || !! KeyHandler.k[kk];
 		}
+		if (isAnyKeyPressed) {
+			console.log('a key is pressed')
+		}
+
 	}
 
 	//
@@ -1944,7 +1951,7 @@
 	loadSound(SOUND_TYPE.CROW_EAT, ['square', 0.0000, 0.4000, 0.0000, 0.0400, 0.0000, 0.0480, 20.0000, 578.0000, 2400.0000, 0.1040, 0.0000, 0.6830, 19.1580, 0.0003, 0.0000, 0.0000, 0.0000, 0.3850, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.DISPENSER, ['square', 0.0000, 0.4000, 0.0000, 0.0460, 0.4770, 0.2400, 20.0000, 1197.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.4980, 0.2040, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.GRANNY_SHOT, ['noise', 0.0000, 0.4000, 0.0000, 0.1080, 0.3360, 0.1240, 20.0000, 462.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-
+	loadSound(SOUND_TYPE.CAT_APPEARS, ["synth", 0.0000, 0.4000, 0.0000, 0.4400, 0.5790, 1.0040, 20.0000, 1793.0000, 2400.0000, -0.2020, 0.0000, 0.0000, 8.6962, 0.5346, 0.6660, -0.2980, 0.6710, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 
 	//
 	// INPUT
