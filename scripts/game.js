@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////
 //
-// MIRROR DELIVERY 1.2.1
+// MIRROR DELIVERY 1.3.2
 //
 // A 13kB game by Alberto Congiu
 //
@@ -1056,7 +1056,6 @@
 		menuCanvasContext.fillText(Game.currentLevel[LEVEL_PARAMS.NAME], CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
 		printTextLines(menuCanvasContext, ['Luke ' + Game.boyPoints], CANVAS_WIDTH / 2 - 50, CANVAS_HEIGHT / 2, 10, lastWinner === true ? '#0f0' : '#fff', 'right');
 		printTextLines(menuCanvasContext, [Game.crowPoints + ' Crow'], CANVAS_WIDTH / 2 + 50, CANVAS_HEIGHT / 2, 10, lastWinner === false ? '#0f0' : '#fff', 'left');
-		printTextLines(menuCanvasContext, ['|'], CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 10, '#fff', 'center');
 		// context, textArray, x, y, yIncrement, color, align, font
 		// menuCanvasContext.fillText('Luke ' + Game.boyPoints + ' - ' + Game.crowPoints + ' Crow', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
 
