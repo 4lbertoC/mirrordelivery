@@ -1003,6 +1003,7 @@
 
 		Player.position = level[LEVEL_PARAMS.PLAYER_STARTING_POSITION].slice();
 		Player.candies = 0;
+		Player.currentSpeed = 0;
 		Player.speedBoostTimeout = 0;
 		Player.crateCarried = undefined;
 		Player.crates = BREAKABLE_CRATES;
@@ -1030,18 +1031,17 @@
 
 		selectedBlock = 0;
 
+		crumbArray.length = 0;
+		shotArray.length = 0;
+		messageArray.length = 0;
+		particleArray.length = 0;
+
 		// Adding the title bars to the map. Don't ask why they are tiles.
 		Map = '4444444444444444444444444444444444444444' + level[LEVEL_PARAMS.MAP] + '4444444444444444444444444444444444444444';
 		Map = Map.split('');
 		platformBlockMap = null;
 
 		resetCrates(level);
-
-		crumbArray.length = 0;
-		shotArray.length = 0;
-		messageArray.length = 0;
-		particleArray.length = 0;
-
 		// Get the intro theme buffer ready to be played again when the game is started
 		introThemeBuffer = INTRO_THEME.slice();
 
