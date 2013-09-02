@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////
 //
-// MIRROR DELIVERY 1.3.2
+// MIRROR DELIVERY 1.3.3
 //
 // A 13kB game by Alberto Congiu
 //
@@ -842,7 +842,7 @@
 	}
 
 	function printTextLines(context, textArray, x, y, yIncrement, color, align, font) {
-		var previousFillColor = context.fillColor,
+		var previousFillStyle = context.fillStyle,
 			previousTextAlign = context.textAlign,
 			previousFont = context.font;
 		context.fillStyle = color;
@@ -854,8 +854,7 @@
 			context.fillText(textArrayCopy.shift(), x, tempY);
 			tempY += yIncrement;
 		}
-		context.fillStyle = previousFillColor;
-		context.textAlign = previousTextAlign;
+		context.fillStyle = previousFillStyle;
 		context.font = previousFont;
 		context.textAlign = previousTextAlign;
 	}
@@ -1043,36 +1042,6 @@
 		messageArray.length = 0;
 		particleArray.length = 0;
 
-		// Redraw the menu screen
-		menuCanvasContext.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-		menuCanvasContext.fillStyle = 'rgba(0,0,0,0.7)';
-		menuCanvasContext.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-		// Draw subtitle and points
-		menuCanvasContext.fillStyle = '#fff';
-		menuCanvasContext['textAlign'] = 'center';
-		menuCanvasContext.fillText('A 13kB game by Alberto Congiu', CANVAS_WIDTH / 2, 12);
-		menuCanvasContext.font = '20px courier';
-		menuCanvasContext.fillText(Game.currentLevel[LEVEL_PARAMS.NAME], CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
-		printTextLines(menuCanvasContext, ['Luke ' + Game.boyPoints], CANVAS_WIDTH / 2 - 50, CANVAS_HEIGHT / 2, 10, lastWinner === true ? '#0f0' : '#fff', 'right');
-		printTextLines(menuCanvasContext, [Game.crowPoints + ' Crow'], CANVAS_WIDTH / 2 + 50, CANVAS_HEIGHT / 2, 10, lastWinner === false ? '#0f0' : '#fff', 'left');
-		// context, textArray, x, y, yIncrement, color, align, font
-		// menuCanvasContext.fillText('Luke ' + Game.boyPoints + ' - ' + Game.crowPoints + ' Crow', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
-
-		// Draw menu options
-		menuCanvasContext.font = '15px courier';
-		menuCanvasContext.fillText('Click the ' + (isMobileDevice ? 'screen' : 'crow') + ' to start', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
-		menuCanvasContext.fillText('< >: Select level', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
-		var str = level[LEVEL_PARAMS.IS_CUSTOM] ? 'E: EDIT   ' + (isMobileDevice ? 'S' : 'D') + ': DELETE   ' + (isMobileDevice ? 'A' : 'J') + ': EXPORT   I: IMPORT' : 'E: EDIT   I: IMPORT';
-		menuCanvasContext.fillText(str, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 120);
-
-		// Draw the circle around the crow
-		menuCanvasContext['beginPath']();
-		menuCanvasContext['arc'](Crow.position[0], Crow.position[1], 16, 0, 360);
-		menuCanvasContext['lineWidth'] = 2;
-		menuCanvasContext['strokeStyle'] = '#fff';
-		menuCanvasContext['stroke']();
-
 		// Get the intro theme buffer ready to be played again when the game is started
 		introThemeBuffer = INTRO_THEME.slice();
 
@@ -1257,7 +1226,7 @@
 				while (numParticles-- > 0) {
 					createParticle(Player.position.slice(), [Player.position[0] - Math.floor(Math.random() * 128 - 64), Player.position[1] - 16 - Math.ceil(Math.random() * 128 - 64)], '#0c0', Math.ceil(Math.random() * 4), Math.ceil(Math.random() * 6));
 				}
-				var msg = Math.random() > 0.5 ? 'Good boy!' : 'Thank you!';
+				var msg = Math.random() > 0.5 ? 'Thank you!' : 'Good boy!';
 				createMessage(msg, [Granny.position[0] + 4, Granny.position[1]], '#ccc', true);
 				if (crateArray.length <= 0) {
 					winBoy(t);
@@ -1405,7 +1374,7 @@
 		while (numParticles-- > 0) {
 			createParticle(Player.position.slice(), [Player.position[0] - Math.floor(Math.random() * 128 - 64), Player.position[1] - 16 - Math.ceil(Math.random() * 128 - 64)], '#ea0', Math.ceil(Math.random() * 3), Math.ceil(Math.random() * 4));
 		}
-		var msg = Math.random() > 0.5 ? 'Be careful!' : 'My mirrors!';
+		var msg = Math.random() > 0.5 ? 'My mirrors!' : 'Be careful!';
 		createMessage(msg, [Granny.position[0] + 4, Granny.position[1]], '#ccc', true);
 		playSound(SOUND_TYPE.PLAYER_CRASH);
 		Player.crateCarried = undefined;
@@ -1598,7 +1567,42 @@
 		}
 	}
 
-	function drawMenu() {
+	function drawMenu(t) {
+		var level = Game.currentLevel;
+
+		// Redraw the menu screen
+		menuCanvasContext.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+		menuCanvasContext.fillStyle = 'rgba(0,0,0,0.7)';
+		menuCanvasContext.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+		// Draw subtitle and points
+		menuCanvasContext.fillStyle = '#fff';
+		menuCanvasContext['textAlign'] = 'center';
+		menuCanvasContext.font = '20px courier';
+		menuCanvasContext.fillText(Game.currentLevel[LEVEL_PARAMS.NAME], CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
+		printTextLines(menuCanvasContext, ['Luke ' + Game.boyPoints], CANVAS_WIDTH / 2 - 50, CANVAS_HEIGHT / 2, 10, lastWinner === true ? '#0f0' : '#fff', 'right');
+		printTextLines(menuCanvasContext, [Game.crowPoints + ' Crow'], CANVAS_WIDTH / 2 + 50, CANVAS_HEIGHT / 2, 10, lastWinner === false ? '#0f0' : '#fff', 'left');
+		// context, textArray, x, y, yIncrement, color, align, font
+		// menuCanvasContext.fillText('Luke ' + Game.boyPoints + ' - ' + Game.crowPoints + ' Crow', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+
+		menuCanvasContext.font = '15px courier';
+		menuCanvasContext.fillText('A 13kB game by Alberto Congiu', CANVAS_WIDTH / 2, 12);
+		if (lastEndGameTimeout < t) {
+			// Draw menu options
+			menuCanvasContext.fillText('Click the ' + (isMobileDevice ? 'screen' : 'crow') + ' to start', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
+			menuCanvasContext.fillText('< >: Select level', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 100);
+			var str = level[LEVEL_PARAMS.IS_CUSTOM] ? 'E: EDIT   ' + (isMobileDevice ? 'S' : 'D') + ': DELETE   ' + (isMobileDevice ? 'A' : 'J') + ': EXPORT   I: IMPORT' : 'E: EDIT   I: IMPORT';
+			menuCanvasContext.fillText(str, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 120);
+
+		}
+
+		// Draw the circle around the crow
+		menuCanvasContext['beginPath']();
+		menuCanvasContext['arc'](Crow.position[0], Crow.position[1], 16, 0, 360);
+		menuCanvasContext['lineWidth'] = 2;
+		menuCanvasContext['strokeStyle'] = '#fff';
+		menuCanvasContext['stroke']();
+
 		ctx.drawImage(MenuCanvas, 0, 0);
 	}
 
@@ -1613,7 +1617,7 @@
 				printTextLines(ctx, curMsg.text, curMsg.position[0] + 1, curMsg.position[1] + 1, 10, '#000', 'center', '14px sans-serif');
 				printTextLines(ctx, curMsg.text, curMsg.position[0], curMsg.position[1], 10, curMsg.color, 'center', '14px sans-serif');
 				if (!curMsg.isStatic) {
-					curMsg.position[1] += -0.5;
+					curMsg.position[1] -= 0.5;
 				}
 			}
 		}
@@ -1669,7 +1673,7 @@
 			ctx.fillText('§ ' + Player.candies + '   ◼ ' + Player.crates + '   ⚙ ' + mins + ':' + secs, 50, 396);
 
 			// Crow's status
-			ctx.fillText('↡ ' + Crow.shots + '   ♥ ' + Crow.health, 530, 12);
+			ctx.fillText('↡ ' + Crow.shots + '   ♥ ' + Crow.health, 540, 12);
 
 			ctx.fillStyle = '#00deff';
 			ctx.fillText('LUKE', 10, 396);
@@ -1707,7 +1711,7 @@
 		drawMessages(t);
 
 		if (Game.state === GAME_STATE.MENU) {
-			drawMenu();
+			drawMenu(t);
 		}
 		if (Game.state === GAME_STATE.EDIT) {
 			drawEditCursor();
