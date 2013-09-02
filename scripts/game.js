@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////
 //
-// MIRROR DELIVERY 1.1.1
+// MIRROR DELIVERY 1.2.1
 //
 // A 13kB game by Alberto Congiu
 //
@@ -278,7 +278,8 @@
 			DISPENSER: 10,
 			GRANNY_SHOT: 11,
 			CAT_APPEARS: 12,
-			CAT_MOVEMENT: 13
+			CAT_MOVEMENT: 13,
+			PLAYER_FALL: 14
 		},
 		NEXT_NOTE_TIMEOUT = 200,
 
@@ -309,6 +310,10 @@
 			PLAYING: 1,
 			EDIT: 2
 		},
+		HIT_SHAKE_TIMEOUT = 500,
+		MESSAGE_TIMEOUT = 1500,
+		PARTICLE_DISPLAY_TIMEOUT = 1500,
+		ENDGAME_TIMEOUT = 2000,
 
 		//
 		// MAP & EDITOR
@@ -426,7 +431,7 @@
 		//
 
 		// Desktop
-		currentMousePosition = [0, 0],
+		currentMousePosition = null,
 		isLeftMouseButtonDown = false,
 		isAnyKeyPressed = false,
 		KeyHandler = {
@@ -464,6 +469,18 @@
 			crowPoints: 0,
 			currentLevel: null
 		},
+		hitTimeout = 0,
+		lastEndGameTimeout = 0,
+		lastWinner = undefined,
+
+		Message = {
+			position: null,
+			text: undefined,
+			color: '#0f0',
+			time: 0,
+			isStatic: false
+		},
+		messageArray = [],
 
 		//
 		// MAP
@@ -543,6 +560,16 @@
 		},
 		shotArray = [],
 
+		Particle = {
+			position: null,
+			nextPosition: null,
+			color: '#000',
+			size: 2,
+			time: 0,
+			speed: 2
+		},
+		particleArray = [],
+
 		//
 		// LEVELS
 		//
@@ -608,7 +635,7 @@
 			/* TIME */
 			60000,
 			/* MAP */
-			'00000000000000000000000000000000000000600000000000000000000000000000000000000011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000003330000000000000000000000000000000000003333300000000000000000000000000000000000000000000000000000000000000000000000000000550000020000000000000200000000000000000055020002000111111111120000333000000000111112000200133333330002000000000000000000000200021130000000000200000000000000000000020002000000000000020000000000000000000002000200020000000002111111100111001101111100111112000000000200000000000000000000000033333200000000000000000000000000000000000000020000000000000000000000000000000000000002000000000000000000000000000000000000000200000000000000000000000000000000001111111111111111111111111111111111111111',
+			'00000000000000000000000000000000000000600000000000000000000000000000000000000011000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000111000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000003330000000000000000000000000000000000003333300033000000000000000000000000000000000000000000000000000000000006000000000000550000020000000000000200001110000000000055020002000111111111120000333000000000111112000200133333330002000000000000000000000200021130000000000200000000000000000000020002000000000000020000000000000000000002000200020000000002111111100111001101111100111112000000000200000000000000000000000033333200000000000000000000000000000000000000020000000000000000000000000000000000000002000000000000000000000000000000000000000200000000000000000000000000000000001111111111111111111111111111111111111111',
 			/* CRATES */
 			[1, 2]
 		],
@@ -627,7 +654,7 @@
 			/* TIME */
 			120000,
 			/* MAP */
-			'33330000000000000000000000000000000000000000000000000033000000000330000000000000055000000000000000000000000000000000000005500000000000000003030000000000000000001111111000000000000030000000000000110010000000010000000000000000000000000100301000000000000200000200000200000200000000100000000011120111102000201111021113002010111100000002000000020200000002000000211100000000000100000000200000000100000020000000000000000000000000000000000002002000000000000000000000000000000000030211100000001110000000000000000000000030020000000000000000000000003333300000000002000000000000000000000000000000000003020200000000000001100000000000000000000002110000000000000000000000000020700000020200000000000000000000000000112110000002020000060000000000010000000000200000000201000011100000000000000000000020000000020000000000000000000000000000002000000002000000000000000000000000000000200000000200000000001111111111111111111111111111111111111111',
+			'33330000000000000000000000000000000000000000000000000033000000000330000000000000055000000000000000000000000000000000000005500000000000000003030000000000000000001111111000000000000030000000000000110010000000010000000000000000000000000100301000000000000200000200000200000200000000100000000011120111102000201111021113002010111100000002000000020200000002000000211100000000000100000000200000000100000020000000000000000000000000000000000002002000000000000000000000000000000000030211100000001110000000000000000000000030020000000000000000000000003333300000000002000000000000000000000000000000000003020200000000000001100000000000000000000002110000000000000000000000000020700000020200000000000600000000000000112110000002020000060000111000010000000000200000000201000011100000000000000000000020000000020000000000000000000000000000002000000002000000000000000000000000000000200000000200000000001111111111111111111111111111111111111111',
 			/* CRATES */
 			[1, 2]
 		],
@@ -669,21 +696,21 @@
 			'0000000000000000000000000000000000000011' +
 			'0550000000000000000000000033330000000000' +
 			'0550000000000000000200000000000000000000' +
-			'1111110010011001111201110011110000000000' +
-			'0000000000033000000200000000001000000000' +
-			'0000000000000000070200000000000100000000' +
+			'1111110010011001111211110011110000000000' +
+			'0000000000033000000000000000001000000000' +
+			'0000000000000000070000000000000100000000' +
 			'0001110000000000111111000000000010020000' +
-			'0020000000000000333333300003333301021000' +
+			'0020000000000000333333300003333301121000' +
 			'0020003333330000000000000000000000020000' +
 			'0020000000000000000000000000000000020000' +
-			'0020000000000000100100100110000202020000' +
-			'0020111111111111100000003331100111121110' +
+			'0020000000000000101010101110000202000000' +
+			'0021111111111111100000003331100111101110' +
 			'0020033333333330000000000003300000033333' +
 			'0020000000000000000000000000000000000000' +
 			'0020000000000000000020000000000002000000' +
-			'0020111100111110011120111001111112011111' +
-			'0020000000000000000020000003030302000000' +
-			'0000000000000000000020700000000002000000' +
+			'0020111100111110011121111001111112011111' +
+			'0020000000000000000000000003030302000000' +
+			'0000000000000000000000700000000002000000' +
 			'0000333330003030300011110000200002000000' +
 			'0000000000000000000000000000211112000000' +
 			'0000000000000000000000000000200000000000' +
@@ -814,10 +841,13 @@
 		return [x, y];
 	}
 
-	function printTextLines(context, textArray, x, y, yIncrement, color) {
+	function printTextLines(context, textArray, x, y, yIncrement, color, align, font) {
 		var previousFillColor = context.fillColor,
-			previousTextAlign = context.textAlign;
+			previousTextAlign = context.textAlign,
+			previousFont = context.font;
 		context.fillStyle = color;
+		context.font = font;
+		context.textAlign = align;
 		var textArrayCopy = textArray.slice(),
 			tempY = y;
 		while (textArrayCopy.length > 0) {
@@ -825,6 +855,8 @@
 			tempY += yIncrement;
 		}
 		context.fillStyle = previousFillColor;
+		context.textAlign = previousTextAlign;
+		context.font = previousFont;
 		context.textAlign = previousTextAlign;
 	}
 
@@ -908,6 +940,27 @@
 	// GAME
 	//
 
+	function createMessage(text, position, color, isStatic) {
+		var msg = Object.create(Message);
+		msg.position = position;
+		msg.text = [text];
+		msg.color = color;
+		msg.time = currentTime + MESSAGE_TIMEOUT;
+		msg.isStatic = isStatic || false;
+		messageArray.push(msg);
+	}
+
+	function createParticle(position, nextPosition, color, size, speed) {
+		var particle = Object.create(Particle);
+		particle.position = position;
+		particle.nextPosition = nextPosition;
+		particle.color = color;
+		particle.time = currentTime + PARTICLE_DISPLAY_TIMEOUT;
+		particle.size = size;
+		particle.speed = speed;
+		particleArray.push(particle);
+	}
+
 	function resetCrates(level) {
 		var crateStartingPosition = level[LEVEL_PARAMS.CRATES_STARTING_POSITION],
 			currentCrateSize,
@@ -929,8 +982,10 @@
 			crateCanvas.width = CRATE_IMAGE_WIDTH + currentCrateSize;
 			crateCanvas.height = CRATE_IMAGE_WIDTH + currentCrateSize;
 			crateCtx = crateCanvas.getContext('2d');
-			crateCtx.fillStyle = 'yellow';
+			crateCtx.fillStyle = '#ea0';
+			crateCtx.strokeStyle = '#330';
 			crateCtx.fillRect(0, 0, CRATE_IMAGE_WIDTH + currentCrateSize, CRATE_IMAGE_WIDTH + currentCrateSize);
+			crateCtx.strokeRect(0, 0, CRATE_IMAGE_WIDTH + currentCrateSize, CRATE_IMAGE_WIDTH + currentCrateSize);
 			crateCtx.fillStyle = '#000';
 			crateCtx.fillText(currentCrateSize, 5, 10);
 			newCrate.image = crateCanvas;
@@ -962,6 +1017,7 @@
 		Crow.shots = 0;
 		Crow.stunnedTimeout = 0;
 		Crow.position = level[LEVEL_PARAMS.CROW_STARTING_POSITION].slice();
+		Crow.nextPosition = level[LEVEL_PARAMS.CROW_STARTING_POSITION].slice();
 
 		Granny.position = level[LEVEL_PARAMS.GRANNY_POSITION].slice();
 		Granny.startingLaserPosition = [level[LEVEL_PARAMS.GRANNY_POSITION][0] + 15, level[LEVEL_PARAMS.GRANNY_POSITION][1] + 23];
@@ -984,6 +1040,8 @@
 
 		crumbArray.length = 0;
 		shotArray.length = 0;
+		messageArray.length = 0;
+		particleArray.length = 0;
 
 		// Redraw the menu screen
 		menuCanvasContext.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -996,7 +1054,11 @@
 		menuCanvasContext.fillText('A 13kB game by Alberto Congiu', CANVAS_WIDTH / 2, 12);
 		menuCanvasContext.font = '20px courier';
 		menuCanvasContext.fillText(Game.currentLevel[LEVEL_PARAMS.NAME], CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 50);
-		menuCanvasContext.fillText('Luke ' + Game.boyPoints + ' - ' + Game.crowPoints + ' Crow', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+		printTextLines(menuCanvasContext, ['Luke ' + Game.boyPoints], CANVAS_WIDTH / 2 - 50, CANVAS_HEIGHT / 2, 10, lastWinner === true ? '#0f0' : '#fff', 'right');
+		printTextLines(menuCanvasContext, [Game.crowPoints + ' Crow'], CANVAS_WIDTH / 2 + 50, CANVAS_HEIGHT / 2, 10, lastWinner === false ? '#0f0' : '#fff', 'left');
+		printTextLines(menuCanvasContext, ['|'], CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 10, '#fff', 'center');
+		// context, textArray, x, y, yIncrement, color, align, font
+		// menuCanvasContext.fillText('Luke ' + Game.boyPoints + ' - ' + Game.crowPoints + ' Crow', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
 
 		// Draw menu options
 		menuCanvasContext.font = '15px courier';
@@ -1040,18 +1102,22 @@
 		showCursor();
 	}
 
-	function winBoy() {
+	function winBoy(t) {
 		Game.boyPoints += 1;
 		showCursor(true);
 		playSound(SOUND_TYPE.SUCCESS);
+		lastWinner = true;
 		resetGame(selectedLevel);
+		lastEndGameTimeout = t + ENDGAME_TIMEOUT;
 	}
 
-	function winCrow() {
+	function winCrow(t) {
 		Game.crowPoints += 1;
 		showCursor(true);
 		playSound(SOUND_TYPE.FAILURE);
+		lastWinner = false;
 		resetGame(selectedLevel);
+		lastEndGameTimeout = t + ENDGAME_TIMEOUT;
 	}
 
 	//
@@ -1136,11 +1202,23 @@
 	function calculateHorizontalSpeed(t) {
 		var currentSpeed = Player.currentSpeed,
 			speed = calculatePlayerSpeed();
-		if (!Player.isMoving) {
-			currentSpeed = 0;
+		if (Player.isInAir) {
+			currentSpeed = Player.currentSpeed;
+		} else if (!Player.isMoving) {
+			currentSpeed *= Math.min(0.2 * speed, 0.8);
+			if (currentSpeed < 0.2 || isPlayerOnBlock(BLOCK_TYPE.LADDER)) {
+				currentSpeed = 0;
+			}
+		} else {
+			currentSpeed = Math.min(speed, currentSpeed + speed / 25);
 		}
-		currentSpeed = Math.min(speed, currentSpeed + speed / 25);
 		Player.currentSpeed = currentSpeed;
+		if (Player.speedBoost && !Player.isInAir) {
+			var numParticles = speed * 2;
+			while (numParticles-- > 0) {
+				createParticle(Player.position.slice(), [Player.position[0] - Math.floor(Math.random() * 64 - 32), Player.position[1] - Math.ceil(Math.random() * 20 - 5)], '#04f', Math.ceil(Math.random() * 2), Math.ceil(Math.random() * 5));
+			}
+		}
 		return (isPlayerOnBlock(BLOCK_TYPE.LADDER) ? speed / 2 : currentSpeed);
 	}
 
@@ -1152,7 +1230,7 @@
 		return calculatePlayerSpeed() * PLAYER_RADIUS_MULTIPLIER + PLAYER_DAMAGE_RADIUS;
 	}
 
-	function interact() {
+	function interact(t) {
 		var currentCrateIdx = Player.crateCarried,
 			currentCrate = currentCrateIdx !== undefined ? crateArray[currentCrateIdx] : undefined;
 		if (currentCrate === undefined) {
@@ -1166,7 +1244,8 @@
 				}
 			}
 			// If no crate is picked up, use dispenser
-			if (isPlayerOnBlock(BLOCK_TYPE.DISPENSER)) {
+			if (isPlayerOnBlock(BLOCK_TYPE.DISPENSER) && Player.candies < DISPENSER_CANDIES) {
+				createMessage('+' + (DISPENSER_CANDIES - Player.candies) + '§', [Player.position[0] - 4, Player.position[1] - 32], '#0c0');
 				Player.candies = DISPENSER_CANDIES;
 				playSound(SOUND_TYPE.DISPENSER);
 			}
@@ -1175,8 +1254,14 @@
 			playSound(SOUND_TYPE.CRATE_PICKUP);
 			if (isPlayerOnBlock(BLOCK_TYPE.GOAL) && currentCrate !== undefined) {
 				crateArray.splice(currentCrateIdx, 1);
+				var numParticles = 60;
+				while (numParticles-- > 0) {
+					createParticle(Player.position.slice(), [Player.position[0] - Math.floor(Math.random() * 128 - 64), Player.position[1] - 16 - Math.ceil(Math.random() * 128 - 64)], '#0c0', Math.ceil(Math.random() * 4), Math.ceil(Math.random() * 6));
+				}
+				var msg = Math.random() > 0.5 ? 'Good boy!' : 'Thank you!';
+				createMessage(msg, [Granny.position[0] + 4, Granny.position[1]], '#ccc', true);
 				if (crateArray.length <= 0) {
-					winBoy();
+					winBoy(t);
 				} else {
 					playSound(SOUND_TYPE.CRATE_DELIVERY);
 				}
@@ -1200,15 +1285,18 @@
 		if (Game.state === GAME_STATE.EDIT) {
 			isToggleDrawOn = !isToggleDrawOn;
 		} else if (Game.state === GAME_STATE.PLAYING && Crow.stunnedTimeout < currentTime) {
-			var currentMousePosition = getCanvasRelativeCoords(evt);
+			var currentMousePosition = getCanvasRelativeCoords(evt),
+				oldShotsCount = Crow.shots;
 			if (isCrowOnBlock(BLOCK_TYPE.NEST) && Crow.shots < MAX_NEST_SHOTS) {
 				playSound(SOUND_TYPE.CROW_EAT);
 				Crow.shots++;
+				createMessage('+' + (Crow.shots - oldShotsCount) + '↡', [Crow.position[0] - 4, Crow.position[1] - 4], '#0c0');
 			} else {
 				var c;
 				for (c = 0; c < crumbArray.length; c++) {
 					if (arePositionsInSameBlock(currentMousePosition, crumbArray[c].position)) {
 						Crow.shots = Math.max(Crow.shots, CRUMBS_SHOTS);
+						createMessage('+' + (Crow.shots - oldShotsCount) + '↡', [Crow.position[0] - 4, Crow.position[1] - 4], '#0c0');
 						playSound(SOUND_TYPE.CROW_EAT);
 						crumbArray.splice(c, 1);
 						return;
@@ -1263,15 +1351,22 @@
 	}
 
 	function stunCrow(t) {
+		var numParticles = 60;
+		while (numParticles-- > 0) {
+			createParticle(Crow.position.slice(), [Crow.position[0] - Math.floor(Math.random() * 128 - 64), Crow.position[1] + Math.ceil(Math.random() * 128 - 64)], '#000', Math.ceil(Math.random() * 3), Math.ceil(Math.random() * 2));
+		}
+
 		Crow.stunnedTimeout = t + CROW_STUN_TIME;
 		playSound(SOUND_TYPE.GRANNY_SHOT);
 		Crow.shots = 0;
 		Crow.health--;
+		createMessage('-1♥', [Crow.position[0] - 4, Crow.position[1] - 4], '#c00');
 		if (Crow.health <= 0) {
-			winBoy();
+			winBoy(t);
 		} else if (Crow.health < CAT_SPAWN_THRESHOLD) {
 			showCat(t);
 		}
+		hitTimeout = t + HIT_SHAKE_TIMEOUT;
 	}
 
 	//
@@ -1294,6 +1389,7 @@
 		Cat.nextPosition = [nextPosition[0] - 6, nextPosition[1] - 10];
 		if (!Cat.position) {
 			Cat.position = Cat.nextPosition.slice();
+			createMessage('meow...', [Cat.position[0], Cat.position[1] - 4], '#ccc', true);
 		} else {
 			playSound(SOUND_TYPE.CAT_MOVEMENT);
 		}
@@ -1306,12 +1402,20 @@
 	//
 
 	function breakCrate(crate, t) {
+		var numParticles = 60;
+		while (numParticles-- > 0) {
+			createParticle(Player.position.slice(), [Player.position[0] - Math.floor(Math.random() * 128 - 64), Player.position[1] - 16 - Math.ceil(Math.random() * 128 - 64)], '#ea0', Math.ceil(Math.random() * 3), Math.ceil(Math.random() * 4));
+		}
+		var msg = Math.random() > 0.5 ? 'Be careful!' : 'My mirrors!';
+		createMessage(msg, [Granny.position[0] + 4, Granny.position[1]], '#ccc', true);
 		playSound(SOUND_TYPE.PLAYER_CRASH);
 		Player.crateCarried = undefined;
 		crate.position = crate.startPosition.slice();
 		Player.crates--;
+		createMessage('-1◼', [Player.position[0] - 4, Player.position[1] - 32], '#c00');
+		hitTimeout = t + HIT_SHAKE_TIMEOUT;
 		if (Player.crates <= 0) {
-			winCrow();
+			winCrow(t);
 		} else if (Player.crates < CAT_SPAWN_THRESHOLD) {
 			showCat(t);
 		}
@@ -1444,8 +1548,10 @@
 		} else if (selectedBlock === GAME_ELEMENTS.GRANNY) {
 			drawImage(IMAGE_MAP_DATA_NAMES.GRANNY, currentMousePosition[0], currentMousePosition[1]);
 		} else if (selectedBlock === GAME_ELEMENTS.CRATES) {
-			ctx.fillStyle = 'yellow';
+			ctx.fillStyle = '#ea0';
+			ctx.strokeStyle = '#330';
 			ctx.fillRect(currentMousePosition[0] - 8, currentMousePosition[1] - 8, 16, 16);
+			ctx.strokeRect(currentMousePosition[0] - 8, currentMousePosition[1] - 8, 16, 16);
 			ctx.fillStyle = '#000';
 			ctx.fillText('C', currentMousePosition[0] - 4, currentMousePosition[1] + 4);
 		}
@@ -1479,17 +1585,52 @@
 		ctx['stroke']();
 	}
 
-	function drawMap() {
-		var i, j;
+	function drawMap(t) {
+		var i, j, dx = 0,
+			dy = 0;
+		if (hitTimeout > t) {
+			dx = Math.floor(Math.random() * 6 - 3);
+			dy = Math.floor(Math.random() * 6 - 3);
+		}
 		for (i = 0; i < I; i++) {
 			for (j = 0; j < J; j++) {
-				drawBlockTypeAt(getMapAt(i, j), i * BLOCK_SIZE, j * BLOCK_SIZE);
+				drawBlockTypeAt(getMapAt(i, j), i * BLOCK_SIZE + dx, j * BLOCK_SIZE + dy);
 			}
 		}
 	}
 
 	function drawMenu() {
 		ctx.drawImage(MenuCanvas, 0, 0);
+	}
+
+	function drawMessages(t) {
+		var curMsg;
+		for (var m = 0; m < messageArray.length; m++) {
+			curMsg = messageArray[m];
+			if (curMsg.time < t) {
+				messageArray.splice(m, 1);
+				m--;
+			} else {
+				printTextLines(ctx, curMsg.text, curMsg.position[0] + 1, curMsg.position[1] + 1, 10, '#000', 'center', '14px sans-serif');
+				printTextLines(ctx, curMsg.text, curMsg.position[0], curMsg.position[1], 10, curMsg.color, 'center', '14px sans-serif');
+				if (!curMsg.isStatic) {
+					curMsg.position[1] += -0.5;
+				}
+			}
+		}
+	}
+
+	function drawParticles(t) {
+		var curParticle;
+		for (var p = 0; p < particleArray.length; p++) {
+			curParticle = particleArray[p];
+			ctx.fillStyle = curParticle.color;
+			ctx.fillRect(curParticle.position[0], curParticle.position[1], curParticle.size, curParticle.size);
+			if (!updateMovingPosition(curParticle, 3, curParticle.speed) || curParticle.time < t) {
+				particleArray.splice(p, 1);
+				p--;
+			}
+		}
 	}
 
 	function drawPlayer(t) {
@@ -1522,7 +1663,11 @@
 		ctx.fillStyle = 'white';
 		if (Game.state === GAME_STATE.PLAYING) {
 			// Boy's status
-			ctx.fillText('⚙ ' + Math.max(0, Math.ceil((Game.time - t) / 1000)) + '   § ' + Player.candies + '   ◼ ' + Player.crates, 50, 396);
+			var time = Math.max(0, Math.ceil((Game.time - t) / 1000)),
+				secs = time % 60,
+				mins = Math.floor(time / 60);
+			if (secs < 10) secs = '0' + secs;
+			ctx.fillText('§ ' + Player.candies + '   ◼ ' + Player.crates + '   ⚙ ' + mins + ':' + secs, 50, 396);
 
 			// Crow's status
 			ctx.fillText('↡ ' + Crow.shots + '   ♥ ' + Crow.health, 530, 12);
@@ -1543,7 +1688,7 @@
 
 		clearColor();
 
-		drawMap();
+		drawMap(t);
 
 		drawCrates();
 		drawCrumbs();
@@ -1559,6 +1704,8 @@
 		drawLaser();
 
 		drawStatusBars(t);
+		drawParticles(t);
+		drawMessages(t);
 
 		if (Game.state === GAME_STATE.MENU) {
 			drawMenu();
@@ -1573,6 +1720,9 @@
 	//
 
 	function processInput(t) {
+		if (lastEndGameTimeout > t) {
+			return;
+		}
 		var speed = calculatePlayerSpeed(),
 			ladderSpeed = Player.ladderSpeed,
 			x = Player.position[0],
@@ -1666,7 +1816,7 @@
 				//
 				if (k[KEYCODES.INTERACT] && !Player.isJumping && !Player.isInAir && !Player.isInteracting) { // SPACEBAR (interact)
 					Player.isInteracting = true;
-					interact();
+					interact(t);
 				} else if (k[KEYCODES.EAT] && !Player.isInteracting) { // E (eat candy)
 					Player.isInteracting = true;
 					if (Player.candies > 0) {
@@ -1688,7 +1838,6 @@
 						Player.isClimbing = true;
 					} else if (!Player.isJumping && !Player.isInAir) {
 						Player.verticalSpeed = Player.jumpSpeed;
-						Player.currentSpeed = speed;
 						Player.isJumping = true;
 						Player.isInAir = true;
 						Player.isClimbing = false;
@@ -1697,23 +1846,23 @@
 				} else if (!k[KEYCODES.UP] && Player.isJumping) {
 					Player.isJumping = false;
 					Player.isClimbing = false;
+				} else if (k[KEYCODES.DOWN] && isPlayerOnBlock(BLOCK_TYPE.LADDER)) { // DOWN (Climb ladders)
+					Player.position[1] = Math.min(CANVAS_HEIGHT, y + ladderSpeed);
+					Player.isClimbing = true;
+				} else {
+					Player.isClimbing = false;
 				}
-				if (k[KEYCODES.LEFT]) { // LEFT (Move left)
-					Player.position[0] = Math.max(BLOCK_SIZE, x - calculateHorizontalSpeed(t));
+				if (k[KEYCODES.LEFT] && !Player.isInAir) { // LEFT (Move left)
 					Player.isMoving = true;
 					Player.isFacingLeft = true;
-				} else if (k[KEYCODES.RIGHT]) { // RIGHT (Move right)
-					Player.position[0] = Math.min(CANVAS_WIDTH - 2 * BLOCK_SIZE, x + calculateHorizontalSpeed(t));
+				} else if (k[KEYCODES.RIGHT] && !Player.isInAir) { // RIGHT (Move right)
 					Player.isMoving = true;
 					Player.isFacingLeft = false;
 				} else {
 					Player.isMoving = false;
 				}
-				if (k[KEYCODES.DOWN] && isPlayerOnBlock(BLOCK_TYPE.LADDER)) { // DOWN (Climb ladders)
-					Player.position[1] = Math.min(CANVAS_HEIGHT, y + ladderSpeed);
-					Player.isClimbing = true;
-				} else {
-					Player.isClimbing = false;
+				if (Player.isMoving || Player.currentSpeed > 0) {
+					Player.position[0] = Math.min(CANVAS_WIDTH - BLOCK_SIZE, Math.max(BLOCK_SIZE, x + (Player.isFacingLeft ? -1 : +1) * calculateHorizontalSpeed(t)));
 				}
 			}
 			if (k[KEYCODES.MENU]) {
@@ -1752,6 +1901,9 @@
 				}
 				entity.position[0] += dx;
 				entity.position[1] += dy;
+				return true;
+			} else {
+				return false;
 			}
 		}
 	}
@@ -1813,13 +1965,14 @@
 		// 	Game.canvasBoundingRect = canvas.getBoundingClientRect();
 		// });
 
-		// Player collision
+		// Player collision & movement
 		// The next vertical position when falling is calculates as the sum of the current Y and the current player's vertical speed.
 		// Since the vertical speed can become bigger than the tile size, it could happen that a solid block is skipped when falling.
 		// To avoid this, the vertical distance delta of the current cycle is divided into chunks of length BLOCK_SIZE, so that no
 		// block in the way is ignored. If a solid block is found, the player will stop there.
 		var currentVectorFraction = 2,
-			stoppingY;
+			stoppingY,
+			crateWeight = 0;
 		if (!Player.isInAir && isAABBOverBlock(Player.position[0] - 4, Player.position[1], 8, 0, BLOCK_TYPE.PLATFORM)) {
 			stoppingY = Player.position[1] - (Player.position[1] % BLOCK_SIZE);
 		} else {
@@ -1839,12 +1992,20 @@
 				var currentCrate = (Player.crateCarried !== undefined) && crateArray[Player.crateCarried];
 				if (currentCrate) {
 					var verticalSpeedThreshold = MIN_VERTICAL_SPEED_TO_CRASH - currentCrate.size;
+					crateWeight = currentCrate.size;
 					if (Player.verticalSpeed > verticalSpeedThreshold) {
 						breakCrate(currentCrate, t);
 					}
 				}
 			}
 			Player.isInAir = false;
+			if (Player.verticalSpeed > 10 - crateWeight * 2) {
+				var numParticles = Player.verticalSpeed * 3;
+				while (numParticles-- > 0) {
+					createParticle(Player.position.slice(), [Player.position[0] - Math.floor(Math.random() * 64 - 32), Player.position[1] + Math.ceil(Math.random() * 10 - 5)], '#dda', Math.ceil(Math.random() * 2), Math.ceil(Math.random() * 5));
+				}
+				playSound(SOUND_TYPE.PLAYER_FALL);
+			}
 			Player.verticalSpeed = 0;
 		} else if (!isAABBOverBlock(Player.position[0] - 4, Player.position[1] - 32, 8, 16, BLOCK_TYPE.LADDER)) {
 			Player.verticalSpeed += 0.6;
@@ -1852,6 +2013,7 @@
 			Player.position[1] += Player.verticalSpeed;
 		} else {
 			Player.isInAir = false;
+			Player.verticalSpeed = 0;
 		}
 
 		// Change the position of the crate that is currently carried
@@ -1883,7 +2045,7 @@
 
 		// Check Game Time
 		if (Game.time < t) {
-			winCrow();
+			winCrow(t);
 		}
 
 		// Update Crow's position
@@ -1950,25 +2112,26 @@
 
 	// Load the notes of the small intro tune
 	for (var s = 0; s < NOTES_CDEFGABC_FREQUENCIES.length; s++) {
-		noteSoundArray[s] = jsfxlib.createWave(['synth', 0.0000, 0.4000, 0.0000, 0.2080, 0.0000, 0.1200, 20.0000, NOTES_CDEFGABC_FREQUENCIES[s], 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.1000, 0.0000]);
+		noteSoundArray[s] = jsfxlib.createWave(['synth', 0.0000, 0.1000, 0.0000, 0.2080, 0.0000, 0.1200, 20.0000, NOTES_CDEFGABC_FREQUENCIES[s], 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.1000, 0.0000]);
 	}
 	introThemeBuffer = INTRO_THEME.slice();
 
 	// Load the sounds
-	loadSound(SOUND_TYPE.JUMP, ['square', 0.0000, 0.4000, 0.0000, 0.1740, 0.0000, 0.2800, 20.0000, 497.0000, 2400.0000, 0.2200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0665, 0.0000, 0.0000, 0.0000, 0.0000, 0.7830, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.PLAYER_CRASH, ['noise', 0.0000, 0.4000, 0.0000, 0.1400, 0.4050, 0.1160, 20.0000, 479.0000, 2400.0000, -0.0700, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, -0.0860, -0.1220, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CRATE_DELIVERY, ['square', 0.0000, 0.4000, 0.0000, 0.0980, 0.5040, 0.2820, 20.0000, 1582.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CANDY_SPEED_BOOST, ['saw', 0.0000, 0.4000, 0.0000, 0.3240, 0.0000, 0.2840, 20.0000, 631.0000, 2400.0000, 0.1720, 0.0000, 0.4980, 19.3500, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CROW_SHOT, ['saw', 0.0000, 0.4000, 0.0000, 0.2120, 0.0000, 0.0280, 20.0000, 1169.0000, 2400.0000, -0.5200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.5000, -0.5920, 0.0000, 0.0940, 0.0660, 1.0000, 0.0000, 0.0000, 0.2800, 0.0000]);
-	loadSound(SOUND_TYPE.FAILURE, ['synth', 0.0000, 0.4000, 0.0000, 0.3200, 0.3480, 0.4400, 20.0000, 372.0000, 417.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.3740, 0.2640, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.SUCCESS, ['synth', 0.0000, 0.4000, 0.0000, 0.1300, 0.3450, 0.4100, 253.0000, 1168.0000, 1407.0000, -0.0060, -0.0820, 0.0000, 0.0100, 0.0003, 0.0000, 0.2060, 0.1660, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CRATE_PICKUP, ['noise', 0.0000, 0.4000, 0.0000, 0.0020, 0.0240, 0.0900, 20.0000, 372.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3420, 0.8090, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CROW_CRASH, ['noise', 0.0000, 0.4000, 0.0000, 0.1520, 0.3930, 0.2740, 20.0000, 839.0000, 2400.0000, -0.3100, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3400, 0.7830, 0.0000, 0.0000, 0.6096, 0.5260, -0.0080, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CROW_EAT, ['square', 0.0000, 0.4000, 0.0000, 0.0400, 0.0000, 0.0480, 20.0000, 578.0000, 2400.0000, 0.1040, 0.0000, 0.6830, 19.1580, 0.0003, 0.0000, 0.0000, 0.0000, 0.3850, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.DISPENSER, ['square', 0.0000, 0.4000, 0.0000, 0.0460, 0.4770, 0.2400, 20.0000, 1197.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.4980, 0.2040, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.GRANNY_SHOT, ['noise', 0.0000, 0.4000, 0.0000, 0.1080, 0.3360, 0.1240, 20.0000, 462.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.CAT_APPEARS, ["synth", 0.0000, 0.4000, 0.0000, 0.4400, 0.5790, 1.0040, 20.0000, 1793.0000, 2400.0000, -0.2020, 0.0000, 0.0000, 8.6962, 0.5346, 0.6660, -0.2980, 0.6710, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.JUMP, ['square', 0.0000, 0.3000, 0.0000, 0.1740, 0.0000, 0.2800, 20.0000, 497.0000, 2400.0000, 0.2200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0665, 0.0000, 0.0000, 0.0000, 0.0000, 0.7830, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.PLAYER_CRASH, ['noise', 0.0000, 0.3000, 0.0000, 0.1400, 0.4050, 0.1160, 20.0000, 479.0000, 2400.0000, -0.0700, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, -0.0860, -0.1220, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CRATE_DELIVERY, ['square', 0.0000, 0.3000, 0.0000, 0.0980, 0.5040, 0.2820, 20.0000, 1582.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CANDY_SPEED_BOOST, ['saw', 0.0000, 0.3000, 0.0000, 0.3240, 0.0000, 0.2840, 20.0000, 631.0000, 2400.0000, 0.1720, 0.0000, 0.4980, 19.3500, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CROW_SHOT, ['saw', 0.0000, 0.3000, 0.0000, 0.2120, 0.0000, 0.0280, 20.0000, 1169.0000, 2400.0000, -0.5200, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.5000, -0.5920, 0.0000, 0.0940, 0.0660, 1.0000, 0.0000, 0.0000, 0.2800, 0.0000]);
+	loadSound(SOUND_TYPE.FAILURE, ['synth', 0.0000, 0.3000, 0.0000, 0.3200, 0.3480, 0.4400, 20.0000, 372.0000, 417.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.3740, 0.2640, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.SUCCESS, ['synth', 0.0000, 0.3000, 0.0000, 0.1300, 0.3450, 0.4100, 253.0000, 1168.0000, 1407.0000, -0.0060, -0.0820, 0.0000, 0.0100, 0.0003, 0.0000, 0.2060, 0.1660, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CRATE_PICKUP, ['noise', 0.0000, 0.3000, 0.0000, 0.0020, 0.0240, 0.0900, 20.0000, 372.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3420, 0.8090, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CROW_CRASH, ['noise', 0.0000, 0.3000, 0.0000, 0.1520, 0.3930, 0.2740, 20.0000, 839.0000, 2400.0000, -0.3100, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3400, 0.7830, 0.0000, 0.0000, 0.6096, 0.5260, -0.0080, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CROW_EAT, ['square', 0.0000, 0.3000, 0.0000, 0.0400, 0.0000, 0.0480, 20.0000, 578.0000, 2400.0000, 0.1040, 0.0000, 0.6830, 19.1580, 0.0003, 0.0000, 0.0000, 0.0000, 0.3850, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.DISPENSER, ['square', 0.0000, 0.3000, 0.0000, 0.0460, 0.4770, 0.2400, 20.0000, 1197.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.4980, 0.2040, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.GRANNY_SHOT, ['noise', 0.0000, 0.3000, 0.0000, 0.1080, 0.3360, 0.1240, 20.0000, 462.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
+	loadSound(SOUND_TYPE.CAT_APPEARS, ["synth", 0.0000, 0.3000, 0.0000, 0.4400, 0.5790, 1.0040, 20.0000, 1793.0000, 2400.0000, -0.2020, 0.0000, 0.0000, 8.6962, 0.5346, 0.6660, -0.2980, 0.6710, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.CAT_MOVEMENT, ["noise", 0.0000, 0.1270, 0.0430, 0.1240, 0.0000, 0.2820, 20.0000, 2400.0000, 20.0000, 1.0000, -1.0000, 0.0000, 0.0100, -0.3000, -1.0000, 0.9560, 0.2720, 0.0000, 0.6800, 0.0000, -0.9980, -1.0000, 1.0000, 1.0000, 0.0000, 0.0000, -0.9980]);
+	loadSound(SOUND_TYPE.PLAYER_FALL, ["noise", 0.0000, 0.1260, 0.0000, 0.0700, 0.0000, 0.2320, 2400.0000, 2400.0000, 2400.0000, -1.0000, -1.0000, 0.0000, 0.0100, -0.3000, -1.0000, -1.0000, 0.0000, 0.0000, -1.0000, 0.0000, 0.0040, 0.0000, 1.0000, 1.0000, 0.0000, 0.0000, -1.0000]);
 
 	//
 	// INPUT
