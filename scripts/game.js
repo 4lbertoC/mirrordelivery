@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////
 //
-// MIRROR DELIVERY 1.3.3
+// MIRROR DELIVERY 1.3.4
 //
 // A 13kB game by Alberto Congiu
 //
@@ -235,7 +235,7 @@
 			{
 				frame: {
 					x: 49,
-					y: 25,
+					y: 30,
 					w: 15,
 					h: 16
 				},
@@ -264,6 +264,7 @@
    		],
 		IS_AUDIO_SUPPORTED = !! (window['btoa'] && window['atob']),
 		INTRO_THEME = '023123467'.split(''),
+		NEXT_NOTE_TIMEOUT = 200,
 		SOUND_TYPE = {
 			JUMP: 0,
 			PLAYER_CRASH: 1,
@@ -281,7 +282,6 @@
 			CAT_MOVEMENT: 13,
 			PLAYER_FALL: 14
 		},
-		NEXT_NOTE_TIMEOUT = 200,
 
 		//
 		// INPUT
@@ -1756,16 +1756,16 @@
 				}
 				k[KEYCODES.DELETE] = undefined;
 			} else if (k[KEYCODES.EXPORT_LEVEL] && Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM] && !isAnyKeyPressed) { // Export current custom level
-				var jsonLevel = prompt('Data', JSON.stringify(Levels[selectedLevel]));
+				var jsonLevel = prompt('JSON', JSON.stringify(Levels[selectedLevel]));
 				// Need to do this because the prompt hangs the keycode pressed
 				k[KEYCODES.EXPORT_LEVEL] = undefined;
 			} else if (k[KEYCODES.IMPORT_LEVEL]) { // Import a level from its JSON
-				var jsonLevel = prompt('Data');
+				var jsonLevel = prompt('JSON');
 				if (jsonLevel) {
 					try {
 						createCustomLevel(JSON.parse(jsonLevel));
 					} catch (e) {
-						alert('Error!');
+						alert('Error');
 					}
 				}
 				// Need to do this because the prompt hangs the keycode pressed
@@ -1786,7 +1786,7 @@
 						if (crates instanceof Array) {
 							for (var c = 0; c < crates.length; c++) {
 								if (!typeof c === 'number') {
-									alert('Error!');
+									alert('Error');
 								}
 								crates[c] = Math.max(1, Math.min(5, crates[c]));
 							}
@@ -1794,7 +1794,7 @@
 							resetCrates(Levels[selectedLevel]);
 						}
 					} catch (e) {
-						alert('Error!');
+						alert('Error');
 					}
 					k[KEYCODES.CRATES] = undefined;
 				} else if (k[KEYCODES.NAME] && !isAnyKeyPressed) { // Edit level
