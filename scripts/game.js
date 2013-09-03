@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////
 //
-// MIRROR DELIVERY 1.3.4
+// MIRROR DELIVERY 1.3.8
 //
 // A 13kB game by Alberto Congiu
 //
@@ -277,10 +277,9 @@
 			CANDY_SPEED_BOOST: 8,
 			CROW_EAT: 9,
 			DISPENSER: 10,
-			GRANNY_SHOT: 11,
-			CAT_APPEARS: 12,
-			CAT_MOVEMENT: 13,
-			PLAYER_FALL: 14
+			CAT_APPEARS: 11,
+			CAT_MOVEMENT: 12,
+			PLAYER_FALL: 13
 		},
 
 		//
@@ -305,6 +304,7 @@
 		//
 		// GAME
 		//
+		ENDGAME_TIMEOUT = 2000,
 		GAME_STATE = {
 			MENU: 0,
 			PLAYING: 1,
@@ -313,7 +313,6 @@
 		HIT_SHAKE_TIMEOUT = 500,
 		MESSAGE_TIMEOUT = 1500,
 		PARTICLE_DISPLAY_TIMEOUT = 1500,
-		ENDGAME_TIMEOUT = 2000,
 
 		//
 		// MAP & EDITOR
@@ -431,7 +430,7 @@
 		//
 
 		// Desktop
-		currentMousePosition = null,
+		currentMousePosition = [0, 0],
 		isLeftMouseButtonDown = false,
 		isAnyKeyPressed = false,
 		KeyHandler = {
@@ -491,8 +490,8 @@
 		//
 		// EDIT MODE
 		//
-		selectedBlock = 0,
 		isToggleDrawOn = false,
+		selectedBlock = 0,
 
 		//
 		// ENTITIES
@@ -545,7 +544,7 @@
 			image: null,
 			size: 1,
 			position: null,
-			startPosition: [0, 0]
+			startPosition: null
 		},
 		crateArray = [],
 
@@ -667,7 +666,7 @@
 			/* CROW STARTING POSITION */
 			[281, 39],
 			/* CRATES STARTING POSITION */
-			[96, 316],
+			[88, 317],
 			/* GRANNY POSITION */
 			[49, 163],
 			/* TIME */
@@ -675,7 +674,7 @@
 			/* MAP */
 			'00000000000000010001000000000000000000000000000000300001666100003000000000000020000000000003000111110003000000000007002000000000000030000000003000000000001110203000000000000000000000000000000000000020332200000000000000000000000000000000002033202000000000000000000000000000000000203320320000000000222000000000000000000020332033111001111100011111000110011001102055200000000000000000000000000110011000205520000000000000000000000000000000000020111100000000000000000000000000000000002000000000000000030003000000000220022000200000000000000030000030000200000000000020000000000000000300030000020000000000002000003030300000000200000002011001100110200003030303030303020000000200011001100020000000000030303032111111000000000000000000000000000000000203030303030000000000000000011100070000023030303030300000000000000000000011100002000000000000000000000011110000000000000200000000000000000000001111111111111111111111111111111111111111',
 			/* CRATES */
-			[1, 2]
+			[1, 2, 3]
 		],
 
 		Level4 = [
@@ -696,7 +695,7 @@
 			'0000000000000000000000000000000000000011' +
 			'0550000000000000000000000033330000000000' +
 			'0550000000000000000200000000000000000000' +
-			'1111110010011001111211110011110000000000' +
+			'1111110010011001111201110011110000000000' +
 			'0000000000033000000000000000001000000000' +
 			'0000000000000000070000000000000100000000' +
 			'0001110000000000111111000000000010020000' +
@@ -708,7 +707,7 @@
 			'0020033333333330000000000003300000033333' +
 			'0020000000000000000000000000000000000000' +
 			'0020000000000000000020000000000002000000' +
-			'0020111100111110011121111001111112011111' +
+			'0020111100111110011120111001111112011111' +
 			'0020000000000000000000000003030302000000' +
 			'0000000000000000000000700000000002000000' +
 			'0000333330003030300011110000200002000000' +
@@ -716,7 +715,7 @@
 			'0000000000000000000000000000200000000000' +
 			'1111111111111111111111111111111111111111',
 			/* CRATES */
-			[1, 2, 3]
+			[2, 3, 4]
 		],
 
 		baseLevels = [Tutorial, Level1, Level2, Level3, Level4],
@@ -782,7 +781,7 @@
 	// http://stackoverflow.com/questions/3974827/detecting-touch-screen-devices-with-javascript
 	// http://blog.stevelydford.com/2012/03/detecting-touch-hardware-in-ie-10/
 	//
-	if (('ontouchstart' in document['documentElement']) || window['navigator']['msMaxTouchPoints']) {
+	if (true || ('ontouchstart' in document['documentElement']) || window['navigator']['msMaxTouchPoints']) {
 		isMobileDevice = true;
 
 		touchStartEvent = window['navigator']['msMaxTouchPoints'] ? 'MSPointerDown' : 'touchstart';
@@ -1037,7 +1036,8 @@
 		particleArray.length = 0;
 
 		// Adding the title bars to the map. Don't ask why they are tiles.
-		Map = '4444444444444444444444444444444444444444' + level[LEVEL_PARAMS.MAP] + '4444444444444444444444444444444444444444';
+		var statusBar = '4444444444444444444444444444444444444444';
+		Map = statusBar + level[LEVEL_PARAMS.MAP] + statusBar;
 		Map = Map.split('');
 		platformBlockMap = null;
 
@@ -1181,12 +1181,6 @@
 			currentSpeed = Math.min(speed, currentSpeed + speed / 25);
 		}
 		Player.currentSpeed = currentSpeed;
-		if (Player.speedBoost && !Player.isInAir) {
-			var numParticles = speed * 2;
-			while (numParticles-- > 0) {
-				createParticle(Player.position.slice(), [Player.position[0] - Math.floor(Math.random() * 64 - 32), Player.position[1] - Math.ceil(Math.random() * 20 - 5)], '#04f', Math.ceil(Math.random() * 2), Math.ceil(Math.random() * 5));
-			}
-		}
 		return (isPlayerOnBlock(BLOCK_TYPE.LADDER) ? speed / 2 : currentSpeed);
 	}
 
@@ -1222,10 +1216,6 @@
 			playSound(SOUND_TYPE.CRATE_PICKUP);
 			if (isPlayerOnBlock(BLOCK_TYPE.GOAL) && currentCrate !== undefined) {
 				crateArray.splice(currentCrateIdx, 1);
-				var numParticles = 60;
-				while (numParticles-- > 0) {
-					createParticle(Player.position.slice(), [Player.position[0] - Math.floor(Math.random() * 128 - 64), Player.position[1] - 16 - Math.ceil(Math.random() * 128 - 64)], '#0c0', Math.ceil(Math.random() * 4), Math.ceil(Math.random() * 6));
-				}
 				var msg = Math.random() > 0.5 ? 'Thank you!' : 'Good boy!';
 				createMessage(msg, [Granny.position[0] + 4, Granny.position[1]], '#ccc', true);
 				if (crateArray.length <= 0) {
@@ -1325,7 +1315,7 @@
 		}
 
 		Crow.stunnedTimeout = t + CROW_STUN_TIME;
-		playSound(SOUND_TYPE.GRANNY_SHOT);
+		playSound(SOUND_TYPE.CROW_CRASH);
 		Crow.shots = 0;
 		Crow.health--;
 		createMessage('-1♥', [Crow.position[0] - 4, Crow.position[1] - 4], '#c00');
@@ -1443,7 +1433,7 @@
 
 	function drawBlockTypeAt(blockType, x, y) {
 		var image = null,
-			color = (Cat.position) ? '#c29' : '#00deff'; // As default, use sky color, also as background for images that have transparency
+			color = (Cat.position) ? 'rgb(' + Math.pow(y, 2) + ',' + Math.floor(y / 3) + ',' + Math.floor(y) + ')' : 'rgb(' + Math.floor(y / 3) + ',' + Math.floor(y) + ',' + Math.pow(y, 2) + ')'; // As default, use sky color, also as background for images that have transparency
 		if (blockType === BLOCK_TYPE.PLATFORM) {
 			image = IMAGE_MAP_DATA_NAMES.PLATFORM;
 		} else if (blockType === BLOCK_TYPE.ROOF) {
@@ -1544,12 +1534,12 @@
 	}
 
 	function drawLaser() {
-		ctx.fillStyle = 'red';
+		ctx.fillStyle = '#f00';
 		ctx.fillRect(Granny.laserPosition[0] - 1, Granny.laserPosition[1] - 1, 2, 2);
 		ctx['beginPath']();
 		ctx['arc'](Granny.laserPosition[0], Granny.laserPosition[1], 5, 0, 360);
 		ctx['lineWidth'] = 2;
-		ctx['strokeStyle'] = 'red';
+		ctx['strokeStyle'] = '#f00';
 		ctx['stroke']();
 	}
 
@@ -1557,8 +1547,8 @@
 		var i, j, dx = 0,
 			dy = 0;
 		if (hitTimeout > t) {
-			dx = Math.floor(Math.random() * 6 - 3);
-			dy = Math.floor(Math.random() * 6 - 3);
+			dx = Math.floor(Math.random() * 8 - 4);
+			dy = Math.floor(Math.random() * 8 - 4);
 		}
 		for (i = 0; i < I; i++) {
 			for (j = 0; j < J; j++) {
@@ -1571,8 +1561,8 @@
 		var level = Game.currentLevel;
 
 		// Redraw the menu screen
-		menuCanvasContext.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 		menuCanvasContext.fillStyle = 'rgba(0,0,0,0.7)';
+		menuCanvasContext.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 		menuCanvasContext.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
 		// Draw subtitle and points
@@ -1629,10 +1619,6 @@
 			curParticle = particleArray[p];
 			ctx.fillStyle = curParticle.color;
 			ctx.fillRect(curParticle.position[0], curParticle.position[1], curParticle.size, curParticle.size);
-			if (!updateMovingPosition(curParticle, 3, curParticle.speed) || curParticle.time < t) {
-				particleArray.splice(p, 1);
-				p--;
-			}
 		}
 	}
 
@@ -1644,6 +1630,13 @@
 				drawAnim(IMAGE_MAP_DATA_NAMES.LUKE, Player.position[0] - 8, Player.position[1] - 24, 10, Player.isFacingLeft, t);
 			} else {
 				drawAnim(IMAGE_MAP_DATA_NAMES.LUKE, Player.position[0] - 8, Player.position[1] - 24, 1, Player.isFacingLeft);
+			}
+			if (Player.speedBoost && (Player.isInAir || Player.isMoving)) {
+				ctx.globalAlpha = 0.6;
+				drawAnim(IMAGE_MAP_DATA_NAMES.LUKE, Player.position[0] + (Player.isFacingLeft ? -4 : -12), Player.position[1] - 24, 10, Player.isFacingLeft, t);
+				ctx.globalAlpha = 0.3;
+				drawAnim(IMAGE_MAP_DATA_NAMES.LUKE, Player.position[0] + (Player.isFacingLeft ? 2 : -18), Player.position[1] - 24, 10, Player.isFacingLeft, t);
+				ctx.globalAlpha = 1;
 			}
 		} else {
 			drawAnim(IMAGE_MAP_DATA_NAMES.LUKE, Player.position[0] - 8, Player.position[1] - 24, 1);
@@ -1657,13 +1650,13 @@
 			ctx['beginPath']();
 			ctx['arc'](Player.position[0], Player.position[1], getDamageRadius(), 0, 360);
 			ctx['lineWidth'] = 2;
-			ctx['strokeStyle'] = '#f09';
+			ctx['strokeStyle'] = '#f00';
 			ctx['stroke']();
 		}
 	}
 
 	function drawStatusBars(t) {
-		ctx.fillStyle = 'white';
+		ctx.fillStyle = '#fff';
 		if (Game.state === GAME_STATE.PLAYING) {
 			// Boy's status
 			var time = Math.max(0, Math.ceil((Game.time - t) / 1000)),
@@ -1677,7 +1670,7 @@
 
 			ctx.fillStyle = '#00deff';
 			ctx.fillText('LUKE', 10, 396);
-			ctx.fillStyle = 'red';
+			ctx.fillStyle = '#f00';
 			ctx.fillText('CROW', 600, 12);
 		} else if (Game.state === GAME_STATE.EDIT) {
 			// Edit commands
@@ -1722,151 +1715,99 @@
 	// INPUT
 	//
 
+	function handleTouchInput(t) {
+		if (isTouchinganalogPad && touchPositions) {
+			var touchPosition, tempTp;
+			if (touchPositions['clientX']) {
+				touchPosition = touchPositions;
+			} else if (touchPositions instanceof TouchList) {
+				for (var tp = 0; tp < touchPositions.length; tp++) {
+					tempTp = touchPositions[tp];
+					if (tempTp.clientX >= analogPadDivPosition.left && tempTp.clientX < (analogPadDivPosition.left + analogPadDivPosition.width) &&
+						tempTp.clientY >= analogPadDivPosition.top && tempTp.clientY < (analogPadDivPosition.top + analogPadDivPosition.height)) {
+						touchPosition = touchPositions[tp];
+						break;
+					}
+				}
+			}
+			if (touchPosition) {
+				var analogPadClickPosition = [touchPosition.clientX - analogPadDivPosition.left, touchPosition.clientY - analogPadDivPosition.top],
+					angle = calculateAngle(analogPadCenter, analogPadClickPosition),
+					module = calculateEuclideanDistance(analogPadCenter, analogPadClickPosition) / 12.5;
+				var pos;
+				if (Game.state === GAME_STATE.PLAYING) {
+					pos = Crow.nextPosition;
+				} else if (Game.state === GAME_STATE.EDIT) {
+					pos = currentMousePosition;
+				}
+				if (pos) {
+					// If we are in edit mode, it's annoying to have analog controls for a cursor that moves digitally,
+					// so I round the value on the analogPad
+					pos[0] += (Game.state === GAME_STATE.EDIT ? Math.round(Math.cos(angle)) : Math.cos(angle)) * (analogPadClickPosition[0] < 100 ? -module : module);
+					pos[1] += (Game.state === GAME_STATE.EDIT ? Math.round(Math.sin(angle)) : Math.sin(angle)) * (analogPadClickPosition[0] < 100 ? -module : module);
+					pos[0] = Math.max(0, Math.min(pos[0], CANVAS_WIDTH - 1));
+					pos[1] = Math.max(0, Math.min(pos[1], CANVAS_HEIGHT - 1));
+				}
+				if (isToggleDrawOn) {
+					crowShoot();
+				}
+			}
+		}
+	}
+
+	function processEditModeInput(t, k) {
+		if (k[KEYCODES.LEFT] && !isAnyKeyPressed) { // Select previous block
+			selectedBlock = (selectedBlock + NUM_EDIT_OPTIONS - 1) % NUM_EDIT_OPTIONS;
+		} else if (k[KEYCODES.RIGHT] && !isAnyKeyPressed) { // Select next block
+			selectedBlock = (selectedBlock + 1) % NUM_EDIT_OPTIONS;
+		} else if (k[KEYCODES.CRATES] && !isAnyKeyPressed) { // Edit crates
+			try {
+				var crates = JSON.parse(prompt('Crates', JSON.stringify(Levels[selectedLevel][LEVEL_PARAMS.CRATES])));
+				if (crates instanceof Array) {
+					for (var c = 0; c < crates.length; c++) {
+						if (!typeof c === 'number') {
+							alert('Error');
+						}
+						crates[c] = Math.max(1, Math.min(5, crates[c]));
+					}
+					Levels[selectedLevel][LEVEL_PARAMS.CRATES] = crates;
+					resetCrates(Levels[selectedLevel]);
+				}
+			} catch (e) {
+				alert('Error');
+			}
+			k[KEYCODES.CRATES] = undefined;
+		} else if (k[KEYCODES.NAME] && !isAnyKeyPressed) { // Edit level
+			var n = prompt('Name', Levels[selectedLevel][LEVEL_PARAMS.NAME]);
+			if (n) {
+				Levels[selectedLevel][LEVEL_PARAMS.NAME] = n;
+			}
+			k[KEYCODES.NAME] = false;
+		} else if (k[KEYCODES.TIME] && !isAnyKeyPressed) { // Edit game time
+			var t = +prompt('Time', Levels[selectedLevel][LEVEL_PARAMS.TIME]);
+			if (!isNaN(t) && t > 0) {
+				Levels[selectedLevel][LEVEL_PARAMS.TIME] = t;
+			}
+			k[KEYCODES.TIME] = false;
+		} else if (k[KEYCODES.EAT] && !isAnyKeyPressed) { // Exit from edit mode
+			exitAndSave();
+			k[KEYCODES.EAT] = undefined;
+		}
+	}
+
 	function processInput(t) {
 		if (lastEndGameTimeout > t) {
 			return;
 		}
-		var speed = calculatePlayerSpeed(),
-			ladderSpeed = Player.ladderSpeed,
-			x = Player.position[0],
-			y = Player.position[1],
-			k = KeyHandler.k;
+		var k = KeyHandler.k;
 
 		if (Game.state === GAME_STATE.MENU) {
-			//
-			// Menu
-			//
-			if (k[KEYCODES.LEFT] && !isAnyKeyPressed) { // Select previous level
-				selectedLevel = (selectedLevel + Levels.length - 1) % Levels.length;
-				resetGame(selectedLevel);
-			} else if (k[KEYCODES.RIGHT] && !isAnyKeyPressed) { // Select next level
-				selectedLevel = (selectedLevel + 1) % Levels.length;
-				resetGame(selectedLevel);
-			} else if (k[KEYCODES.EAT] && !isAnyKeyPressed) { // Create custom level from this one, or edit if it's already custom
-				if (!Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM]) {
-					createCustomLevel();
-				}
-				setGameState(GAME_STATE.EDIT);
-				k[KEYCODES.EAT] = undefined;
-			} else if (k[KEYCODES.DELETE] && !isAnyKeyPressed) { // Delete current custom level
-				if (Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM]) {
-					Levels.splice(selectedLevel, 1);
-					selectedLevel--;
-					resetGame(selectedLevel);
-				}
-				k[KEYCODES.DELETE] = undefined;
-			} else if (k[KEYCODES.EXPORT_LEVEL] && Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM] && !isAnyKeyPressed) { // Export current custom level
-				var jsonLevel = prompt('JSON', JSON.stringify(Levels[selectedLevel]));
-				// Need to do this because the prompt hangs the keycode pressed
-				k[KEYCODES.EXPORT_LEVEL] = undefined;
-			} else if (k[KEYCODES.IMPORT_LEVEL]) { // Import a level from its JSON
-				var jsonLevel = prompt('JSON');
-				if (jsonLevel) {
-					try {
-						createCustomLevel(JSON.parse(jsonLevel));
-					} catch (e) {
-						alert('Error');
-					}
-				}
-				// Need to do this because the prompt hangs the keycode pressed
-				k[KEYCODES.IMPORT_LEVEL] = undefined;
-			}
+			processMenuInput(t, k);
 		} else {
 			if (Game.state === GAME_STATE.EDIT) {
-				//
-				// Edit Mode
-				//
-				if (k[KEYCODES.LEFT] && !isAnyKeyPressed) { // Select previous block
-					selectedBlock = (selectedBlock + NUM_EDIT_OPTIONS - 1) % NUM_EDIT_OPTIONS;
-				} else if (k[KEYCODES.RIGHT] && !isAnyKeyPressed) { // Select next block
-					selectedBlock = (selectedBlock + 1) % NUM_EDIT_OPTIONS;
-				} else if (k[KEYCODES.CRATES] && !isAnyKeyPressed) { // Edit crates
-					try {
-						var crates = JSON.parse(prompt('Crates', JSON.stringify(Levels[selectedLevel][LEVEL_PARAMS.CRATES])));
-						if (crates instanceof Array) {
-							for (var c = 0; c < crates.length; c++) {
-								if (!typeof c === 'number') {
-									alert('Error');
-								}
-								crates[c] = Math.max(1, Math.min(5, crates[c]));
-							}
-							Levels[selectedLevel][LEVEL_PARAMS.CRATES] = crates;
-							resetCrates(Levels[selectedLevel]);
-						}
-					} catch (e) {
-						alert('Error');
-					}
-					k[KEYCODES.CRATES] = undefined;
-				} else if (k[KEYCODES.NAME] && !isAnyKeyPressed) { // Edit level
-					var n = prompt('Name', Levels[selectedLevel][LEVEL_PARAMS.NAME]);
-					if (n) {
-						Levels[selectedLevel][LEVEL_PARAMS.NAME] = n;
-					}
-					k[KEYCODES.NAME] = false;
-				} else if (k[KEYCODES.TIME] && !isAnyKeyPressed) { // Edit game time
-					var t = +prompt('Time', Levels[selectedLevel][LEVEL_PARAMS.TIME]);
-					if (!isNaN(t) && t > 0) {
-						Levels[selectedLevel][LEVEL_PARAMS.TIME] = t;
-					}
-					k[KEYCODES.TIME] = false;
-				} else if (k[KEYCODES.EAT] && !isAnyKeyPressed) { // Exit from edit mode
-					exitAndSave();
-					k[KEYCODES.EAT] = undefined;
-				}
+				processEditModeInput(t, k);
 			} else if (Game.state === GAME_STATE.PLAYING) {
-				//
-				// Playing
-				//
-				if (k[KEYCODES.INTERACT] && !Player.isJumping && !Player.isInAir && !Player.isInteracting) { // SPACEBAR (interact)
-					Player.isInteracting = true;
-					interact(t);
-				} else if (k[KEYCODES.EAT] && !Player.isInteracting) { // E (eat candy)
-					Player.isInteracting = true;
-					if (Player.candies > 0) {
-						Player.candies--;
-						Player.speedBoost = CANDY_SPEED_BOOST;
-						Player.speedBoostTimeout = t + CANDY_SPEED_BOOST_TIMEOUT;
-						var newCrumbs = Object.create(Crumbs);
-						newCrumbs.position = [Player.position[0] + 4, Player.position[1] - 7];
-						crumbArray.push(newCrumbs);
-
-						playSound(SOUND_TYPE.CANDY_SPEED_BOOST);
-					}
-				} else if (!k[KEYCODES.INTERACT] && !k[KEYCODES.EAT] && Player.isInteracting) {
-					Player.isInteracting = false;
-				}
-				if (k[KEYCODES.UP]) { // UP (Jump or climb ladders)
-					if (isPlayerOnBlock(BLOCK_TYPE.LADDER)) {
-						Player.position[1] = Math.min(CANVAS_HEIGHT - BLOCK_SIZE, y - ladderSpeed);
-						Player.isClimbing = true;
-					} else if (!Player.isJumping && !Player.isInAir) {
-						Player.verticalSpeed = Player.jumpSpeed;
-						Player.isJumping = true;
-						Player.isInAir = true;
-						Player.isClimbing = false;
-						playSound(SOUND_TYPE.JUMP);
-					}
-				} else if (!k[KEYCODES.UP] && Player.isJumping) {
-					Player.isJumping = false;
-					Player.isClimbing = false;
-				} else if (k[KEYCODES.DOWN] && isPlayerOnBlock(BLOCK_TYPE.LADDER)) { // DOWN (Climb ladders)
-					Player.position[1] = Math.min(CANVAS_HEIGHT, y + ladderSpeed);
-					Player.isClimbing = true;
-				} else {
-					Player.isClimbing = false;
-				}
-				if (k[KEYCODES.LEFT] && !Player.isInAir) { // LEFT (Move left)
-					Player.isMoving = true;
-					Player.isFacingLeft = true;
-				} else if (k[KEYCODES.RIGHT] && !Player.isInAir) { // RIGHT (Move right)
-					Player.isMoving = true;
-					Player.isFacingLeft = false;
-				} else {
-					Player.isMoving = false;
-				}
-				if (Player.isMoving || Player.currentSpeed > 0) {
-					Player.position[0] = Math.min(CANVAS_WIDTH - BLOCK_SIZE, Math.max(BLOCK_SIZE, x + (Player.isFacingLeft ? -1 : +1) * calculateHorizontalSpeed(t)));
-				}
+				processPlayingInput(t, k);
 			}
 			if (k[KEYCODES.MENU]) {
 				exitAndSave();
@@ -1878,11 +1819,169 @@
 			isAnyKeyPressed = isAnyKeyPressed || !! KeyHandler.k[kk];
 		}
 
+		handleTouchInput(t);
+	}
+
+	function processMenuInput(t, k) {
+		if (k[KEYCODES.LEFT] && !isAnyKeyPressed) { // Select previous level
+			selectedLevel = (selectedLevel + Levels.length - 1) % Levels.length;
+			resetGame(selectedLevel);
+		} else if (k[KEYCODES.RIGHT] && !isAnyKeyPressed) { // Select next level
+			selectedLevel = (selectedLevel + 1) % Levels.length;
+			resetGame(selectedLevel);
+		} else if (k[KEYCODES.EAT] && !isAnyKeyPressed) { // Create custom level from this one, or edit if it's already custom
+			if (!Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM]) {
+				createCustomLevel();
+			}
+			setGameState(GAME_STATE.EDIT);
+			k[KEYCODES.EAT] = undefined;
+		} else if (k[KEYCODES.DELETE] && !isAnyKeyPressed) { // Delete current custom level
+			if (Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM]) {
+				Levels.splice(selectedLevel, 1);
+				selectedLevel--;
+				resetGame(selectedLevel);
+			}
+			k[KEYCODES.DELETE] = undefined;
+		} else if (k[KEYCODES.EXPORT_LEVEL] && Levels[selectedLevel][LEVEL_PARAMS.IS_CUSTOM] && !isAnyKeyPressed) { // Export current custom level
+			var jsonLevel = prompt('JSON', JSON.stringify(Levels[selectedLevel]));
+			// Need to do this because the prompt hangs the keycode pressed
+			k[KEYCODES.EXPORT_LEVEL] = undefined;
+		} else if (k[KEYCODES.IMPORT_LEVEL]) { // Import a level from its JSON
+			var jsonLevel = prompt('JSON');
+			if (jsonLevel) {
+				try {
+					createCustomLevel(JSON.parse(jsonLevel));
+				} catch (e) {
+					alert('Error');
+				}
+			}
+			// Need to do this because the prompt hangs the keycode pressed
+			k[KEYCODES.IMPORT_LEVEL] = undefined;
+		}
+	}
+
+	function processPlayingInput(t, k) {
+		if (k[KEYCODES.UP]) { // UP (Jump or climb ladders)
+			if (isPlayerOnBlock(BLOCK_TYPE.LADDER)) {
+				Player.position[1] = Math.min(CANVAS_HEIGHT - BLOCK_SIZE, Player.position[1] - Player.ladderSpeed);
+				Player.isClimbing = true;
+			} else if (!Player.isJumping && !Player.isInAir) {
+				Player.verticalSpeed = Player.jumpSpeed;
+				Player.isJumping = true;
+				Player.isInAir = true;
+				Player.isClimbing = false;
+				playSound(SOUND_TYPE.JUMP);
+			}
+		} else if (!k[KEYCODES.UP] && Player.isJumping) {
+			Player.isJumping = false;
+			Player.isClimbing = false;
+		} else if (k[KEYCODES.DOWN] && isPlayerOnBlock(BLOCK_TYPE.LADDER)) { // DOWN (Climb ladders)
+			Player.position[1] = Math.min(CANVAS_HEIGHT, Player.position[1] + Player.ladderSpeed);
+			Player.isClimbing = true;
+		} else {
+			Player.isClimbing = false;
+		}
+		if (k[KEYCODES.LEFT] && !Player.isInAir) { // LEFT (Move left)
+			Player.isMoving = true;
+			Player.isFacingLeft = true;
+		} else if (k[KEYCODES.RIGHT] && !Player.isInAir) { // RIGHT (Move right)
+			Player.isMoving = true;
+			Player.isFacingLeft = false;
+		} else {
+			Player.isMoving = false;
+		}
+		if (Player.isMoving || Player.currentSpeed > 0) {
+			Player.position[0] = Math.min(CANVAS_WIDTH - BLOCK_SIZE, Math.max(BLOCK_SIZE, Player.position[0] + (Player.isFacingLeft ? -1 : +1) * calculateHorizontalSpeed(t)));
+		}
+		if (k[KEYCODES.INTERACT] && !Player.isJumping && !Player.isInAir && !Player.isInteracting) { // SPACEBAR (interact)
+			Player.isInteracting = true;
+			interact(t);
+		} else if (k[KEYCODES.EAT] && !Player.isInteracting) { // E (eat candy)
+			Player.isInteracting = true;
+			if (Player.candies > 0) {
+				Player.candies--;
+				Player.speedBoost = CANDY_SPEED_BOOST;
+				Player.speedBoostTimeout = t + CANDY_SPEED_BOOST_TIMEOUT;
+				var newCrumbs = Object.create(Crumbs);
+				newCrumbs.position = [Player.position[0] + 4, Player.position[1] - 7];
+				crumbArray.push(newCrumbs);
+
+				playSound(SOUND_TYPE.CANDY_SPEED_BOOST);
+			}
+		} else if (!k[KEYCODES.INTERACT] && !k[KEYCODES.EAT] && Player.isInteracting) {
+			Player.isInteracting = false;
+		}
 	}
 
 	//
 	// GAME
 	//
+
+	function updateCat(t) {
+		// Update Cat's position
+		if (Cat.position) {
+			if (Player.crateCarried !== undefined && calculateEuclideanDistance(Player.position, Cat.position) < 15) {
+				breakCrate(crateArray[Player.crateCarried], t);
+			}
+			if (calculateEuclideanDistance(Crow.position, Cat.position) < 15) {
+				stunCrow(t);
+			}
+			if (Cat.nextCatMovement < t) {
+				showCat(t);
+			}
+			updateMovingPosition(Cat, CAT_MOVEMENT_THRESHOLD, CAT_SPEED);
+		}
+	}
+
+	function updateCrates() {
+		// Change the position of the crate that is currently carried
+		if (Player.crateCarried !== undefined) {
+			crateArray[Player.crateCarried].position[0] = Player.position[0] + CRATE_POSITION_OFFSET[0];
+			crateArray[Player.crateCarried].position[1] = Player.position[1] + CRATE_POSITION_OFFSET[1];
+		}
+	}
+
+	function updateCrow(t) {
+		// Update Crow's position
+		if (updateMovingPosition(Crow, CROW_MOVEMENT_THRESHOLD, CROW_SPEED)) {
+			var numParticles = 3;
+			while (numParticles-- > 0) {
+				createParticle(Crow.position.slice(), [Crow.nextPosition[0], Crow.nextPosition[1]], '#000', Math.ceil(Math.random() * 2), Math.ceil(Math.random() * 3));
+			}
+		}
+
+		// Update the position of the Crow's shots
+		var s;
+		for (s = 0; s < shotArray.length; s++) {
+			var curShot = shotArray[s];
+			curShot.position[1] += curShot.speed;
+			if (arePositionsInSameBlock(Player.position, curShot.position) && Player.crateCarried !== undefined) {
+				breakCrate(crateArray[Player.crateCarried], t);
+				shotArray.splice(s, 1);
+				s--;
+			} else if (curShot.position[1] > CANVAS_HEIGHT || isPositionOnBlock(curShot.position, BLOCK_TYPE.ROOF)) {
+				// TODO Destroy roof?
+				shotArray.splice(s, 1);
+				s--;
+			}
+		}
+
+		// Stun Crow if it hits roof, player's zone or laser
+		if ((isCrowInPlayerDamageZone() || isAABBCollidingWithBlock(Crow.position[0], Crow.position[1], 0, 0, BLOCK_TYPE.ROOF) || (calculateEuclideanDistance(Granny.laserPosition, Crow.position) < LASER_MOVEMENT_THRESHOLD)) && Crow.stunnedTimeout < t) {
+			stunCrow(t);
+		}
+	}
+
+	function updateLaser() {
+		// Update Laser's position
+		var laserTargetPosition = isPositionOnBlock(Crow.position, BLOCK_TYPE.NEST) ? Granny.startingLaserPosition : Crow.position,
+			laserToCrowAngle = calculateAngle(Granny.laserPosition, laserTargetPosition),
+			tangentSide = Granny.laserPosition[0] > laserTargetPosition[0] ? -1 : 1;
+		if (Math.abs(laserTargetPosition[0] - Granny.laserPosition[0]) > LASER_MOVEMENT_THRESHOLD || Math.abs(laserTargetPosition[1] - Granny.laserPosition[1]) > LASER_MOVEMENT_THRESHOLD) {
+			Granny.laserPosition[0] += Math.cos(laserToCrowAngle) * tangentSide * Granny.laserSpeed;
+			Granny.laserPosition[1] += Math.sin(laserToCrowAngle) * tangentSide * Granny.laserSpeed;
+		}
+	}
 
 	// Move an entity from its .position to its .nextPosition if the distance
 	// is less than the threshold.
@@ -1911,63 +2010,19 @@
 		}
 	}
 
-	function update(t) {
-		// Used for functions that are called by event handlers (like mouse clicks)
-		currentTime = t;
-
-		// Play the next song's note.
-		// Doing it here to avoid bad audio glitches with setTimeout
-		playNextSongNote(t);
-
-		// Mobile controls handling
-		if (isTouchinganalogPad && touchPositions) {
-			var touchPosition, tempTp;
-			if (touchPositions['clientX']) {
-				touchPosition = touchPositions;
-			} else if (touchPositions instanceof TouchList) {
-				for (var tp = 0; tp < touchPositions.length; tp++) {
-					tempTp = touchPositions[tp];
-					if (tempTp.clientX >= analogPadDivPosition.left && tempTp.clientX < (analogPadDivPosition.left + analogPadDivPosition.width) &&
-						tempTp.clientY >= analogPadDivPosition.top && tempTp.clientY < (analogPadDivPosition.top + analogPadDivPosition.height)) {
-						touchPosition = touchPositions[tp];
-						break;
-					}
-				}
-			}
-			if (touchPosition) {
-				var analogPadClickPosition = [touchPosition.clientX - analogPadDivPosition.left, touchPosition.clientY - analogPadDivPosition.top],
-					angle = calculateAngle(analogPadCenter, analogPadClickPosition),
-					module = calculateEuclideanDistance(analogPadCenter, analogPadClickPosition) / 12.5;
-				var pos;
-				if (Game.state === GAME_STATE.PLAYING) {
-					pos = Crow.position;
-				} else if (Game.state === GAME_STATE.EDIT) {
-					pos = currentMousePosition;
-				}
-				if (pos) {
-					// If we are in edit mode, it's annoying to have analog controls for a cursor that moves digitally,
-					// so I round the value on the analogPad
-					pos[0] += (Game.state === GAME_STATE.EDIT ? Math.round(Math.cos(angle)) : Math.cos(angle)) * (analogPadClickPosition[0] < 100 ? -module : module);
-					pos[1] += (Game.state === GAME_STATE.EDIT ? Math.round(Math.sin(angle)) : Math.sin(angle)) * (analogPadClickPosition[0] < 100 ? -module : module);
-					pos[0] = Math.max(0, Math.min(pos[0], CANVAS_WIDTH - 1));
-					pos[1] = Math.max(0, Math.min(pos[1], CANVAS_HEIGHT - 1));
-				}
-				if (isToggleDrawOn) {
-					crowShoot();
-				}
+	function updateParticles(t) {
+		// Update particles
+		var curParticle;
+		for (var p = 0; p < particleArray.length; p++) {
+			curParticle = particleArray[p];
+			if (!updateMovingPosition(curParticle, 3, curParticle.speed) || curParticle.time < t) {
+				particleArray.splice(p, 1);
+				p--;
 			}
 		}
+	}
 
-		if (Game.state !== GAME_STATE.PLAYING) {
-			return;
-		}
-
-		// Updating Canvas position
-		Game.canvasBoundingRect = canvas.getBoundingClientRect();
-		// window.onresize = function () {
-		// 	Game.canvasBoundingRect = canvas.getBoundingClientRect();
-		// });
-
+	function updatePlayer(t) {
 		// Player collision & movement
 		// The next vertical position when falling is calculates as the sum of the current Y and the current player's vertical speed.
 		// Since the vertical speed can become bigger than the tile size, it could happen that a solid block is skipped when falling.
@@ -2019,67 +2074,42 @@
 			Player.verticalSpeed = 0;
 		}
 
-		// Change the position of the crate that is currently carried
-		if (Player.crateCarried !== undefined) {
-			crateArray[Player.crateCarried].position[0] = Player.position[0] + CRATE_POSITION_OFFSET[0];
-			crateArray[Player.crateCarried].position[1] = Player.position[1] + CRATE_POSITION_OFFSET[1];
-		}
-
 		// Speed boost timeout check
 		if (Player.speedBoostTimeout < t && Player.speedBoost > 0) {
 			Player.speedBoost = 0;
 		}
+	}
 
-		// Update the position of the Crow's shots
-		var s;
-		for (s = 0; s < shotArray.length; s++) {
-			var curShot = shotArray[s];
-			curShot.position[1] += curShot.speed;
-			if (arePositionsInSameBlock(Player.position, curShot.position) && Player.crateCarried !== undefined) {
-				breakCrate(crateArray[Player.crateCarried], t);
-				shotArray.splice(s, 1);
-				s--;
-			} else if (curShot.position[1] > CANVAS_HEIGHT || isPositionOnBlock(curShot.position, BLOCK_TYPE.ROOF)) {
-				// TODO Destroy roof?
-				shotArray.splice(s, 1);
-				s--;
-			}
+	function update(t) {
+		// Used for functions that are called by event handlers (like mouse clicks)
+		currentTime = t;
+
+		// Updating Canvas position
+		Game.canvasBoundingRect = canvas.getBoundingClientRect();
+		// window.onresize = function () {
+		// 	Game.canvasBoundingRect = canvas.getBoundingClientRect();
+		// });
+
+		// Play the next song's note.
+		// Doing it here instead of using setTimeout to avoid audio glitches
+		playNextSongNote(t);
+
+
+		if (Game.state !== GAME_STATE.PLAYING) {
+			return;
 		}
+
+		updatePlayer(t);
+		updateCrates(t);
+		updateLaser();
+		updateCrow(t);
+		updateCat(t);
+
+		updateParticles(t);
 
 		// Check Game Time
 		if (Game.time < t) {
 			winCrow(t);
-		}
-
-		// Update Crow's position
-		updateMovingPosition(Crow, CROW_MOVEMENT_THRESHOLD, CROW_SPEED);
-
-		// Update Cat's position
-		if (Cat.position) {
-			if (Player.crateCarried !== undefined && calculateEuclideanDistance(Player.position, Cat.position) < 15) {
-				breakCrate(crateArray[Player.crateCarried], t);
-			}
-			if (calculateEuclideanDistance(Crow.position, Cat.position) < 15) {
-				stunCrow(t);
-			}
-			if (Cat.nextCatMovement < t) {
-				showCat(t);
-			}
-			updateMovingPosition(Cat, CAT_MOVEMENT_THRESHOLD, CAT_SPEED);
-		}
-
-		// Update Laser's position
-		var laserTargetPosition = isPositionOnBlock(Crow.position, BLOCK_TYPE.NEST) ? Granny.startingLaserPosition : Crow.position,
-			laserToCrowAngle = calculateAngle(Granny.laserPosition, laserTargetPosition),
-			tangentSide = Granny.laserPosition[0] > laserTargetPosition[0] ? -1 : 1;
-		if (Math.abs(laserTargetPosition[0] - Granny.laserPosition[0]) > LASER_MOVEMENT_THRESHOLD || Math.abs(laserTargetPosition[1] - Granny.laserPosition[1]) > LASER_MOVEMENT_THRESHOLD) {
-			Granny.laserPosition[0] += Math.cos(laserToCrowAngle) * tangentSide * Granny.laserSpeed;
-			Granny.laserPosition[1] += Math.sin(laserToCrowAngle) * tangentSide * Granny.laserSpeed;
-		}
-
-		// Stun Crow if it hits roof, player's zone or laser
-		if ((isCrowInPlayerDamageZone() || isAABBCollidingWithBlock(Crow.position[0], Crow.position[1], 0, 0, BLOCK_TYPE.ROOF) || (calculateEuclideanDistance(Granny.laserPosition, Crow.position) < LASER_MOVEMENT_THRESHOLD)) && Crow.stunnedTimeout < t) {
-			stunCrow(t);
 		}
 	}
 
@@ -2131,7 +2161,6 @@
 	loadSound(SOUND_TYPE.CROW_CRASH, ['noise', 0.0000, 0.3000, 0.0000, 0.1520, 0.3930, 0.2740, 20.0000, 839.0000, 2400.0000, -0.3100, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, -0.3400, 0.7830, 0.0000, 0.0000, 0.6096, 0.5260, -0.0080, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.CROW_EAT, ['square', 0.0000, 0.3000, 0.0000, 0.0400, 0.0000, 0.0480, 20.0000, 578.0000, 2400.0000, 0.1040, 0.0000, 0.6830, 19.1580, 0.0003, 0.0000, 0.0000, 0.0000, 0.3850, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.DISPENSER, ['square', 0.0000, 0.3000, 0.0000, 0.0460, 0.4770, 0.2400, 20.0000, 1197.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.4980, 0.2040, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
-	loadSound(SOUND_TYPE.GRANNY_SHOT, ['noise', 0.0000, 0.3000, 0.0000, 0.1080, 0.3360, 0.1240, 20.0000, 462.0000, 2400.0000, 0.0000, 0.0000, 0.0000, 0.0100, 0.0003, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.CAT_APPEARS, ["synth", 0.0000, 0.3000, 0.0000, 0.4400, 0.5790, 1.0040, 20.0000, 1793.0000, 2400.0000, -0.2020, 0.0000, 0.0000, 8.6962, 0.5346, 0.6660, -0.2980, 0.6710, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000, 0.0000, 0.0000, 0.0000, 0.0000]);
 	loadSound(SOUND_TYPE.CAT_MOVEMENT, ["noise", 0.0000, 0.1270, 0.0430, 0.1240, 0.0000, 0.2820, 20.0000, 2400.0000, 20.0000, 1.0000, -1.0000, 0.0000, 0.0100, -0.3000, -1.0000, 0.9560, 0.2720, 0.0000, 0.6800, 0.0000, -0.9980, -1.0000, 1.0000, 1.0000, 0.0000, 0.0000, -0.9980]);
 	loadSound(SOUND_TYPE.PLAYER_FALL, ["noise", 0.0000, 0.1260, 0.0000, 0.0700, 0.0000, 0.2320, 2400.0000, 2400.0000, 2400.0000, -1.0000, -1.0000, 0.0000, 0.0100, -0.3000, -1.0000, -1.0000, 0.0000, 0.0000, -1.0000, 0.0000, 0.0040, 0.0000, 1.0000, 1.0000, 0.0000, 0.0000, -1.0000]);
