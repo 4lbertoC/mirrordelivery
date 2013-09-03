@@ -781,7 +781,7 @@
 	// http://stackoverflow.com/questions/3974827/detecting-touch-screen-devices-with-javascript
 	// http://blog.stevelydford.com/2012/03/detecting-touch-hardware-in-ie-10/
 	//
-	if (true || ('ontouchstart' in document['documentElement']) || window['navigator']['msMaxTouchPoints']) {
+	if (('ontouchstart' in document['documentElement']) || window['navigator']['msMaxTouchPoints']) {
 		isMobileDevice = true;
 
 		touchStartEvent = window['navigator']['msMaxTouchPoints'] ? 'MSPointerDown' : 'touchstart';
