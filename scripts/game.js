@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////
 //
-// MIRROR DELIVERY 1.3.8
+// MIRROR DELIVERY 1.4.1
 //
 // A 13kB game by Alberto Congiu
 //
@@ -368,7 +368,7 @@
 		// CAT
 		//
 		CAT_MOVEMENT_THRESHOLD = 3,
-		CAT_SPAWN_THRESHOLD = 4,
+		CAT_SPAWN_THRESHOLD = 3,
 		CAT_SPEED = 16,
 		NEXT_CAT_MOVEMENT_TIMEOUT = 2000,
 
@@ -450,7 +450,7 @@
 		analogPad = document.getElementById('o'),
 		analogPadDivPosition = analogPad.getBoundingClientRect(),
 		analogPadCenter = [100, 100],
-		isTouchinganalogPad = false,
+		isTouchingAnalogPad = false,
 		touchPositions = null,
 		touchStartEvent = null,
 		touchEndEvent = null,
@@ -537,7 +537,8 @@
 		Cat = {
 			position: null,
 			nextPosition: null,
-			nextCatMovement: 0
+			nextMovement: 0,
+			nextAppearence: CAT_SPAWN_THRESHOLD
 		},
 
 		Crate = {
@@ -1024,6 +1025,7 @@
 		Granny.laserSpeed = 1;
 
 		Cat.position = Cat.nextPosition = null;
+		Cat.nextAppearence = CAT_SPAWN_THRESHOLD;
 
 		Game.time = 0;
 		setGameState(GAME_STATE.MENU);
@@ -1309,29 +1311,31 @@
 	}
 
 	function stunCrow(t) {
-		var numParticles = 60;
-		while (numParticles-- > 0) {
-			createParticle(Crow.position.slice(), [Crow.position[0] - Math.floor(Math.random() * 128 - 64), Crow.position[1] + Math.ceil(Math.random() * 128 - 64)], '#000', Math.ceil(Math.random() * 3), Math.ceil(Math.random() * 2));
-		}
+		if (Crow.stunnedTimeout < t) {
+			var numParticles = 60;
+			while (numParticles-- > 0) {
+				createParticle(Crow.position.slice(), [Crow.position[0] - Math.floor(Math.random() * 128 - 64), Crow.position[1] + Math.ceil(Math.random() * 128 - 64)], '#000', Math.ceil(Math.random() * 3), Math.ceil(Math.random() * 2));
+			}
 
-		Crow.stunnedTimeout = t + CROW_STUN_TIME;
-		playSound(SOUND_TYPE.CROW_CRASH);
-		Crow.shots = 0;
-		Crow.health--;
-		createMessage('-1♥', [Crow.position[0] - 4, Crow.position[1] - 4], '#c00');
-		if (Crow.health <= 0) {
-			winBoy(t);
-		} else if (Crow.health < CAT_SPAWN_THRESHOLD) {
-			showCat(t);
+			Crow.stunnedTimeout = t + CROW_STUN_TIME;
+			playSound(SOUND_TYPE.CROW_CRASH);
+			Crow.shots = 0;
+			Crow.health--;
+			createMessage('-1♥', [Crow.position[0] - 4, Crow.position[1] - 4], '#c00');
+			if (Crow.health <= 0) {
+				winBoy(t);
+			} else {
+				showCat(t);
+			}
+			hitTimeout = t + HIT_SHAKE_TIMEOUT;
 		}
-		hitTimeout = t + HIT_SHAKE_TIMEOUT;
 	}
 
 	//
 	// CAT
 	//
 
-	function showCat(t) {
+	function moveCat(t) {
 		if (!platformBlockMap) {
 			platformBlockMap = [];
 			for (var i = 0; i < Map.length; i++) {
@@ -1339,7 +1343,6 @@
 					platformBlockMap.push(i);
 				}
 			}
-			playSound(SOUND_TYPE.CAT_APPEARS);
 		}
 		var rndPos = platformBlockMap[Math.floor(Math.random() * platformBlockMap.length)] + 1,
 			nextPosition = [(rndPos % I) * BLOCK_SIZE, Math.floor(rndPos / I) * BLOCK_SIZE];
@@ -1351,8 +1354,18 @@
 		} else {
 			playSound(SOUND_TYPE.CAT_MOVEMENT);
 		}
-		Cat.nextCatMovement = t + NEXT_CAT_MOVEMENT_TIMEOUT;
+		Cat.nextMovement = t + NEXT_CAT_MOVEMENT_TIMEOUT;
 		Granny.laserSpeed += 0.05;
+	}
+
+	function showCat(t) {
+		if (Cat.position || --Cat.nextAppearence > 0) {
+			return;
+		}
+		Cat.nextAppearence = CAT_SPAWN_THRESHOLD;
+		playSound(SOUND_TYPE.CAT_APPEARS);
+
+		moveCat(t);
 	}
 
 	//
@@ -1374,7 +1387,7 @@
 		hitTimeout = t + HIT_SHAKE_TIMEOUT;
 		if (Player.crates <= 0) {
 			winCrow(t);
-		} else if (Player.crates < CAT_SPAWN_THRESHOLD) {
+		} else {
 			showCat(t);
 		}
 	}
@@ -1716,7 +1729,7 @@
 	//
 
 	function handleTouchInput(t) {
-		if (isTouchinganalogPad && touchPositions) {
+		if (isTouchingAnalogPad && touchPositions) {
 			var touchPosition, tempTp;
 			if (touchPositions['clientX']) {
 				touchPosition = touchPositions;
@@ -1922,14 +1935,18 @@
 		if (Cat.position) {
 			if (Player.crateCarried !== undefined && calculateEuclideanDistance(Player.position, Cat.position) < 15) {
 				breakCrate(crateArray[Player.crateCarried], t);
+				Cat.position = null;
+				return;
 			}
 			if (calculateEuclideanDistance(Crow.position, Cat.position) < 15) {
 				stunCrow(t);
-			}
-			if (Cat.nextCatMovement < t) {
-				showCat(t);
+				Cat.position = null;
+				return;
 			}
 			updateMovingPosition(Cat, CAT_MOVEMENT_THRESHOLD, CAT_SPEED);
+			if (Cat.nextMovement < t) {
+				moveCat(t);
+			}
 		}
 	}
 
@@ -1967,7 +1984,7 @@
 		}
 
 		// Stun Crow if it hits roof, player's zone or laser
-		if ((isCrowInPlayerDamageZone() || isAABBCollidingWithBlock(Crow.position[0], Crow.position[1], 0, 0, BLOCK_TYPE.ROOF) || (calculateEuclideanDistance(Granny.laserPosition, Crow.position) < LASER_MOVEMENT_THRESHOLD)) && Crow.stunnedTimeout < t) {
+		if ((isCrowInPlayerDamageZone() || isAABBCollidingWithBlock(Crow.position[0], Crow.position[1], 0, 0, BLOCK_TYPE.ROOF) || (calculateEuclideanDistance(Granny.laserPosition, Crow.position) < LASER_MOVEMENT_THRESHOLD))) {
 			stunCrow(t);
 		}
 	}
@@ -2058,10 +2075,6 @@
 			}
 			Player.isInAir = false;
 			if (Player.verticalSpeed > 10 - crateWeight * 2) {
-				var numParticles = Player.verticalSpeed * 3;
-				while (numParticles-- > 0) {
-					createParticle(Player.position.slice(), [Player.position[0] - Math.floor(Math.random() * 64 - 32), Player.position[1] + Math.ceil(Math.random() * 10 - 5)], '#dda', Math.ceil(Math.random() * 2), Math.ceil(Math.random() * 5));
-				}
 				playSound(SOUND_TYPE.PLAYER_FALL);
 			}
 			Player.verticalSpeed = 0;
@@ -2243,13 +2256,13 @@
 			touchPositions = evt.changedTouches || evt;
 			// TODO move this line to onResize
 			analogPadDivPosition = analogPad.getBoundingClientRect(),
-			isTouchinganalogPad = true;
+			isTouchingAnalogPad = true;
 		};
 		addEvent(analogPad, touchStartEvent, analogPadHandler);
 		addEvent(analogPad, touchMoveEvent, analogPadHandler);
 		addEvent(analogPad, touchEndEvent, function (evt) {
 			evt.preventDefault();
-			isTouchinganalogPad = false;
+			isTouchingAnalogPad = false;
 		});
 
 		// Avoid showing the context menu that appears when long
