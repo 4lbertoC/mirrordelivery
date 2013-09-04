@@ -1323,7 +1323,7 @@
 	function stunCrow(t) {
 		var numParticles = 60;
 		while (numParticles-- > 0) {
-			createParticle(Crow.position, [Crow.position[0] - Math.floor(Math.random() * 128 - 64), Crow.position[1] + Math.ceil(Math.random() * 128 - 64)], '#000', Math.ceil(Math.random() * 3), Math.ceil(Math.random() * 2));
+			createParticle(Crow.position, [Crow.position[0] - Math.floor(Math.random() * 128 - 64), Crow.position[1] + Math.ceil(Math.random() * 128 - 64)], '#000', Math.ceil(Math.random() * 3), Math.ceil(Math.random() * 5));
 		}
 
 		Crow.stunnedTimeout = t + CROW_STUN_TIME;
@@ -1964,7 +1964,9 @@
 				generateMap();
 				return;
 			}
-			updateMovingPosition(Cat, CAT_MOVEMENT_THRESHOLD, CAT_SPEED);
+			if (updateMovingPosition(Cat, CAT_MOVEMENT_THRESHOLD, CAT_SPEED)) {
+				createParticle(Cat.position, [Cat.nextPosition[0] + Math.floor(Math.random() * 128 - 64), Cat.nextPosition[1] + Math.floor(Math.random() * 128 - 64)], '#000', Math.ceil(Math.random() * 2), Math.ceil(Math.random() * 5));
+			}
 			if (Cat.nextMovement < t) {
 				moveCat(t);
 			}
@@ -1981,12 +1983,7 @@
 
 	function updateCrow(t) {
 		// Update Crow's position
-		if (updateMovingPosition(Crow, CROW_MOVEMENT_THRESHOLD, CROW_SPEED)) {
-			var numParticles = 3;
-			while (numParticles-- > 0) {
-				createParticle(Crow.position, Crow.nextPosition, '#000', Math.ceil(Math.random() * 2), Math.ceil(Math.random() * 3));
-			}
-		}
+		updateMovingPosition(Crow, CROW_MOVEMENT_THRESHOLD, CROW_SPEED);
 
 		// Update the position of the Crow's shots
 		var s;
