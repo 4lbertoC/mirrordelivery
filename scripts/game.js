@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////
 //
-// MIRROR DELIVERY 1.4.1
+// MIRROR DELIVERY 1.4.3
 //
 // A 13kB game by Alberto Congiu
 //
@@ -297,8 +297,7 @@
 			EXPORT_LEVEL: 74,
 			CRATES: 67,
 			NAME: 78,
-			TIME: 84,
-			IMPORT_LEVEL: 73
+			TIME: 84
 		},
 
 		//
@@ -401,6 +400,89 @@
 
 	/*/ ///////////////////////////////////////
 	 *
+	 * Cross-browser helper functions
+	 *
+	 */ ///////////////////////////////////////
+
+	//
+	// requestAnimationFrame
+	//
+	// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+	// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
+	//
+	// requestAnimationFrame polyfill by Erik Möller. fixes from Paul Irish and Tino Zijdel
+	//
+	// MIT license
+	//
+	(function () {
+		var lastTime = 0;
+		var vendors = ['webkit', 'moz'];
+		for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+			window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+		}
+
+		if (!window.requestAnimationFrame)
+			window.requestAnimationFrame = function (callback, element) {
+				var currTime = new Date().getTime();
+				var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+				var id = window.setTimeout(function () {
+						callback(currTime + timeToCall);
+					},
+					timeToCall);
+				lastTime = currTime + timeToCall;
+				return id;
+			};
+	}());
+
+	//
+	// Event handling
+	// http://javascriptrules.com/2009/07/22/cross-browser-event-listener-with-design-patterns/
+	//
+
+	function addEvent(el, ev, fn) {
+		if (el.addEventListener) {
+			el.addEventListener(ev, fn, false);
+		} else if (el.attachEvent) {
+			el.attachEvent('on' + ev, fn);
+		} else {
+			el['on' + ev] = fn;
+		}
+	}
+
+	//
+	// Detect touch device
+	// http://stackoverflow.com/questions/3974827/detecting-touch-screen-devices-with-javascript
+	// http://blog.stevelydford.com/2012/03/detecting-touch-hardware-in-ie-10/
+	//
+	var isMobileDevice = false,
+		analogPad = document.getElementById('o'),
+		analogPadDivPosition = analogPad.getBoundingClientRect(),
+		analogPadCenter = [100, 100],
+		isTouchingAnalogPad = false,
+		touchPositions = null,
+		touchStartEvent = null,
+		touchEndEvent = null,
+		touchMoveEvent = null;
+	if (('ontouchstart' in document['documentElement']) || window['navigator']['msMaxTouchPoints']) {
+		isMobileDevice = true;
+
+		touchStartEvent = window['navigator']['msMaxTouchPoints'] ? 'MSPointerDown' : 'touchstart';
+		touchEndEvent = window['navigator']['msMaxTouchPoints'] ? 'MSPointerUp' : 'touchend';
+		touchMoveEvent = window['navigator']['msMaxTouchPoints'] ? 'MSPointerMove' : 'touchmove';
+
+
+		var hiddenButtons = document.getElementsByClassName('btn');
+		for (var b = 0; b < hiddenButtons.length; b++) {
+			if (hiddenButtons[b].getAttribute('class').indexOf('edit') === -1) {
+				hiddenButtons[b].setAttribute('class', 'btn');
+			}
+		}
+	}
+
+
+
+	/*/ ///////////////////////////////////////
+	 *
 	 * Variables
 	 *
 	 */ ///////////////////////////////////////
@@ -415,6 +497,8 @@
 		imageMapWidth = 0,
 		MenuCanvas = document.createElement('canvas'),
 		menuCanvasContext = MenuCanvas.getContext('2d'),
+		MapCanvas = document.createElement('canvas'),
+		mapCanvasContext = MapCanvas.getContext('2d'),
 
 		//
 		// AUDIO
@@ -444,17 +528,6 @@
 				KeyHandler.k[event['keyCode']] = currentTime;
 			}
 		},
-
-		// Mobile
-		isMobileDevice = false,
-		analogPad = document.getElementById('o'),
-		analogPadDivPosition = analogPad.getBoundingClientRect(),
-		analogPadCenter = [100, 100],
-		isTouchingAnalogPad = false,
-		touchPositions = null,
-		touchStartEvent = null,
-		touchEndEvent = null,
-		touchMoveEvent = null,
 
 		//
 		// GAME
@@ -543,9 +616,9 @@
 
 		Crate = {
 			image: null,
-			size: 1,
 			position: null,
-			startPosition: null
+			startPosition: null,
+			size: 1
 		},
 		crateArray = [],
 
@@ -564,8 +637,8 @@
 			position: null,
 			nextPosition: null,
 			color: '#000',
-			size: 2,
 			time: 0,
+			size: 2,
 			speed: 2
 		},
 		particleArray = [],
@@ -728,80 +801,6 @@
 
 	/*/ ///////////////////////////////////////
 	 *
-	 * Cross-browser helper functions
-	 *
-	 */ ///////////////////////////////////////
-
-	//
-	// requestAnimationFrame
-	//
-	// http://paulirish.com/2011/requestanimationframe-for-smart-animating/
-	// http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
-	//
-	// requestAnimationFrame polyfill by Erik Möller. fixes from Paul Irish and Tino Zijdel
-	//
-	// MIT license
-	//
-	(function () {
-		var lastTime = 0;
-		var vendors = ['webkit', 'moz'];
-		for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-			window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
-		}
-
-		if (!window.requestAnimationFrame)
-			window.requestAnimationFrame = function (callback, element) {
-				var currTime = new Date().getTime();
-				var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-				var id = window.setTimeout(function () {
-						callback(currTime + timeToCall);
-					},
-					timeToCall);
-				lastTime = currTime + timeToCall;
-				return id;
-			};
-	}());
-
-	//
-	// Event handling
-	// http://javascriptrules.com/2009/07/22/cross-browser-event-listener-with-design-patterns/
-	//
-
-	function addEvent(el, ev, fn) {
-		if (el.addEventListener) {
-			el.addEventListener(ev, fn, false);
-		} else if (el.attachEvent) {
-			el.attachEvent('on' + ev, fn);
-		} else {
-			el['on' + ev] = fn;
-		}
-	}
-
-	//
-	// Detect touch device
-	// http://stackoverflow.com/questions/3974827/detecting-touch-screen-devices-with-javascript
-	// http://blog.stevelydford.com/2012/03/detecting-touch-hardware-in-ie-10/
-	//
-	if (('ontouchstart' in document['documentElement']) || window['navigator']['msMaxTouchPoints']) {
-		isMobileDevice = true;
-
-		touchStartEvent = window['navigator']['msMaxTouchPoints'] ? 'MSPointerDown' : 'touchstart';
-		touchEndEvent = window['navigator']['msMaxTouchPoints'] ? 'MSPointerUp' : 'touchend';
-		touchMoveEvent = window['navigator']['msMaxTouchPoints'] ? 'MSPointerMove' : 'touchmove';
-
-
-		var hiddenButtons = document.getElementsByClassName('btn');
-		for (var b = 0; b < hiddenButtons.length; b++) {
-			if (hiddenButtons[b].getAttribute('class').indexOf('edit') === -1) {
-				hiddenButtons[b].setAttribute('class', 'btn');
-			}
-		}
-	}
-
-
-
-	/*/ ///////////////////////////////////////
-	 *
 	 * Game mechanics functions
 	 *
 	 */ ///////////////////////////////////////
@@ -827,15 +826,15 @@
 		}
 	}
 
-	function drawImage(name, x, y, w, h) {
+	function drawImage(context, name, x, y, w, h) {
 		var source = IMAGE_MAP_DATA[name].frame,
 			destinationOffset = IMAGE_MAP_DATA[name].spriteSourceSize;
-		ctx.drawImage(ImageMap, source.x, source.y, w || source.w, h || source.h, x + destinationOffset.x, y + destinationOffset.y, destinationOffset.w, destinationOffset.h);
+		context.drawImage(ImageMap, source.x, source.y, w || source.w, h || source.h, x + destinationOffset.x, y + destinationOffset.y, destinationOffset.w, destinationOffset.h);
 	}
 
-	function getCanvasRelativeCoords(evt) {
-		var x = evt.clientX - Game.canvasBoundingRect.left,
-			y = evt.clientY - Game.canvasBoundingRect.top;
+	function getCanvasRelativeCoords(px, py) {
+		var x = px - Game.canvasBoundingRect.left,
+			y = py - Game.canvasBoundingRect.top;
 		x = Math.max(0, Math.min(x, CANVAS_WIDTH - 1));
 		y = Math.max(0, Math.min(y, CANVAS_HEIGHT - 1));
 		return [x, y];
@@ -914,25 +913,21 @@
 	function bindButtonToKeyCode(buttonId, keyCode) {
 		var btn = document.getElementById(buttonId);
 
-		function touchstart() {
+		function touchstart(evt) {
+			evt.preventDefault();
 			KeyHandler.onKeyDown({
 				'keyCode': keyCode
 			});
 		}
 
-		function touchend() {
+		function touchend(evt) {
+			evt.preventDefault();
 			KeyHandler.onKeyUp({
 				'keyCode': keyCode
 			});
 		}
 		addEvent(btn, touchStartEvent, touchstart);
 		addEvent(btn, touchEndEvent, touchend);
-	}
-
-	function bindButtonToCustomFunction(buttonId, touchStartCallback, touchEndCallback) {
-		var btn = document.getElementById(buttonId);
-		addEvent(btn, touchStartEvent, touchStartCallback);
-		addEvent(btn, touchEndEvent, touchEndCallback);
 	}
 
 	//
@@ -951,8 +946,8 @@
 
 	function createParticle(position, nextPosition, color, size, speed) {
 		var particle = Object.create(Particle);
-		particle.position = position;
-		particle.nextPosition = nextPosition;
+		particle.position = position.slice();
+		particle.nextPosition = nextPosition.slice();
 		particle.color = color;
 		particle.time = currentTime + PARTICLE_DISPLAY_TIMEOUT;
 		particle.size = size;
@@ -1051,6 +1046,18 @@
 		if (window.localStorage) {
 			window.localStorage.Levels = JSON.stringify(Levels);
 		}
+
+		generateMap();
+	}
+
+
+	function generateMap() {
+		var i, j;
+		for (i = 0; i < I; i++) {
+			for (j = 0; j < J; j++) {
+				drawBlockTypeAt(mapCanvasContext, getMapAt(i, j), i * BLOCK_SIZE, j * BLOCK_SIZE);
+			}
+		}
 	}
 
 	function setGameState(state) {
@@ -1147,6 +1154,7 @@
 		if (idx < Map.length) {
 			Map[idx] = value;
 		}
+		generateMap();
 	}
 
 	//
@@ -1219,7 +1227,7 @@
 			if (isPlayerOnBlock(BLOCK_TYPE.GOAL) && currentCrate !== undefined) {
 				crateArray.splice(currentCrateIdx, 1);
 				var msg = Math.random() > 0.5 ? 'Thank you!' : 'Good boy!';
-				createMessage(msg, [Granny.position[0] + 4, Granny.position[1]], '#ccc', true);
+				createMessage(msg, [Granny.position[0] + 4, Granny.position[1]], '#fff', true);
 				if (crateArray.length <= 0) {
 					winBoy(t);
 				} else {
@@ -1241,11 +1249,13 @@
 	// Used also to toggle drawing in edit mode (mobile)
 
 	function crowEat(evt) {
-		evt.preventDefault();
+		if (evt) {
+			evt.preventDefault();
+		}
 		if (Game.state === GAME_STATE.EDIT) {
 			isToggleDrawOn = !isToggleDrawOn;
 		} else if (Game.state === GAME_STATE.PLAYING && Crow.stunnedTimeout < currentTime) {
-			var currentMousePosition = getCanvasRelativeCoords(evt),
+			var cmp = getCanvasRelativeCoords(currentMousePosition[0], currentMousePosition[1]),
 				oldShotsCount = Crow.shots;
 			if (isCrowOnBlock(BLOCK_TYPE.NEST) && Crow.shots < MAX_NEST_SHOTS) {
 				playSound(SOUND_TYPE.CROW_EAT);
@@ -1254,7 +1264,7 @@
 			} else {
 				var c;
 				for (c = 0; c < crumbArray.length; c++) {
-					if (arePositionsInSameBlock(currentMousePosition, crumbArray[c].position)) {
+					if (arePositionsInSameBlock(cmp, crumbArray[c].position)) {
 						Crow.shots = Math.max(Crow.shots, CRUMBS_SHOTS);
 						createMessage('+' + (Crow.shots - oldShotsCount) + '↡', [Crow.position[0] - 4, Crow.position[1] - 4], '#0c0');
 						playSound(SOUND_TYPE.CROW_EAT);
@@ -1311,24 +1321,22 @@
 	}
 
 	function stunCrow(t) {
-		if (Crow.stunnedTimeout < t) {
-			var numParticles = 60;
-			while (numParticles-- > 0) {
-				createParticle(Crow.position.slice(), [Crow.position[0] - Math.floor(Math.random() * 128 - 64), Crow.position[1] + Math.ceil(Math.random() * 128 - 64)], '#000', Math.ceil(Math.random() * 3), Math.ceil(Math.random() * 2));
-			}
-
-			Crow.stunnedTimeout = t + CROW_STUN_TIME;
-			playSound(SOUND_TYPE.CROW_CRASH);
-			Crow.shots = 0;
-			Crow.health--;
-			createMessage('-1♥', [Crow.position[0] - 4, Crow.position[1] - 4], '#c00');
-			if (Crow.health <= 0) {
-				winBoy(t);
-			} else {
-				showCat(t);
-			}
-			hitTimeout = t + HIT_SHAKE_TIMEOUT;
+		var numParticles = 60;
+		while (numParticles-- > 0) {
+			createParticle(Crow.position, [Crow.position[0] - Math.floor(Math.random() * 128 - 64), Crow.position[1] + Math.ceil(Math.random() * 128 - 64)], '#000', Math.ceil(Math.random() * 3), Math.ceil(Math.random() * 2));
 		}
+
+		Crow.stunnedTimeout = t + CROW_STUN_TIME;
+		playSound(SOUND_TYPE.CROW_CRASH);
+		Crow.shots = 0;
+		Crow.health--;
+		createMessage('-1♥', [Crow.position[0] - 4, Crow.position[1] - 4], '#c00');
+		if (Crow.health <= 0) {
+			winBoy(t);
+		} else {
+			showCat(t);
+		}
+		hitTimeout = t + HIT_SHAKE_TIMEOUT;
 	}
 
 	//
@@ -1350,7 +1358,6 @@
 		Cat.nextPosition = [nextPosition[0] - 6, nextPosition[1] - 10];
 		if (!Cat.position) {
 			Cat.position = Cat.nextPosition.slice();
-			createMessage('meow...', [Cat.position[0], Cat.position[1] - 4], '#ccc', true);
 		} else {
 			playSound(SOUND_TYPE.CAT_MOVEMENT);
 		}
@@ -1364,8 +1371,9 @@
 		}
 		Cat.nextAppearence = CAT_SPAWN_THRESHOLD;
 		playSound(SOUND_TYPE.CAT_APPEARS);
-
 		moveCat(t);
+
+		generateMap();
 	}
 
 	//
@@ -1373,12 +1381,12 @@
 	//
 
 	function breakCrate(crate, t) {
-		var numParticles = 60;
+		var numParticles = 80;
 		while (numParticles-- > 0) {
-			createParticle(Player.position.slice(), [Player.position[0] - Math.floor(Math.random() * 128 - 64), Player.position[1] - 16 - Math.ceil(Math.random() * 128 - 64)], '#ea0', Math.ceil(Math.random() * 3), Math.ceil(Math.random() * 4));
+			createParticle(Player.position, [Player.position[0] - Math.floor(Math.random() * 128 - 64), Player.position[1] - 16 - Math.ceil(Math.random() * 128 - 64)], (Math.random() < 0.4 ? '#330' : '#ea0'), Math.ceil(Math.random() * 3), Math.ceil(Math.random() * 4));
 		}
 		var msg = Math.random() > 0.5 ? 'My mirrors!' : 'Be careful!';
-		createMessage(msg, [Granny.position[0] + 4, Granny.position[1]], '#ccc', true);
+		createMessage(msg, [Granny.position[0] + 4, Granny.position[1]], '#fff', true);
 		playSound(SOUND_TYPE.PLAYER_CRASH);
 		Player.crateCarried = undefined;
 		crate.position = crate.startPosition.slice();
@@ -1444,7 +1452,7 @@
 		ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 	}
 
-	function drawBlockTypeAt(blockType, x, y) {
+	function drawBlockTypeAt(context, blockType, x, y) {
 		var image = null,
 			color = (Cat.position) ? 'rgb(' + Math.pow(y, 2) + ',' + Math.floor(y / 3) + ',' + Math.floor(y) + ')' : 'rgb(' + Math.floor(y / 3) + ',' + Math.floor(y) + ',' + Math.pow(y, 2) + ')'; // As default, use sky color, also as background for images that have transparency
 		if (blockType === BLOCK_TYPE.PLATFORM) {
@@ -1462,15 +1470,15 @@
 		} else if (blockType === BLOCK_TYPE.DISPENSER) {
 			image = IMAGE_MAP_DATA_NAMES.DISPENSER;
 		}
-		ctx.fillStyle = color;
-		ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+		context.fillStyle = color;
+		context.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
 		if (image !== null) {
-			drawImage(image, x, y, BLOCK_SIZE, BLOCK_SIZE);
+			drawImage(context, image, x, y, BLOCK_SIZE, BLOCK_SIZE);
 		}
 	}
 
 	function drawCat() {
-		drawImage(calculateEuclideanDistance(Cat.position, Cat.nextPosition) > 5 ? IMAGE_MAP_DATA_NAMES.CAT_MOVING : IMAGE_MAP_DATA_NAMES.CAT, Cat.position[0] - 8, Cat.position[1]);
+		drawImage(ctx, calculateEuclideanDistance(Cat.position, Cat.nextPosition) > 5 ? IMAGE_MAP_DATA_NAMES.CAT_MOVING : IMAGE_MAP_DATA_NAMES.CAT, Cat.position[0] - 8, Cat.position[1]);
 	}
 
 	function drawCrates() {
@@ -1497,19 +1505,19 @@
 		var cur, cr;
 		for (cr = 0; cr < crumbArray.length; cr++) {
 			cur = crumbArray[cr];
-			drawImage(IMAGE_MAP_DATA_NAMES.CRUMBS, cur.position[0] - 8, cur.position[1] - 8);
+			drawImage(ctx, IMAGE_MAP_DATA_NAMES.CRUMBS, cur.position[0] - 8, cur.position[1] - 8);
 		}
 
 	}
 
 	function drawGranny() {
-		drawImage(IMAGE_MAP_DATA_NAMES.GRANNY, Granny.position[0], Granny.position[1]);
+		drawImage(ctx, IMAGE_MAP_DATA_NAMES.GRANNY, Granny.position[0], Granny.position[1]);
 	}
 
 	function drawEditCursor() {
 		ctx.globalAlpha = 0.6;
 		if (selectedBlock < NUM_BLOCKS) {
-			drawBlockTypeAt('' + selectedBlock, currentMousePosition[0] - (currentMousePosition[0] % BLOCK_SIZE), currentMousePosition[1] - (currentMousePosition[1] % BLOCK_SIZE))
+			drawBlockTypeAt(ctx, '' + selectedBlock, currentMousePosition[0] - (currentMousePosition[0] % BLOCK_SIZE), currentMousePosition[1] - (currentMousePosition[1] % BLOCK_SIZE))
 			ctx.strokeStyle = '#000';
 			ctx.strokeRect(currentMousePosition[0] - (currentMousePosition[0] % BLOCK_SIZE), currentMousePosition[1] - (currentMousePosition[1] % BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE);
 		} else if (selectedBlock === GAME_ELEMENTS.PLAYER) {
@@ -1517,7 +1525,7 @@
 		} else if (selectedBlock === GAME_ELEMENTS.CROW) {
 			drawAnim(IMAGE_MAP_DATA_NAMES.CROW, currentMousePosition[0] - 8, currentMousePosition[1] - 8, 0);
 		} else if (selectedBlock === GAME_ELEMENTS.GRANNY) {
-			drawImage(IMAGE_MAP_DATA_NAMES.GRANNY, currentMousePosition[0], currentMousePosition[1]);
+			drawImage(ctx, IMAGE_MAP_DATA_NAMES.GRANNY, currentMousePosition[0], currentMousePosition[1]);
 		} else if (selectedBlock === GAME_ELEMENTS.CRATES) {
 			ctx.fillStyle = '#ea0';
 			ctx.strokeStyle = '#330';
@@ -1533,7 +1541,7 @@
 		var cur, cr;
 		for (cr = 0; cr < shotArray.length; cr++) {
 			cur = shotArray[cr];
-			drawImage(IMAGE_MAP_DATA_NAMES.SHOT, cur.position[0] - 8, cur.position[1] - 8);
+			drawImage(ctx, IMAGE_MAP_DATA_NAMES.SHOT, cur.position[0] - 8, cur.position[1] - 8);
 		}
 
 	}
@@ -1547,27 +1555,23 @@
 	}
 
 	function drawLaser() {
-		ctx.fillStyle = '#f00';
+		ctx.fillStyle = Cat.position ? '#00f' : '#f00';
 		ctx.fillRect(Granny.laserPosition[0] - 1, Granny.laserPosition[1] - 1, 2, 2);
 		ctx['beginPath']();
 		ctx['arc'](Granny.laserPosition[0], Granny.laserPosition[1], 5, 0, 360);
 		ctx['lineWidth'] = 2;
-		ctx['strokeStyle'] = '#f00';
+		ctx['strokeStyle'] = Cat.position ? '#00f' : '#f00';
 		ctx['stroke']();
 	}
 
 	function drawMap(t) {
-		var i, j, dx = 0,
+		var dx = 0,
 			dy = 0;
 		if (hitTimeout > t) {
 			dx = Math.floor(Math.random() * 8 - 4);
 			dy = Math.floor(Math.random() * 8 - 4);
 		}
-		for (i = 0; i < I; i++) {
-			for (j = 0; j < J; j++) {
-				drawBlockTypeAt(getMapAt(i, j), i * BLOCK_SIZE + dx, j * BLOCK_SIZE + dy);
-			}
-		}
+		ctx.drawImage(MapCanvas, dx, dy);
 	}
 
 	function drawMenu(t) {
@@ -1676,7 +1680,7 @@
 				secs = time % 60,
 				mins = Math.floor(time / 60);
 			if (secs < 10) secs = '0' + secs;
-			ctx.fillText('§ ' + Player.candies + '   ◼ ' + Player.crates + '   ⚙ ' + mins + ':' + secs, 50, 396);
+			ctx.fillText('§ ' + Player.candies + '   ◼ ' + Player.crates + '   ✲ ' + mins + ':' + secs, 50, 396);
 
 			// Crow's status
 			ctx.fillText('↡ ' + Crow.shots + '   ♥ ' + Crow.health, 540, 12);
@@ -1769,42 +1773,48 @@
 	}
 
 	function processEditModeInput(t, k) {
-		if (k[KEYCODES.LEFT] && !isAnyKeyPressed) { // Select previous block
-			selectedBlock = (selectedBlock + NUM_EDIT_OPTIONS - 1) % NUM_EDIT_OPTIONS;
-		} else if (k[KEYCODES.RIGHT] && !isAnyKeyPressed) { // Select next block
-			selectedBlock = (selectedBlock + 1) % NUM_EDIT_OPTIONS;
-		} else if (k[KEYCODES.CRATES] && !isAnyKeyPressed) { // Edit crates
-			try {
-				var crates = JSON.parse(prompt('Crates', JSON.stringify(Levels[selectedLevel][LEVEL_PARAMS.CRATES])));
-				if (crates instanceof Array) {
-					for (var c = 0; c < crates.length; c++) {
-						if (!typeof c === 'number') {
-							alert('Error');
+		if (!isAnyKeyPressed) {
+			if (k[KEYCODES.LEFT]) { // Select previous block
+				selectedBlock = (selectedBlock + NUM_EDIT_OPTIONS - 1) % NUM_EDIT_OPTIONS;
+			} else if (k[KEYCODES.RIGHT]) { // Select next block
+				selectedBlock = (selectedBlock + 1) % NUM_EDIT_OPTIONS;
+			} else if (k[KEYCODES.CRATES]) { // Edit crates
+				try {
+					var crates = JSON.parse(prompt('Crates', JSON.stringify(Levels[selectedLevel][LEVEL_PARAMS.CRATES])));
+					if (crates instanceof Array) {
+						for (var c = 0; c < crates.length; c++) {
+							if (!typeof c === 'number') {
+								alert('Error');
+							}
+							crates[c] = Math.max(1, Math.min(5, crates[c]));
 						}
-						crates[c] = Math.max(1, Math.min(5, crates[c]));
+						Levels[selectedLevel][LEVEL_PARAMS.CRATES] = crates;
+						resetCrates(Levels[selectedLevel]);
 					}
-					Levels[selectedLevel][LEVEL_PARAMS.CRATES] = crates;
-					resetCrates(Levels[selectedLevel]);
+				} catch (e) {
+					alert('Error');
 				}
-			} catch (e) {
-				alert('Error');
+				k[KEYCODES.CRATES] = undefined;
+			} else if (k[KEYCODES.NAME]) { // Edit level
+				var n = prompt('Name', Levels[selectedLevel][LEVEL_PARAMS.NAME]);
+				if (n) {
+					Levels[selectedLevel][LEVEL_PARAMS.NAME] = n;
+				}
+				k[KEYCODES.NAME] = false;
+			} else if (k[KEYCODES.TIME]) { // Edit game time
+				var t = +prompt('Time', Levels[selectedLevel][LEVEL_PARAMS.TIME]);
+				if (!isNaN(t) && t > 0) {
+					Levels[selectedLevel][LEVEL_PARAMS.TIME] = t;
+				}
+				k[KEYCODES.TIME] = false;
 			}
-			k[KEYCODES.CRATES] = undefined;
-		} else if (k[KEYCODES.NAME] && !isAnyKeyPressed) { // Edit level
-			var n = prompt('Name', Levels[selectedLevel][LEVEL_PARAMS.NAME]);
-			if (n) {
-				Levels[selectedLevel][LEVEL_PARAMS.NAME] = n;
+			// Touch controls for crow
+			if (isMobileDevice && k[KEYCODES.DELETE] && !isAnyKeyPressed) {
+				crowShoot();
 			}
-			k[KEYCODES.NAME] = false;
-		} else if (k[KEYCODES.TIME] && !isAnyKeyPressed) { // Edit game time
-			var t = +prompt('Time', Levels[selectedLevel][LEVEL_PARAMS.TIME]);
-			if (!isNaN(t) && t > 0) {
-				Levels[selectedLevel][LEVEL_PARAMS.TIME] = t;
+			if (isMobileDevice && k[KEYCODES.EXPORT_LEVEL] && !isAnyKeyPressed) {
+				crowEat();
 			}
-			k[KEYCODES.TIME] = false;
-		} else if (k[KEYCODES.EAT] && !isAnyKeyPressed) { // Exit from edit mode
-			exitAndSave();
-			k[KEYCODES.EAT] = undefined;
 		}
 	}
 
@@ -1859,7 +1869,7 @@
 			var jsonLevel = prompt('JSON', JSON.stringify(Levels[selectedLevel]));
 			// Need to do this because the prompt hangs the keycode pressed
 			k[KEYCODES.EXPORT_LEVEL] = undefined;
-		} else if (k[KEYCODES.IMPORT_LEVEL]) { // Import a level from its JSON
+		} else if (k[KEYCODES.INTERACT]) { // Import a level from its JSON
 			var jsonLevel = prompt('JSON');
 			if (jsonLevel) {
 				try {
@@ -1869,7 +1879,7 @@
 				}
 			}
 			// Need to do this because the prompt hangs the keycode pressed
-			k[KEYCODES.IMPORT_LEVEL] = undefined;
+			k[KEYCODES.INTERACT] = undefined;
 		}
 	}
 
@@ -1924,6 +1934,13 @@
 		} else if (!k[KEYCODES.INTERACT] && !k[KEYCODES.EAT] && Player.isInteracting) {
 			Player.isInteracting = false;
 		}
+		// Touch controls for crow
+		if (isMobileDevice && k[KEYCODES.DELETE] && !isAnyKeyPressed) {
+			crowShoot();
+		}
+		if (isMobileDevice && k[KEYCODES.EXPORT_LEVEL] && !isAnyKeyPressed) {
+			crowEat();
+		}
 	}
 
 	//
@@ -1936,11 +1953,13 @@
 			if (Player.crateCarried !== undefined && calculateEuclideanDistance(Player.position, Cat.position) < 15) {
 				breakCrate(crateArray[Player.crateCarried], t);
 				Cat.position = null;
+				generateMap();
 				return;
 			}
-			if (calculateEuclideanDistance(Crow.position, Cat.position) < 15) {
+			if (Crow.stunnedTimeout < t && calculateEuclideanDistance(Crow.position, Cat.position) < 15) {
 				stunCrow(t);
 				Cat.position = null;
+				generateMap();
 				return;
 			}
 			updateMovingPosition(Cat, CAT_MOVEMENT_THRESHOLD, CAT_SPEED);
@@ -1963,7 +1982,7 @@
 		if (updateMovingPosition(Crow, CROW_MOVEMENT_THRESHOLD, CROW_SPEED)) {
 			var numParticles = 3;
 			while (numParticles-- > 0) {
-				createParticle(Crow.position.slice(), [Crow.nextPosition[0], Crow.nextPosition[1]], '#000', Math.ceil(Math.random() * 2), Math.ceil(Math.random() * 3));
+				createParticle(Crow.position, Crow.nextPosition, '#000', Math.ceil(Math.random() * 2), Math.ceil(Math.random() * 3));
 			}
 		}
 
@@ -1984,7 +2003,7 @@
 		}
 
 		// Stun Crow if it hits roof, player's zone or laser
-		if ((isCrowInPlayerDamageZone() || isAABBCollidingWithBlock(Crow.position[0], Crow.position[1], 0, 0, BLOCK_TYPE.ROOF) || (calculateEuclideanDistance(Granny.laserPosition, Crow.position) < LASER_MOVEMENT_THRESHOLD))) {
+		if (Crow.stunnedTimeout < t && (isCrowInPlayerDamageZone() || isAABBCollidingWithBlock(Crow.position[0], Crow.position[1], 0, 0, BLOCK_TYPE.ROOF) || (calculateEuclideanDistance(Granny.laserPosition, Crow.position) < LASER_MOVEMENT_THRESHOLD))) {
 			stunCrow(t);
 		}
 	}
@@ -2146,11 +2165,12 @@
 		imCtx.translate(ImageMap.naturalWidth, 0);
 		imCtx.scale(-1, 1);
 		imCtx.drawImage(ImageMap, 0, 0);
+		start();
 	};
 	ImageMap.src = 'imgmap.png';
 
-	MenuCanvas.width = CANVAS_WIDTH;
-	MenuCanvas.height = CANVAS_HEIGHT;
+	MenuCanvas.width = MapCanvas.width = CANVAS_WIDTH;
+	MenuCanvas.height = MapCanvas.height = CANVAS_HEIGHT;
 
 	//
 	// AUDIO
@@ -2191,7 +2211,8 @@
 
 		// Start the game if the game canvas is clicked (instead of
 		// clicking on the crow, like on desktop)
-		function touchstart() {
+		function touchstart(evt) {
+			evt.preventDefault();
 			if (Game.state === GAME_STATE.MENU) {
 				startGame();
 			}
@@ -2199,52 +2220,16 @@
 		addEvent(canvas, touchStartEvent, touchstart);
 
 		// Bind the overlay buttons.
-		// Some of them require custom handlers, since their behavior
-		// depends on which game state we are in.
-		bindButtonToCustomFunction('s', function () {
-			if (Game.state === GAME_STATE.MENU) {
-				KeyHandler.onKeyDown({
-					'keyCode': KEYCODES.DELETE
-				});
-			} else {
-				crowShoot();
-			}
-		}, function () {
-			KeyHandler.onKeyUp({
-				'keyCode': KEYCODES.DELETE
-			});
-		});
-
-		bindButtonToCustomFunction('a', function (evt) {
-			if (Game.state === GAME_STATE.MENU) {
-				KeyHandler.onKeyDown({
-					'keyCode': KEYCODES.EXPORT_LEVEL
-				});
-			} else {
-				crowEat(evt);
-			}
-		}, function () {
-			KeyHandler.onKeyUp({
-				'keyCode': KEYCODES.EXPORT_LEVEL
-			});
-		});
-
-		bindButtonToCustomFunction('i', function () {
-			KeyHandler.onKeyDown({
-				'keyCode': (Game.state === GAME_STATE.MENU) ? KEYCODES.IMPORT_LEVEL : KEYCODES.INTERACT
-			});
-		}, function () {
-			KeyHandler.onKeyUp({
-				'keyCode': (Game.state === GAME_STATE.MENU) ? KEYCODES.IMPORT_LEVEL : KEYCODES.INTERACT
-			});
-		});
-
 		bindButtonToKeyCode('x', KEYCODES.MENU);
 		bindButtonToKeyCode('e', KEYCODES.EAT);
 		bindButtonToKeyCode('l', KEYCODES.LEFT);
 		bindButtonToKeyCode('u', KEYCODES.UP);
 		bindButtonToKeyCode('r', KEYCODES.RIGHT);
 		bindButtonToKeyCode('d', KEYCODES.DOWN);
+		bindButtonToKeyCode('i', KEYCODES.INTERACT);
+
+		bindButtonToKeyCode('s', KEYCODES.DELETE);
+		bindButtonToKeyCode('a', KEYCODES.EXPORT_LEVEL);
 
 		bindButtonToKeyCode('c', KEYCODES.CRATES);
 		bindButtonToKeyCode('t', KEYCODES.TIME);
@@ -2288,36 +2273,34 @@
 		});
 
 		addEvent(canvas, 'mousemove', function (evt) {
-			var tempCurMousePos = getCanvasRelativeCoords(evt);
-			currentMousePosition = [tempCurMousePos[0], tempCurMousePos[1]];
+			currentMousePosition = getCanvasRelativeCoords(evt['clientX'], evt['clientY']);
 			if (Game.state === GAME_STATE.PLAYING) { // Update the crow's position
-				var newCrowPosition = getCanvasRelativeCoords(evt);
-				Crow.nextPosition = newCrowPosition.slice();
+				Crow.nextPosition = currentMousePosition.slice();
 			} else if ((Game.state === GAME_STATE.EDIT) && isLeftMouseButtonDown) {
 				crowShoot();
 			}
 		});
 	}
 
-	//
-	// GAME
-	//
-
-	// Load the first level
-	resetGame(selectedLevel);
-
-
-
 	/*////////////////////////////////////////
 	 *
 	 * Start the game loop
 	 *
 	 */ ///////////////////////////////////////
-	(function gameLoop(t) {
+
+	function gameLoop(t) {
 		processInput(t);
 		update(t);
 		render(t);
 
 		window.requestAnimationFrame(gameLoop);
-	})();
+	}
+
+	function start() {
+		// Called inside ImageMap.onload
+
+		// Load the first level
+		resetGame(selectedLevel);
+		gameLoop(1);
+	}
 })();
