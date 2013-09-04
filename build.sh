@@ -3,7 +3,8 @@
 BUILDFOLDER=build
 PACKAGE_FILE_NAME=$BUILDFOLDER/package.zip
 MAXSIZE=13312
-OUTPUT_WRAPPER='/* MirrorDelivery 1.4.2 http://github.com/4lbertoC/mirrordelivery */%output%'
+# OUTPUT_WRAPPER='/* MirrorDelivery 1.4.2 http://github.com/4lbertoC/mirrordelivery */%output%'
+OUTPUT_WRAPPER='/* 1.4.4 */%output%'
 
 echo "Building Client"
 rm -rf $BUILDFOLDER

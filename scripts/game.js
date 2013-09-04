@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////
 //
-// MIRROR DELIVERY 1.4.3
+// MIRROR DELIVERY 1.4.4
 //
 // A 13kB game by Alberto Congiu
 //
@@ -769,8 +769,8 @@
 			'0000000000000000000000000000000000000011' +
 			'0550000000000000000000000033330000000000' +
 			'0550000000000000000200000000000000000000' +
-			'1111110010011001111201110011110000000000' +
-			'0000000000033000000000000000001000000000' +
+			'1111110011010101111201110011110000000000' +
+			'0000000000030300000000000000001000000000' +
 			'0000000000000000070000000000000100000000' +
 			'0001110000000000111111000000000010020000' +
 			'0020000000000000333333300003333301121000' +
@@ -1953,12 +1953,14 @@
 			if (Player.crateCarried !== undefined && calculateEuclideanDistance(Player.position, Cat.position) < 15) {
 				breakCrate(crateArray[Player.crateCarried], t);
 				Cat.position = null;
+				Granny.laserSpeed = 1;
 				generateMap();
 				return;
 			}
 			if (Crow.stunnedTimeout < t && calculateEuclideanDistance(Crow.position, Cat.position) < 15) {
 				stunCrow(t);
 				Cat.position = null;
+				Granny.laserSpeed = 1;
 				generateMap();
 				return;
 			}
