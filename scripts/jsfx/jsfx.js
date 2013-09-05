@@ -140,7 +140,7 @@ var jsfx = {};
             {
                 from: _ss,
                 to: 1.0,
-                time: params["SustainTime"]
+            time: params["SustainTime"]
             },
             {
                 from: 1.0,
