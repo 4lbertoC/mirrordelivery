@@ -18,6 +18,17 @@ ready to knock down any bird whose feather color is darker than #1f261c.
 
 
 
+### TESTED BROWSERS
+
+Chrome 29 (Windows 7, Windows 8 on a Tablet PC, Mac OS X, Android 4)
+Firefox 23
+Opera 16
+Safari 6
+IE 10
+iOS 6
+
+
+
 ### MECHANICS
 
 #### Luke
@@ -153,8 +164,6 @@ libraries.
 I dropped this feature and now I just show the JSON inside a prompt dialog.
 
 #### Compatibility
-I tested the game with Chrome (on Mac OS, Windows and Android 4), Firefox,
-IE10 (on a Windows 7 desktop and a Windows 8 tablet) and Safari on iPad 2.
 On touch enabled devices, I show an overlay with the buttons to control both
 Luke and the Crow. This works as long as the device has multitouch support.
 
