@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////
 //
-// MIRROR DELIVERY 1.4.4
+// MIRROR DELIVERY 1.4.5
 //
 // A 13kB game by Alberto Congiu
 //
@@ -297,7 +297,8 @@
 			EXPORT_LEVEL: 74,
 			CRATES: 67,
 			NAME: 78,
-			TIME: 84
+			TIME: 84,
+			IMPORT_LEVEL: 73
 		},
 
 		//
@@ -312,6 +313,7 @@
 		HIT_SHAKE_TIMEOUT = 500,
 		MESSAGE_TIMEOUT = 1500,
 		PARTICLE_DISPLAY_TIMEOUT = 1500,
+		INTERACTION_THRESHOLD = 15,
 
 		//
 		// MAP & EDITOR
@@ -471,10 +473,10 @@
 		touchMoveEvent = window['navigator']['msMaxTouchPoints'] ? 'MSPointerMove' : 'touchmove';
 
 
-		var hiddenButtons = document.getElementsByClassName('btn');
+		var hiddenButtons = document.getElementsByClassName('b');
 		for (var b = 0; b < hiddenButtons.length; b++) {
-			if (hiddenButtons[b].getAttribute('class').indexOf('edit') === -1) {
-				hiddenButtons[b].setAttribute('class', 'btn');
+			if (hiddenButtons[b].getAttribute('class').indexOf('e') === -1) {
+				hiddenButtons[b].setAttribute('class', 'b');
 			}
 		}
 	}
@@ -1063,8 +1065,8 @@
 	function setGameState(state) {
 		Game.state = state;
 		if (isMobileDevice) {
-			var editButtons = document['getElementsByClassName']('edit'),
-				className = 'btn edit' + (state === GAME_STATE.EDIT ? '' : ' h');
+			var editButtons = document['getElementsByClassName']('e'),
+				className = 'b e' + (state === GAME_STATE.EDIT ? '' : ' h');
 			for (var eb = 0; eb < editButtons.length; eb++) {
 				editButtons[eb].setAttribute('class', className);
 			}
@@ -1100,10 +1102,6 @@
 	//
 	// MAP
 	//
-
-	function arePositionsInSameBlock(pos1, pos2) {
-		return (Math.round(pos1[0] / BLOCK_SIZE) === Math.round(pos2[0] / BLOCK_SIZE)) && (Math.round(pos1[1] / BLOCK_SIZE) === Math.round(pos2[1] / BLOCK_SIZE));
-	}
 
 	function calculateAngle(origin, destination) {
 		return Math.atan((destination[1] - origin[1]) / (destination[0] - origin[0]));
@@ -1209,7 +1207,7 @@
 			var obj,
 				c;
 			for (c = 0; c < crateArray.length; c++) {
-				if (arePositionsInSameBlock(Player.position, crateArray[c].position)) {
+				if (calculateEuclideanDistance(Player.position, crateArray[c].position) < INTERACTION_THRESHOLD) {
 					Player.crateCarried = c;
 					playSound(SOUND_TYPE.CRATE_PICKUP);
 					return;
@@ -1264,7 +1262,7 @@
 			} else {
 				var c;
 				for (c = 0; c < crumbArray.length; c++) {
-					if (arePositionsInSameBlock(cmp, crumbArray[c].position)) {
+					if (calculateEuclideanDistance(cmp, crumbArray[c].position) < INTERACTION_THRESHOLD) {
 						Crow.shots = Math.max(Crow.shots, CRUMBS_SHOTS);
 						createMessage('+' + (Crow.shots - oldShotsCount) + '↡', [Crow.position[0] - 4, Crow.position[1] - 4], '#0c0');
 						playSound(SOUND_TYPE.CROW_EAT);
@@ -1869,7 +1867,7 @@
 			var jsonLevel = prompt('JSON', JSON.stringify(Levels[selectedLevel]));
 			// Need to do this because the prompt hangs the keycode pressed
 			k[KEYCODES.EXPORT_LEVEL] = undefined;
-		} else if (k[KEYCODES.INTERACT]) { // Import a level from its JSON
+		} else if (k[KEYCODES.IMPORT_LEVEL] || (isMobileDevice && k[KEYCODES.INTERACT])) { // Import a level from its JSON
 			var jsonLevel = prompt('JSON');
 			if (jsonLevel) {
 				try {
@@ -1880,6 +1878,7 @@
 			}
 			// Need to do this because the prompt hangs the keycode pressed
 			k[KEYCODES.INTERACT] = undefined;
+			k[KEYCODES.IMPORT_LEVEL] = undefined;
 		}
 	}
 
@@ -1990,7 +1989,7 @@
 		for (s = 0; s < shotArray.length; s++) {
 			var curShot = shotArray[s];
 			curShot.position[1] += curShot.speed;
-			if (arePositionsInSameBlock(Player.position, curShot.position) && Player.crateCarried !== undefined) {
+			if (calculateEuclideanDistance(Player.position, curShot.position) < INTERACTION_THRESHOLD && Player.crateCarried !== undefined) {
 				breakCrate(crateArray[Player.crateCarried], t);
 				shotArray.splice(s, 1);
 				s--;
