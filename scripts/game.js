@@ -828,6 +828,14 @@
 		}
 	}
 
+	function drawCircle(context, position, radius, color) {
+		context['beginPath']();
+		context['arc'](position, radius, 0, 360);
+		context['lineWidth'] = 2;
+		context['strokeStyle'] = color;
+		context['stroke']();
+	}
+
 	function drawImage(context, name, x, y, w, h) {
 		var source = IMAGE_MAP_DATA[name].frame,
 			destinationOffset = IMAGE_MAP_DATA[name].spriteSourceSize;
@@ -1149,7 +1157,7 @@
 
 	function setMapAtXY(value, x, y) {
 		var idx = (I * Math.floor(y / BLOCK_SIZE) + Math.floor(x / BLOCK_SIZE));
-		if (idx < Map.length) {
+		if (idx < Map.length - I && idx > I) {
 			Map[idx] = value;
 		}
 		generateMap();
@@ -1555,11 +1563,7 @@
 	function drawLaser() {
 		ctx.fillStyle = Cat.position ? '#00f' : '#f00';
 		ctx.fillRect(Granny.laserPosition[0] - 1, Granny.laserPosition[1] - 1, 2, 2);
-		ctx['beginPath']();
-		ctx['arc'](Granny.laserPosition[0], Granny.laserPosition[1], 5, 0, 360);
-		ctx['lineWidth'] = 2;
-		ctx['strokeStyle'] = Cat.position ? '#00f' : '#f00';
-		ctx['stroke']();
+		drawCircle(Granny.laserPosition, 5, Cat.position ? '#00f' : '#f00');
 	}
 
 	function drawMap(t) {
@@ -1602,11 +1606,7 @@
 		}
 
 		// Draw the circle around the crow
-		menuCanvasContext['beginPath']();
-		menuCanvasContext['arc'](Crow.position[0], Crow.position[1], 16, 0, 360);
-		menuCanvasContext['lineWidth'] = 2;
-		menuCanvasContext['strokeStyle'] = '#fff';
-		menuCanvasContext['stroke']();
+		drawCircle(Crow.position, 16, '#fff');
 
 		ctx.drawImage(MenuCanvas, 0, 0);
 	}
@@ -1662,11 +1662,7 @@
 		}
 
 		if ((calculatePlayerSpeed() * PLAYER_RADIUS_MULTIPLIER + PLAYER_WARNING_RADIUS) >= calculateEuclideanDistance(Crow.position, Player.position)) {
-			ctx['beginPath']();
-			ctx['arc'](Player.position[0], Player.position[1], getDamageRadius(), 0, 360);
-			ctx['lineWidth'] = 2;
-			ctx['strokeStyle'] = '#f00';
-			ctx['stroke']();
+			drawCircle(Player.position, getDamageRadius(), '#f00');
 		}
 	}
 
