@@ -20,17 +20,12 @@ ready to knock down any bird whose feather color is darker than #1f261c.
 
 ### TESTED BROWSERS
 
-Chrome 29 (Windows 7, Windows 8 on a Tablet PC, Mac OS X, Android 4)
-
-Firefox 23
-
-Opera 16
-
-Safari 6
-
-IE 10
-
-iOS 6
+- Chrome 29 (Windows 7, Windows 8 on a Tablet PC, Mac OS X, Android 4)
+- Firefox 23
+- Opera 16
+- Safari 6
+- IE 10
+- iOS 6
 
 
 
