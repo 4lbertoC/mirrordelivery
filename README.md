@@ -151,6 +151,10 @@ mirrored coordinates.
 The game is tile-based, but the map is drawn only once on level load on a dedicated
 canvas, to improve performance on mobile devices.
 
+#### Audio
+I use jsfx library to do all the audio in the game. The single sounds are generated
+at runtime, including the music notes.
+
 #### Level Editor
 Each level of the game can be edited and shared by exporting and importing their JSON.
 Cusotm Levels are persisted to the local storage.
