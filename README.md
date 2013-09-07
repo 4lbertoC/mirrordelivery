@@ -10,7 +10,7 @@ Mirror Delivery is a competitive HTML5 game for 2 players. They use the
 same machine, but different controls (keyboard vs mouse on desktop or
 separate button groups on a touch enabled device)
 
-*Player 1* interprets **Luke**, a delivery boy who has to deliver some crates full of of mirrors to an old lady (from now on called "Granny").
+*Player 1* interprets **Luke**, a delivery boy who has to deliver some crates full of mirrors to an old lady (from now on called "Granny").
 
 *Player 2* plays the **Crow**, an animal that enjoys annoying the delivery boys
 that pass nearby. Unfortunately for him, Granny hates crows. Her shotgun is
