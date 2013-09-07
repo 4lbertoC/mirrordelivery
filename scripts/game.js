@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////
 //
-// MIRROR DELIVERY 1.4.5
+// MIRROR DELIVERY 1.4.6
 //
 // A 13kB game by Alberto Congiu
 //
@@ -1665,7 +1665,7 @@
 			ctx['beginPath']();
 			ctx['arc'](Player.position[0], Player.position[1], getDamageRadius(), 0, 360);
 			ctx['lineWidth'] = 2;
-			ctx['strokeStyle'] = '#f00';
+			ctx['strokeStyle'] = Cat.position ? '#00f' : '#f00';
 			ctx['stroke']();
 		}
 	}
@@ -1735,7 +1735,7 @@
 			var touchPosition, tempTp;
 			if (touchPositions['clientX']) {
 				touchPosition = touchPositions;
-			} else if (touchPositions instanceof TouchList) {
+			} else if (touchPositions && touchPositions[0]) {
 				for (var tp = 0; tp < touchPositions.length; tp++) {
 					tempTp = touchPositions[tp];
 					if (tempTp.clientX >= analogPadDivPosition.left && tempTp.clientX < (analogPadDivPosition.left + analogPadDivPosition.width) &&
