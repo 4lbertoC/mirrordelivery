@@ -55,7 +55,7 @@ If he finds some delicious candy crumbs left on the ground, it can eat them and
 instantly have five shots.
 The Crow has to be careful because he is not the only hunter. The Granny hates
 him and her shotgun is a real danger. She is very slow at aiming, but doesn't
-miss a shot. To avoid being shot, the Crow can hide inside its nest.
+miss a shot. To avoid to attract attention, the Crow can hide inside its nest.
 It also has to be careful not to fly over roofs or too near to Luke, as he can
 reach it too!
 When the Crow is hit, it loses all his shots, and it's stunned for five seconds,
@@ -121,7 +121,7 @@ I decided to sacrifice cleanliness and OO structure to have instead more feature
 on the game.
 There are no classes, but instead a lot of function definitions.
 Since the algorithm used by zip compression tends to optimize repetitive chunks
-of data, some of the functions are not refactored to gain some (preciousss) bytes.
+of data, some of the functions are not refactored in order to gain some (preciousss) bytes.
 This has the disadvantage that the unpacked code is bigger, and the game slower to
 load. And, obviously, it's a lot more painful to read and understand (sorry).
 
@@ -148,12 +148,12 @@ To draw mirrored images, like Luke going left, I create during initialization
 a new canvas in which I draw the mirrored map, and then use this map with also
 mirrored coordinates.
 
-The game is tile-based, and everything is redrawn entirely at each cycle on the
-canvas (I preferred to save bytes for something else).
+The game is tile-based, but the map is drawn only once on level load on a dedicated
+canvas, to improve performance on mobile devices.
 
 #### Level Editor
-Each level of the game can be edited and shared. Cusotm Levels are persisted to the
-local storage.
+Each level of the game can be edited and shared by exporting and importing their JSON.
+Cusotm Levels are persisted to the local storage.
 
 #### Server
 I made a test with some server APIs to push your custom Levels on the cloud and
@@ -170,8 +170,8 @@ Luke and the Crow. This works as long as the device has multitouch support.
 The code is divided into:
 
 - Constants
-- Variables
 - Helper functions (cross-browser issues, device detection)
+- Variables
 - Game mechanics functions
 - Game loop functions
 
@@ -181,7 +181,8 @@ component of the game (graphics, audio, input, etc...)
 #### Game loop
 The game loop uses requestAnimationFrame, and is divided in the three phases of
 input processing, state update and rendering. You can find it at the bottom of the
-file, and that's basically the entry point to the entire code.
+file. The entry point to the entire code is the function start() that is called
+inside the onload callback of the image file.
 
 #### Build
 To build the package, just run `build.sh`
