@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////
 //
-// MIRROR DELIVERY 1.4.7
+// MIRROR DELIVERY 1.4.8
 //
 // A 13kB game by Alberto Congiu
 //
@@ -1230,6 +1230,10 @@
 					winBoy(t);
 				} else {
 					playSound(SOUND_TYPE.CRATE_DELIVERY);
+					var numParticles = 60;
+					while (numParticles-- > 0) {
+						createParticle(Player.position, [Player.position[0] - Math.floor(Math.random() * 128 - 64), Player.position[1] + Math.ceil(Math.random() * 128 - 64)], Math.random() < 0.5 ? '#f00' : '#00f', Math.ceil(Math.random() * 3), Math.ceil(Math.random() * 5));
+					}
 				}
 			}
 		}
@@ -1253,8 +1257,7 @@
 		if (Game.state === GAME_STATE.EDIT) {
 			isToggleDrawOn = !isToggleDrawOn;
 		} else if (Game.state === GAME_STATE.PLAYING && Crow.stunnedTimeout < currentTime) {
-			var cmp = getCanvasRelativeCoords(currentMousePosition[0], currentMousePosition[1]),
-				oldShotsCount = Crow.shots;
+			var oldShotsCount = Crow.shots;
 			if (isCrowOnBlock(BLOCK_TYPE.NEST) && Crow.shots < MAX_NEST_SHOTS) {
 				playSound(SOUND_TYPE.CROW_EAT);
 				Crow.shots++;
@@ -1262,7 +1265,7 @@
 			} else {
 				var c;
 				for (c = 0; c < crumbArray.length; c++) {
-					if (calculateEuclideanDistance(cmp, crumbArray[c].position) < INTERACTION_THRESHOLD) {
+					if (calculateEuclideanDistance(Crow.position, crumbArray[c].position) < INTERACTION_THRESHOLD) {
 						Crow.shots = Math.max(Crow.shots, CRUMBS_SHOTS);
 						createMessage('+' + (Crow.shots - oldShotsCount) + '↡', [Crow.position[0] - 4, Crow.position[1] - 4], '#0c0');
 						playSound(SOUND_TYPE.CROW_EAT);
