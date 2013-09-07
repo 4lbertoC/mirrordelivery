@@ -130,13 +130,13 @@ of ~10bytes!), and sometimes cutting away pieces of code had the result of havin
 a bigger final package.
 
 #### Libraries
-The only external library that I use is JSFX to dynamically create sounds.
+The only external library that I use is [jsfx](https://github.com/egonelbre/jsfx) to dynamically create sounds.
 I have modified and optimized it for advanced minification.
 
 #### Minification
 To minify the code I use [Closure Compiler](https://developers.google.com/closure/compiler/)
 
-I use externs for jsfx, otherwise the Compiler would complain that it doesn't
+I use externs for [jsfx](https://github.com/egonelbre/jsfx), otherwise the Compiler would complain that it doesn't
 find some symbols.
 
 #### Graphics
@@ -152,7 +152,7 @@ The game is tile-based, but the map is drawn only once on level load on a dedica
 canvas, to improve performance on mobile devices.
 
 #### Audio
-I use jsfx library to do all the audio in the game. The single sounds are generated
+I use [jsfx](https://github.com/egonelbre/jsfx) library to do all the audio in the game. The single sounds are generated
 at runtime, including the music notes.
 
 #### Level Editor
